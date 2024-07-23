@@ -853,6 +853,11 @@
   },
   {
     "inputs": [],
+    "name": "AlreadyInitialized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "BadProposal",
     "type": "error"
   },
