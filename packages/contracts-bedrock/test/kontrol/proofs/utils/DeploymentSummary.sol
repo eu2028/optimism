@@ -15,7 +15,7 @@ contract DeploymentSummary is DeploymentSummaryCode {
     address internal constant addressManagerAddress = 0x50EEf481cae4250d252Ae577A09bF514f224C6C4;
     address internal constant anchorStateRegistryAddress = 0xE2a80256d1dAFe06683F231F8e9561639Aa0e9b9;
     address internal constant anchorStateRegistryProxyAddress = 0xd6EAF4c146261653EE059077B78ED088Add54309;
-    address internal constant delayedWETHAddress = 0x49BBFf1629824A1e7993Ab5c17AFa45D24AB28c9;
+    address internal constant delayedWETHAddress = 0x90b505357aFad15A1fb8F1098B3295b7cfac1c24;
     address internal constant delayedWETHProxyAddress = 0xEF179756ea6525AFade217cA5aB0b1b5CfE0fd92;
     address internal constant disputeGameFactoryAddress = 0x20B168142354Cee65a32f6D8cf3033E592299765;
     address internal constant disputeGameFactoryProxyAddress = 0x5207CfA0166E8de0FCdFd78B4d17b68587bE306d;
@@ -27,13 +27,13 @@ contract DeploymentSummary is DeploymentSummaryCode {
     address internal constant l1StandardBridgeProxyAddress = 0x20A42a5a785622c6Ba2576B2D6e924aA82BFA11D;
     address internal constant l2OutputOracleAddress = 0x19652082F846171168Daf378C4fD3ee85a0D4A60;
     address internal constant l2OutputOracleProxyAddress = 0x39Af23E00F1e662025aA01b0cEdA19542B78DF99;
-    address internal constant mipsAddress = 0xB3A0348310a0ff78E5FbDB7f14BB7d3e02d40773;
+    address internal constant mipsAddress = 0x3629E5c6FCCaA06C25aD8Fe5c9de82d7A39E9Df8;
     address internal constant optimismMintableERC20FactoryAddress = 0x39Aea2Dd53f2d01c15877aCc2791af6BDD7aD567;
     address internal constant optimismMintableERC20FactoryProxyAddress = 0xc7B87b2b892EA5C3CfF47168881FE168C00377FB;
     address internal constant optimismPortalAddress = 0xbdD90485FCbcac869D5b5752179815a3103d8131;
-    address internal constant optimismPortal2Address = 0x542e5F5d3934b6A8A8B4219cbc99D3D87a7137E1;
+    address internal constant optimismPortal2Address = 0xae5DadFc48928543f706a9E6Ce25c682aaD2b63b;
     address internal constant optimismPortalProxyAddress = 0x1c23A6d89F95ef3148BCDA8E242cAb145bf9c0E4;
-    address internal constant preimageOracleAddress = 0x3bd7E801E51d48c5d94Ea68e8B801DFFC275De75;
+    address internal constant preimageOracleAddress = 0xF8a536Ff3Ee2c4adD28f34F471A427E539e4fCb1;
     address internal constant protocolVersionsAddress = 0xfbfD64a6C0257F613feFCe050Aa30ecC3E3d7C3F;
     address internal constant protocolVersionsProxyAddress = 0x4C52a6277b1B84121b3072C0c92b6Be0b7CC10F1;
     address internal constant proxyAdminAddress = 0x62c20Aa1e0272312BC100b4e23B4DC1Ed96dD7D1;
@@ -698,7 +698,7 @@ contract DeploymentSummary is DeploymentSummaryCode {
         value = hex"000000000000000000000000000000000000000000000000000000000000000e";
         vm.store(systemOwnerSafeAddress, slot, value);
         slot = hex"360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
-        value = hex"00000000000000000000000049bbff1629824a1e7993ab5c17afa45d24ab28c9";
+        value = hex"00000000000000000000000090b505357afad15a1fb8f1098b3295b7cfac1c24";
         vm.store(delayedWETHProxyAddress, slot, value);
         slot = hex"0000000000000000000000000000000000000000000000000000000000000000";
         value = hex"0000000000000000000000000000000000000000000000000000000000000001";

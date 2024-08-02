@@ -653,6 +653,7 @@ func (g *OutputGameHelper) UploadPreimage(ctx context.Context, data *types.Preim
 	oracle := g.oracle(ctx)
 	boundOracle, err := bindings.NewPreimageOracle(oracle.Addr(), g.Client)
 	g.Require.NoError(err)
+	g.T.Logf("Uploading preimage: %x - %v - %v - %v", data.OracleKey, data.OracleKey[0], preimage.PrecompileKeyType, data.OracleKey[0] == byte(preimage.PrecompileKeyType))
 	var tx *gethtypes.Transaction
 	switch data.OracleKey[0] {
 	case byte(preimage.PrecompileKeyType):
@@ -670,7 +671,7 @@ func (g *OutputGameHelper) UploadPreimage(ctx context.Context, data *types.Preim
 	g.Require.NoError(err)
 }
 
-func (g *OutputGameHelper) oracle(ctx context.Context) *contracts.PreimageOracleContract {
+func (g *OutputGameHelper) oracle(ctx context.Context) contracts.PreimageOracleContract {
 	oracle, err := g.Game.GetOracle(ctx)
 	g.Require.NoError(err, "Failed to create oracle contract")
 	return oracle
