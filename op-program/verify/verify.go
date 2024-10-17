@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/op-program/host"
 	"github.com/ethereum-optimism/optimism/op-program/host/config"
 	"github.com/ethereum-optimism/optimism/op-service/client"
@@ -27,17 +28,17 @@ import (
 )
 
 type Runner struct {
-	l1RpcUrl    string
-	l1RpcKind   string
-	l1BeaconUrl string
-	l2RpcUrl    string
-	dataDir     string
-	network     string
-	chainCfg    *params.ChainConfig
-	l2Client    *sources.L2Client
-	logCfg      oplog.CLIConfig
-	setupLog    log.Logger
-	rollupCfg   *rollup.Config
+	l1RpcUrl     string
+	l1RpcKind    string
+	l1BeaconUrl  string
+	l2RpcUrl     string
+	dataDir      string
+	network      string
+	chainCfg     *params.ChainConfig
+	l2Client     *sources.L2Client
+	logCfg       oplog.CLIConfig
+	setupLog     log.Logger
+	rollupCfg    *rollup.Config
 }
 
 func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl string, dataDir string, network string, chainCfg *params.ChainConfig) (*Runner, error) {
@@ -52,7 +53,7 @@ func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl s
 		return nil, fmt.Errorf("dial L2 client: %w", err)
 	}
 
-	rollupCfg, err := rollup.LoadOPStackRollupConfig(chainCfg.ChainID.Uint64())
+	rollupCfg, err := chainconfig.RollupConfigByChainID(chainCfg.ChainID.Uint64())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load rollup config: %w", err)
 	}
@@ -65,17 +66,17 @@ func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl s
 	}
 
 	return &Runner{
-		l1RpcUrl:    l1RpcUrl,
-		l1RpcKind:   l1RpcKind,
-		l1BeaconUrl: l1BeaconUrl,
-		l2RpcUrl:    l2RpcUrl,
-		dataDir:     dataDir,
-		network:     network,
-		chainCfg:    chainCfg,
-		logCfg:      logCfg,
-		setupLog:    setupLog,
-		l2Client:    l2Client,
-		rollupCfg:   rollupCfg,
+		l1RpcUrl:     l1RpcUrl,
+		l1RpcKind:    l1RpcKind,
+		l1BeaconUrl:  l1BeaconUrl,
+		l2RpcUrl:     l2RpcUrl,
+		dataDir:      dataDir,
+		network:      network,
+		chainCfg:     chainCfg,
+		logCfg:       logCfg,
+		setupLog:     setupLog,
+		l2Client:     l2Client,
+		rollupCfg:    rollupCfg,
 	}, nil
 }
 
