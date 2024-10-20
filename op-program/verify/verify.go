@@ -28,17 +28,17 @@ import (
 )
 
 type Runner struct {
-	l1RpcUrl     string
-	l1RpcKind    string
-	l1BeaconUrl  string
-	l2RpcUrl     string
-	dataDir      string
-	network      string
-	chainCfg     *params.ChainConfig
-	l2Client     *sources.L2Client
-	logCfg       oplog.CLIConfig
-	setupLog     log.Logger
-	rollupCfg    *rollup.Config
+	l1RpcUrl    string
+	l1RpcKind   string
+	l1BeaconUrl string
+	l2RpcUrl    string
+	dataDir     string
+	network     string
+	chainCfg    *params.ChainConfig
+	l2Client    *sources.L2Client
+	logCfg      oplog.CLIConfig
+	setupLog    log.Logger
+	rollupCfg   *rollup.Config
 }
 
 func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl string, dataDir string, network string, chainCfg *params.ChainConfig) (*Runner, error) {
@@ -66,17 +66,17 @@ func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl s
 	}
 
 	return &Runner{
-		l1RpcUrl:     l1RpcUrl,
-		l1RpcKind:    l1RpcKind,
-		l1BeaconUrl:  l1BeaconUrl,
-		l2RpcUrl:     l2RpcUrl,
-		dataDir:      dataDir,
-		network:      network,
-		chainCfg:     chainCfg,
-		logCfg:       logCfg,
-		setupLog:     setupLog,
-		l2Client:     l2Client,
-		rollupCfg:    rollupCfg,
+		l1RpcUrl:    l1RpcUrl,
+		l1RpcKind:   l1RpcKind,
+		l1BeaconUrl: l1BeaconUrl,
+		l2RpcUrl:    l2RpcUrl,
+		dataDir:     dataDir,
+		network:     network,
+		chainCfg:    chainCfg,
+		logCfg:      logCfg,
+		setupLog:    setupLog,
+		l2Client:    l2Client,
+		rollupCfg:   rollupCfg,
 	}, nil
 }
 
