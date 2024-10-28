@@ -465,7 +465,7 @@ contract Deploy is Deployer {
                 _args: DeployUtils.encodeConstructor(abi.encodeCall(IProxy.__constructor__, (_proxyOwner)))
             })
         );
-        require(EIP1967Helper.getAdmin(address(proxy)) == _proxyOwner);
+        require(EIP1967Helper.getAdmin(address(proxy)) == _proxyOwner, "Deploy: EIP1967Proxy admin not set");
         addr_ = address(proxy);
     }
 
@@ -481,7 +481,9 @@ contract Deploy is Deployer {
                 _args: DeployUtils.encodeConstructor(abi.encodeCall(IProxy.__constructor__, (proxyAdmin)))
             })
         );
-        require(EIP1967Helper.getAdmin(address(proxy)) == proxyAdmin);
+        require(
+            EIP1967Helper.getAdmin(address(proxy)) == proxyAdmin, "Deploy: DataAvailabilityChallengeProxy admin not set"
+        );
         addr_ = address(proxy);
     }
 
