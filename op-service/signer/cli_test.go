@@ -73,6 +73,13 @@ func TestInvalidConfig(t *testing.T) {
 			},
 		},
 		{
+			name:     "MissingAddress",
+			expected: "signer endpoint and address must both be set or not set",
+			configChange: func(config *CLIConfig) {
+				config.Endpoint = "http://localhost"
+			},
+		},
+		{
 			name:     "InvalidTLSConfig",
 			expected: "all tls flags must be set if at least one is set",
 			configChange: func(config *CLIConfig) {

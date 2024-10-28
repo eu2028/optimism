@@ -40,7 +40,8 @@ func (args *BlockPayloadArgs) Check() error {
 	return nil
 }
 
-// ToSigningHash hashes
+// ToSigningHash creates a signingHash from the block payload args.
+// Uses the hashing scheme from https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/rollup-node-p2p.md#block-signatures
 func (args *BlockPayloadArgs) ToSigningHash() (common.Hash, error) {
 	if err := args.Check(); err != nil {
 		return common.Hash{}, err

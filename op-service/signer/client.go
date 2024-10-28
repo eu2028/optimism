@@ -121,7 +121,7 @@ func (s *SignerClient) SignBlockPayload(ctx context.Context, args *BlockPayloadA
 		return [65]byte{}, fmt.Errorf("opsigner_signBlockPayload failed: %w", err)
 	}
 
-	if len(result) < 65 {
+	if len(result) != 65 {
 		return [65]byte{}, fmt.Errorf("invalid signature: %s", result.String())
 	}
 
