@@ -46,7 +46,7 @@ func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBloc
 	}
 	genspec.Alloc = dump.Copy().Accounts
 	// ensure the dev accounts are not funded unintentionally
-	if hasDevAccounts, err := HasAnyDevAccounts(genspec.Alloc); err != nil {
+	if hasDevAccounts, err := RetrieveDevAccounts(genspec.Alloc); err != nil {
 		return nil, fmt.Errorf("failed to check dev accounts: %w", err)
 	} else if hasDevAccounts != config.FundDevAccounts {
 		return nil, fmt.Errorf("deploy config mismatch with allocs. Deploy config fundDevAccounts: %v, actual allocs: %v", config.FundDevAccounts, hasDevAccounts)
@@ -76,7 +76,7 @@ func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBloc
 	return genspec, nil
 }
 
-func HasAnyDevAccounts(allocs types.GenesisAlloc) (bool, error) {
+func RetrieveDevAccounts(allocs types.GenesisAlloc) (bool, error) {
 	wallet, err := hdwallet.NewFromMnemonic(testMnemonic)
 	if err != nil {
 		return false, fmt.Errorf("failed to create wallet: %w", err)
