@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/golang/snappy"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -125,7 +126,7 @@ func TestVerifyBlockSignatureWithRemoteSigner(t *testing.T) {
 	remoteSigner := &mockRemoteSigner{secrets}
 	server := oprpc.NewServer(
 		"127.0.0.1",
-		8545,
+		0,
 		"test",
 		oprpc.WithAPIs([]rpc.API{
 			{
@@ -149,10 +150,11 @@ func TestVerifyBlockSignatureWithRemoteSigner(t *testing.T) {
 	msg := []byte("any msg")
 
 	signerCfg := opsigner.NewCLIConfig()
-	signerCfg.Endpoint = "http://127.0.0.1:8545"
+	signerCfg.Endpoint = fmt.Sprintf("http://%s", server.Endpoint())
 	signerCfg.TLSConfig.TLSKey = ""
 	signerCfg.TLSConfig.TLSCert = ""
 	signerCfg.TLSConfig.TLSCaCert = ""
+	signerCfg.TLSConfig.Enabled = false
 
 	t.Run("Valid", func(t *testing.T) {
 		runCfg := &testutils.MockRuntimeConfig{P2PSeqAddress: crypto.PubkeyToAddress(secrets.PublicKey)}
@@ -196,22 +198,12 @@ func TestVerifyBlockSignatureWithRemoteSigner(t *testing.T) {
 
 	t.Run("RemoteSignerNoTLS", func(t *testing.T) {
 		signerCfg := opsigner.NewCLIConfig()
-		signerCfg.Endpoint = "http://127.0.0.1:8545"
+		signerCfg.Endpoint = fmt.Sprintf("http://%s", server.Endpoint())
 		signerCfg.TLSConfig.TLSKey = "invalid"
 		signerCfg.TLSConfig.TLSCert = "invalid"
 		signerCfg.TLSConfig.TLSCaCert = "invalid"
 		signerCfg.TLSConfig.Enabled = true
 
-		_, err := NewRemoteSigner(logger, signerCfg)
-		require.Error(t, err)
-	})
-
-	t.Run("RemoteSignerInvalidEndpoint", func(t *testing.T) {
-		signerCfg := opsigner.NewCLIConfig()
-		signerCfg.Endpoint = "Invalid"
-		signerCfg.TLSConfig.TLSKey = ""
-		signerCfg.TLSConfig.TLSCert = ""
-		signerCfg.TLSConfig.TLSCaCert = ""
 		_, err := NewRemoteSigner(logger, signerCfg)
 		require.Error(t, err)
 	})

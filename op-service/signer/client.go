@@ -125,8 +125,7 @@ func (s *SignerClient) SignBlockPayload(ctx context.Context, args *BlockPayloadA
 		return [65]byte{}, fmt.Errorf("invalid signature: %s", result.String())
 	}
 
-	var signature [65]byte
-	copy(signature[:], result)
+	signature := [65]byte(result)
 
 	return signature, nil
 }
