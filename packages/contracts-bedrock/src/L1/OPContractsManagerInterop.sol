@@ -56,7 +56,8 @@ contract OPContractsManagerInterop is OPContractsManager {
                 referenceResourceConfig,
                 chainIdToBatchInboxAddress(_input.l2ChainId),
                 opChainAddrs,
-                dependencyManager
+                dependencyManager,
+                _input.feeVaultConfigs
             )
         );
     }

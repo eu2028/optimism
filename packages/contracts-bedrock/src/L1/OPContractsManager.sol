@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { console2 as console } from "forge-std/console2.sol";
 import { Blueprint } from "src/libraries/Blueprint.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
@@ -50,6 +51,7 @@ contract OPContractsManager is ISemver {
         uint32 basefeeScalar;
         uint32 blobBasefeeScalar;
         uint256 l2ChainId;
+        ISystemConfig.FeeVaultConfigs feeVaultConfigs;
         // The correct type is AnchorStateRegistry.StartingAnchorRoot[] memory,
         // but OP Deployer does not yet support structs.
         bytes startingAnchorRoots;
@@ -455,7 +457,8 @@ contract OPContractsManager is ISemver {
                 _input.gasLimit,
                 referenceResourceConfig,
                 chainIdToBatchInboxAddress(_input.l2ChainId),
-                opChainAddrs
+                opChainAddrs,
+                _input.feeVaultConfigs
             )
         );
     }
