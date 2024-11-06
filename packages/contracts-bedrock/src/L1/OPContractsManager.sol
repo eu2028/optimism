@@ -47,24 +47,25 @@ contract OPContractsManager is ISemver {
 
     /// @notice The full set of inputs to deploy a new OP Stack chain.
     struct DeployInput {
+        // --- Inputs to SystemConfig ---
+        // Note: startingAnchorRoots and feeVaultConfigs should have the type of their corresponding
+        // structs, but op-deployer does not yet support structs.
         Roles roles;
         uint32 basefeeScalar;
         uint32 blobBasefeeScalar;
         uint256 l2ChainId;
-        ISystemConfig.FeeVaultConfigs feeVaultConfigs;
-        // The correct type is AnchorStateRegistry.StartingAnchorRoot[] memory,
-        // but OP Deployer does not yet support structs.
-        bytes startingAnchorRoots;
-        // The salt mixer is used as part of making the resulting salt unique.
-        string saltMixer;
         uint64 gasLimit;
-        // Configurable dispute game parameters.
+        bytes feeVaultConfigs;
+        // --- Inputs to the Dispute Game ---
         GameType disputeGameType;
         Claim disputeAbsolutePrestate;
         uint256 disputeMaxGameDepth;
         uint256 disputeSplitDepth;
         Duration disputeClockExtension;
         Duration disputeMaxClockDuration;
+        bytes startingAnchorRoots;
+        // The salt mixer is used as part of making the resulting salt unique.
+        string saltMixer;
     }
 
     /// @notice The full set of outputs from deploying a new OP Stack chain.
@@ -458,7 +459,7 @@ contract OPContractsManager is ISemver {
                 referenceResourceConfig,
                 chainIdToBatchInboxAddress(_input.l2ChainId),
                 opChainAddrs,
-                _input.feeVaultConfigs
+                abi.decode(_input.feeVaultConfigs, (ISystemConfig.FeeVaultConfigs))
             )
         );
     }
