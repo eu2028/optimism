@@ -146,6 +146,23 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                 optimismPortal: address(optimismPortal),
                 optimismMintableERC20Factory: address(0),
                 gasPayingToken: Constants.ETHER
+            }),
+            _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
+                baseFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                l1FeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                })
             })
         });
 
