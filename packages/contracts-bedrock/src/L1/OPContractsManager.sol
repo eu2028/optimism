@@ -41,6 +41,7 @@ contract OPContractsManager is ISemver {
         address unsafeBlockSigner;
         address proposer;
         address challenger;
+        address systemConfigFeeAdmin;
     }
 
     /// @notice The full set of inputs to deploy a new OP Stack chain.
@@ -225,7 +226,7 @@ contract OPContractsManager is ISemver {
         output.systemConfigProxy =
             ISystemConfig(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "SystemConfig"));
         output.optimismMintableERC20FactoryProxy = IOptimismMintableERC20Factory(
-            deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "OptimismMintableERC20Factory")
+            deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "L1OptimismMintableERC20Factory")
         );
         output.disputeGameFactoryProxy =
             IDisputeGameFactory(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "DisputeGameFactory"));
@@ -442,7 +443,12 @@ contract OPContractsManager is ISemver {
 
         return abi.encodeWithSelector(
             selector,
-            _input.roles.systemConfigOwner,
+            ISystemConfig.Roles({
+                owner: _input.roles.systemConfigOwner,
+                feeAdmin: _input.roles.systemConfigFeeAdmin,
+                unsafeBlockSigner: _input.roles.unsafeBlockSigner,
+                batcherHash: bytes32(uint256(uint160(_input.roles.batcher)))
+            }),
             _input.basefeeScalar,
             _input.blobBasefeeScalar,
             bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
