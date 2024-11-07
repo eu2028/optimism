@@ -221,6 +221,7 @@ func DeployL2ToL1(l1Host *script.Host, superCfg *SuperchainConfig, superDeployme
 			DisputeMaxClockDuration: cfg.DisputeMaxClockDuration,
 		},
 		SystemConfigFeeAdmin: cfg.SystemConfigFeeAdmin,
+		FeeVaultConfigs:      cfg.FeeVaultConfigs,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to deploy L2 OP chain: %w", err)

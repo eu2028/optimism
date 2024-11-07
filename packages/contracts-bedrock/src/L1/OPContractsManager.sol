@@ -181,6 +181,9 @@ contract OPContractsManager is ISemver {
     /// @notice Thrown when the starting anchor roots are not provided.
     error InvalidStartingAnchorRoots();
 
+    /// @notice Thrown when the fee vault configs are not provided.
+    error InvalidFeeVaultConfigs();
+
     // -------- Methods --------
 
     constructor(
@@ -368,6 +371,7 @@ contract OPContractsManager is ISemver {
         if (_input.roles.challenger == address(0)) revert InvalidRoleAddress("challenger");
 
         if (_input.startingAnchorRoots.length == 0) revert InvalidStartingAnchorRoots();
+        if (_input.feeVaultConfigs.length == 0) revert InvalidFeeVaultConfigs();
     }
 
     /// @notice Maps an L2 chain ID to an L1 batch inbox address as defined by the standard

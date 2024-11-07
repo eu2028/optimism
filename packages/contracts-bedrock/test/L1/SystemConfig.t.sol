@@ -892,5 +892,3 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         assertEq(systemConfig.eip1559Elasticity(), _elasticity);
     }
 }
-
-// TODO: GasBenchmarks for initialize
