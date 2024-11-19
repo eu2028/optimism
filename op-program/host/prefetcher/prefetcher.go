@@ -110,7 +110,7 @@ func (p *Prefetcher) GetPreimage(ctx context.Context, key common.Hash) ([]byte, 
 	for errors.Is(err, kvstore.ErrNotFound) && p.lastHint != "" {
 		hint := p.lastHint
 		// ignore ErrExperimentalPrefetchFailed as we will retry with the canonical source
-		if err := p.prefetch(ctx, hint); err != nil && err != ErrExperimentalPrefetchFailed {
+		if err := p.prefetch(ctx, hint); err != nil && !errors.Is(err, ErrExperimentalPrefetchFailed) {
 			return nil, fmt.Errorf("prefetch failed: %w", err)
 		}
 		pre, err = p.kvStore.Get(key)

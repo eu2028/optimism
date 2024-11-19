@@ -561,6 +561,47 @@ func TestBadHints(t *testing.T) {
 	})
 }
 
+func TestFallbackWhenExperimentalFails(t *testing.T) {
+	rng := rand.New(rand.NewSource(123))
+	node := testutils.RandomData(rng, 30)
+	hash := crypto.Keccak256Hash(node)
+
+	_, l1Source, l1BlobSource, l2Cl, kv := createPrefetcher(t)
+	l2Source := &brokenExperimentalL2Client{l2Cl, kv, node}
+	prefetcher := NewPrefetcher(testlog.Logger(t, log.LevelInfo), l1Source, l1BlobSource, l2Source, kv)
+
+	defer l2Cl.MockDebugClient.AssertExpectations(t)
+	prefetcher.Hint(l2.PayloadWitnessHint{ParentBlockHash: common.Hash{0x1}, PayloadAttributes: eth.PayloadAttributes{}}.Hint())
+
+	// first should fail, but should succeed after retry
+	prefetcher.Hint(l2.StateNodeHint(hash).Hint())
+	result, err := prefetcher.GetPreimage(context.Background(), hash)
+	require.NoError(t, err)
+	require.EqualValues(t, node, result)
+}
+
+// brokenExperimentalL2Client returns error for execution payload, but resolves node by hash properly
+type brokenExperimentalL2Client struct {
+	*l2Source
+	kv   kvstore.KV
+	node []byte
+}
+
+func (m *brokenExperimentalL2Client) ExperimentalEnabled() bool {
+	return true
+}
+
+func (m *brokenExperimentalL2Client) PayloadExecutionWitness(ctx context.Context, parentBlockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
+	return nil, ErrExperimentalPrefetchFailed
+}
+
+func (m *brokenExperimentalL2Client) NodeByHash(ctx context.Context, hash common.Hash) ([]byte, error) {
+	m.kv.Put(crypto.Keccak256Hash(m.node), m.node)
+	return m.node, nil
+}
+
+var _ L2Source = (*brokenExperimentalL2Client)(nil)
+
 func TestRetryWhenNotAvailableAfterPrefetching(t *testing.T) {
 	rng := rand.New(rand.NewSource(123))
 	node := testutils.RandomData(rng, 30)
