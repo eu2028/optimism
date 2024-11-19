@@ -147,11 +147,6 @@ func (s *RetryingL2Source) GetProof(ctx context.Context, address common.Address,
 	return s.source.GetProof(ctx, address, storage, blockTag)
 }
 
-func (s *RetryingL2Source) ExecutionWitness(ctx context.Context, blockNum uint64) (*eth.ExecutionWitness, error) {
-	// these aren't retried because they are currently experimental and can be slow
-	return s.source.ExecutionWitness(ctx, blockNum)
-}
-
 func (s *RetryingL2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
 	// these aren't retried because they are currently experimental and can be slow
 	return s.source.PayloadExecutionWitness(ctx, blockHash, payloadAttributes)

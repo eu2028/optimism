@@ -1,7 +1,6 @@
 package l2
 
 import (
-	"encoding/binary"
 	"encoding/json"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -12,14 +11,13 @@ import (
 )
 
 const (
-	HintL2BlockHeader      = "l2-block-header"
-	HintL2Transactions     = "l2-transactions"
-	HintL2Code             = "l2-code"
-	HintL2StateNode        = "l2-state-node"
-	HintL2Output           = "l2-output"
-	HintL2AccountProof     = "l2-account-proof"
-	HintL2ExecutionWitness = "l2-execution-witness"
-	HintL2PayloadWitness   = "l2-payload-witness"
+	HintL2BlockHeader    = "l2-block-header"
+	HintL2Transactions   = "l2-transactions"
+	HintL2Code           = "l2-code"
+	HintL2StateNode      = "l2-state-node"
+	HintL2Output         = "l2-output"
+	HintL2AccountProof   = "l2-account-proof"
+	HintL2PayloadWitness = "l2-payload-witness"
 )
 
 type BlockHeaderHint common.Hash
@@ -73,17 +71,6 @@ func (l AccountProofHint) Hint() string {
 	hintData := append(l.BlockHash.Bytes(), l.Address.Bytes()...)
 
 	return HintL2AccountProof + " " + hexutil.Encode(hintData)
-}
-
-type ExecutionWitnessHint uint64
-
-var _ preimage.Hint = ExecutionWitnessHint(0)
-
-func (l ExecutionWitnessHint) Hint() string {
-	var blockNumBytes [8]byte
-	binary.BigEndian.PutUint64(blockNumBytes[:], uint64(l))
-
-	return HintL2ExecutionWitness + " " + hexutil.Encode(blockNumBytes[:])
 }
 
 type PayloadWitnessHint struct {

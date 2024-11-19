@@ -105,8 +105,6 @@ func (o *OracleEngine) ForkchoiceUpdate(ctx context.Context, state *eth.Forkchoi
 }
 
 func (o *OracleEngine) NewPayload(ctx context.Context, payload *eth.ExecutionPayload, parentBeaconBlockRoot *common.Hash) (*eth.PayloadStatusV1, error) {
-	o.hinter.Hint(ExecutionWitnessHint(payload.BlockNumber))
-
 	switch method := o.rollupCfg.NewPayloadVersion(uint64(payload.Timestamp)); method {
 	case eth.NewPayloadV3:
 		return o.api.NewPayloadV3(ctx, payload, []common.Hash{}, parentBeaconBlockRoot)

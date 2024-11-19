@@ -346,10 +346,6 @@ func (m *MockL2Source) PayloadExecutionWitness(ctx context.Context, blockHash co
 	out := m.Mock.MethodCalled("PayloadExecutionWitness", blockHash, payloadAttributes)
 	return out[0].(*eth.ExecutionWitness), *out[1].(*error)
 }
-func (m *MockL2Source) ExecutionWitness(ctx context.Context, blockNum uint64) (*eth.ExecutionWitness, error) {
-	out := m.Mock.MethodCalled("ExecutionWitness", blockNum)
-	return out[0].(*eth.ExecutionWitness), *out[1].(*error)
-}
 func (m *MockL2Source) GetProof(ctx context.Context, address common.Address, storage []common.Hash, blockTag string) (*eth.AccountResult, error) {
 	out := m.Mock.MethodCalled("GetProof", address, storage, blockTag)
 	return out[0].(*eth.AccountResult), *out[1].(*error)

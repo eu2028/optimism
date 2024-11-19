@@ -65,7 +65,7 @@ func NewL2Source(ctx context.Context, logger log.Logger, config *config.Config) 
 	}
 
 	logger.Info("Connecting to experimental L2 source", "url", config.L2ExperimentalURL)
-	// debug_executionWitness calls are expensive and takes time, so we use a longer timeout
+	// debug_executePayload calls are expensive and takes time, so we use a longer timeout
 	experimentalRPC, err := client.NewRPC(ctx, logger, config.L2ExperimentalURL, client.WithDialAttempts(10), client.WithCallTimeout(5*time.Minute))
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (l *L2Source) ExperimentalEnabled() bool {
 // CodeByHash implements prefetcher.L2Source.
 func (l *L2Source) CodeByHash(ctx context.Context, hash common.Hash) ([]byte, error) {
 	if l.ExperimentalEnabled() {
-		// This means experimental source was not able to retrieve relevant information from eth_getProof or debug_executionWitness
+		// This means experimental source was not able to retrieve relevant information from eth_getProof or debug_executePayload
 		// We should fall back to the canonical source, and log a warning, and record a metric
 		l.logger.Warn("Experimental source failed to retrieve code by hash, falling back to canonical source", "hash", hash)
 	}
@@ -98,7 +98,7 @@ func (l *L2Source) CodeByHash(ctx context.Context, hash common.Hash) ([]byte, er
 // NodeByHash implements prefetcher.L2Source.
 func (l *L2Source) NodeByHash(ctx context.Context, hash common.Hash) ([]byte, error) {
 	if l.ExperimentalEnabled() {
-		// This means experimental source was not able to retrieve relevant information from eth_getProof or debug_executionWitness
+		// This means experimental source was not able to retrieve relevant information from eth_getProof or debug_executePayload
 		// We should fall back to the canonical source, and log a warning, and record a metric
 		l.logger.Warn("Experimental source failed to retrieve node by hash, falling back to canonical source", "hash", hash)
 	}
@@ -121,23 +121,7 @@ func (l *L2Source) OutputByRoot(ctx context.Context, root common.Hash) (eth.Outp
 	return l.canonicalEthClient.OutputByRoot(ctx, root)
 }
 
-// ExecutionWitness implements prefetcher.L2Source.
-func (l *L2Source) ExecutionWitness(ctx context.Context, blockNum uint64) (*eth.ExecutionWitness, error) {
-	if !l.ExperimentalEnabled() {
-		l.logger.Error("Experimental source is not enabled, cannot fetch execution witness", "blockNum", blockNum)
-		return nil, prefetcher.ErrExperimentalPrefetchDisabled
-	}
-
-	// log errors, but return standard error so we know to retry with legacy source
-	witness, err := l.experimentalClient.ExecutionWitness(ctx, blockNum)
-	if err != nil {
-		l.logger.Error("Failed to fetch execution witness from experimental source", "blockNum", blockNum, "err", err)
-		return nil, prefetcher.ErrExperimentalPrefetchFailed
-	}
-	return witness, nil
-}
-
-// ExecutionWitness implements prefetcher.L2Source.
+// PayloadExecutionWitness implements prefetcher.L2Source.
 func (l *L2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
 	if !l.ExperimentalEnabled() {
 		l.logger.Error("Experimental source is not enabled, cannot fetch execution witness", "blockHash", blockHash)

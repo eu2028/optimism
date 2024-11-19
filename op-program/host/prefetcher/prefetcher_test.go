@@ -610,10 +610,6 @@ func (m *l2Source) OutputByRoot(ctx context.Context, root common.Hash) (eth.Outp
 	return out[0].(eth.Output), *out[1].(*error)
 }
 
-func (m *l2Source) ExecutionWitness(ctx context.Context, blockNumber uint64) (*eth.ExecutionWitness, error) {
-	return nil, fmt.Errorf("ExecutionWitness not implemented in mock")
-}
-
 func (m *l2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
 	return nil, fmt.Errorf("ExecutionWitness not implemented in mock")
 }
