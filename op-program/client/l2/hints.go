@@ -83,7 +83,8 @@ var _ preimage.Hint = PayloadWitnessHint{}
 func (l PayloadWitnessHint) Hint() string {
 	marshaled, err := json.Marshal(l)
 	if err != nil {
-		return "" // TODO: what to do?
+		// should only happen if the struct is misconfigured
+		panic(err)
 	}
 
 	return HintL2PayloadWitness + " " + hexutil.Encode(marshaled)
