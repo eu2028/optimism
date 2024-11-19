@@ -315,6 +315,19 @@ func (s *EthClient) FetchReceipts(ctx context.Context, blockHash common.Hash) (e
 	return info, receipts, nil
 }
 
+func (s *EthClient) BatchFetchReceipts(ctx context.Context, blockHashes []common.Hash) ([]blockReceipts, error) {
+	batch := make([]blockTxHashes, 0)
+	for _, blockHash := range blockHashes {
+		info, txs, err := s.InfoAndTxsByHash(ctx, blockHash)
+		if err != nil {
+			return nil, fmt.Errorf("querying block: %w", err)
+		}
+		newHashes, _ := eth.TransactionsToHashes(txs), eth.ToBlockID(info)
+		batch = append(batch, blockTxHashes{info, newHashes})
+	}
+	return s.recProvider.FetchReceiptsRange(ctx, batch)
+}
+
 // ExecutionWitness fetches execution witness data for a block number.
 func (s *EthClient) ExecutionWitness(ctx context.Context, blockNum uint64) (*eth.ExecutionWitness, error) {
 	var witness *eth.ExecutionWitness

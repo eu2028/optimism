@@ -70,6 +70,8 @@ func NewRPCReceiptsFetcher(client rpcClient, log log.Logger, config RPCReceiptsC
 	}
 }
 
+// FetchReceipts creates a Batch Call for fetching receipts for the transaction hashes.
+// blockInfo is used to validate the receipt hash, and as a cache key.
 func (f *RPCReceiptsFetcher) FetchReceipts(ctx context.Context, blockInfo eth.BlockInfo, txHashes []common.Hash) (result types.Receipts, err error) {
 	m := f.PickReceiptsMethod(len(txHashes))
 	block := eth.ToBlockID(blockInfo)
@@ -110,6 +112,24 @@ func (f *RPCReceiptsFetcher) FetchReceipts(ctx context.Context, blockInfo eth.Bl
 	}
 
 	return
+}
+
+func (f *RPCReceiptsFetcher) FetchReceiptsRange(ctx context.Context, blocksAndTxs []blockTxHashes) ([]blockReceipts, error) {
+	// only use the basic method, as it supports the range call
+	recs, err := f.basic.FetchReceiptsRange(ctx, blocksAndTxs)
+	if err != nil {
+		f.OnReceiptsMethodErr(EthGetTransactionReceiptBatch, err)
+		return nil, err
+	}
+
+	for i, blockRecs := range recs {
+		block := eth.ToBlockID(blockRecs.block)
+		recHash := blockRecs.block.ReceiptHash()
+		if err = validateReceipts(block, recHash, blocksAndTxs[i].txHashes, blockRecs.receipts); err != nil {
+			return nil, err
+		}
+	}
+	return recs, nil
 }
 
 // receiptsWrapper is a decoding type util. Alchemy in particular wraps the receipts array result.

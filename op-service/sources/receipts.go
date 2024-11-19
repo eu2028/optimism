@@ -10,11 +10,25 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
+type blockTxHashes struct {
+	block    eth.BlockInfo
+	txHashes []common.Hash
+}
+type blockReceipts struct {
+	block    eth.BlockInfo
+	receipts types.Receipts
+}
+
 type ReceiptsProvider interface {
 	// FetchReceipts returns a block info and all of the receipts associated with transactions in the block.
 	// It verifies the receipt hash in the block header against the receipt hash of the fetched receipts
 	// to ensure that the execution engine did not fail to return any receipts.
 	FetchReceipts(ctx context.Context, blockInfo eth.BlockInfo, txHashes []common.Hash) (types.Receipts, error)
+
+	// FetchReceiptsRange fetches receipts for multiple blocks worth of transactions at once.
+	// It verifies the receipt hash in the block header against the receipt hash of the fetched receipts per block
+	// and returns the receipts, packaged with their respective block infos.
+	FetchReceiptsRange(ctx context.Context, blocksAndTxs []blockTxHashes) ([]blockReceipts, error)
 }
 
 // validateReceipts validates that the receipt contents are valid.
