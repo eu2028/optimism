@@ -15,6 +15,12 @@ type ReceiptsProvider interface {
 	// It verifies the receipt hash in the block header against the receipt hash of the fetched receipts
 	// to ensure that the execution engine did not fail to return any receipts.
 	FetchReceipts(ctx context.Context, blockInfo eth.BlockInfo, txHashes []common.Hash) (types.Receipts, error)
+	BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error)
+}
+
+type ReceiptsForBlock struct {
+	BlockInfo eth.BlockInfo
+	Receipts  types.Receipts
 }
 
 // validateReceipts validates that the receipt contents are valid.

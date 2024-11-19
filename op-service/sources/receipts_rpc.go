@@ -112,6 +112,143 @@ func (f *RPCReceiptsFetcher) FetchReceipts(ctx context.Context, blockInfo eth.Bl
 	return
 }
 
+// BatchFetchReceipts fetches receipts for multiple blocks and transaction hashes.
+// it selects the best RPC method, and then uses BatchCallContext to fetch all receipts at once.
+// The results are individually validated against the blockInfos provided
+func (f *RPCReceiptsFetcher) BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error) {
+	if len(blockInfos) != len(txHashes) {
+		return nil, fmt.Errorf("mismatched blockInfos and txHashes lengths: %d != %d", len(blockInfos), len(txHashes))
+	}
+	m := f.PickReceiptsMethod(len(txHashes))
+	result := make([]types.Receipts, len(blockInfos))
+	errors := make([]error, len(blockInfos))
+	var batchError error
+	switch m {
+	case EthGetTransactionReceiptBatch:
+		res, err := f.basic.BatchFetchReceipts(ctx, blockInfos, txHashes)
+		if err != nil {
+			errors = []error{err}
+		}
+		result = res
+	case AlchemyGetTransactionReceipts:
+		// create batch elems
+		tmp := make([]receiptsWrapper, len(blockInfos))
+		batchElems := make([]rpc.BatchElem, len(blockInfos))
+		for i := range blockInfos {
+			block := eth.ToBlockID(blockInfos[i])
+			batchElems[i] = rpc.BatchElem{
+				Method: "alchemy_getTransactionReceipts",
+				Args:   []any{blockHashParameter{BlockHash: block.Hash}},
+				Result: &tmp[i],
+			}
+		}
+		// execute batch
+		batchError = f.client.BatchCallContext(ctx, batchElems)
+		// load results
+		for i := range batchElems {
+			result[i] = tmp[i].Receipts
+			errors[i] = batchElems[i].Error
+		}
+	case DebugGetRawReceipts:
+		rawReceipts := make([][]hexutil.Bytes, len(blockInfos))
+		batchElems := make([]rpc.BatchElem, len(blockInfos))
+		for i := range blockInfos {
+			block := eth.ToBlockID(blockInfos[i])
+			batchElems[i] = rpc.BatchElem{
+				Method: "debug_getRawReceipts",
+				Args:   []any{block.Hash},
+				Result: &rawReceipts[i],
+			}
+		}
+		// preserve errors
+		for i := range batchElems {
+			errors[i] = batchElems[i].Error
+		}
+		batchError = f.client.BatchCallContext(ctx, batchElems)
+		for i, elem := range batchElems {
+			block := eth.ToBlockID(blockInfos[i])
+			if elem.Error == nil {
+				if len(rawReceipts[i]) == len(txHashes[i]) {
+					result[i], errors[i] = eth.DecodeRawReceipts(block, rawReceipts[i], txHashes[i])
+				} else {
+					errors[i] = fmt.Errorf("got %d raw receipts, but expected %d", len(rawReceipts), len(txHashes))
+				}
+			}
+		}
+	case ParityGetBlockReceipts:
+		// create batch elems
+		batchElems := make([]rpc.BatchElem, len(blockInfos))
+		for i := range blockInfos {
+			block := eth.ToBlockID(blockInfos[i])
+			batchElems[i] = rpc.BatchElem{
+				Method: "parity_getBlockReceipts",
+				Args:   []any{block.Hash},
+				Result: &result[i],
+			}
+		}
+		// execute batch
+		batchError = f.client.BatchCallContext(ctx, batchElems)
+		// preserve errors
+		for i := range batchElems {
+			errors[i] = batchElems[i].Error
+		}
+	case EthGetBlockReceipts:
+		// create batch elems
+		batchElems := make([]rpc.BatchElem, len(blockInfos))
+		for i := range blockInfos {
+			batchElems[i] = rpc.BatchElem{
+				Method: "eth_getBlockReceipts",
+				Args:   []any{blockInfos[i].Hash},
+				Result: &result[i],
+			}
+		}
+		// execute batch
+		batchError = f.client.BatchCallContext(ctx, batchElems)
+		// preserve errors
+		for i := range batchElems {
+			errors[i] = batchElems[i].Error
+		}
+	case ErigonGetBlockReceiptsByBlockHash:
+		// create batch elems
+		batchElems := make([]rpc.BatchElem, len(blockInfos))
+		for i := range blockInfos {
+			batchElems[i] = rpc.BatchElem{
+				Method: "erigon_getBlockReceiptsByBlockHash",
+				Args:   []any{blockInfos[i].Hash},
+				Result: &result[i],
+			}
+		}
+		// execute batch
+		batchError = f.client.BatchCallContext(ctx, batchElems)
+		// preserve errors
+		for i := range batchElems {
+			errors[i] = batchElems[i].Error
+		}
+	default:
+		errors = []error{fmt.Errorf("unknown receipt fetching method: %d", uint64(m))}
+	}
+
+	if batchError != nil {
+		f.OnReceiptsMethodErr(m, batchError)
+		return nil, batchError
+	}
+	for _, err := range errors {
+		if err != nil {
+			f.OnReceiptsMethodErr(m, err)
+			return nil, err
+		}
+	}
+
+	for i := range blockInfos {
+		block := eth.ToBlockID(blockInfos[i])
+		if err := validateReceipts(block, blockInfos[i].ReceiptHash(), txHashes[i], result[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
 // receiptsWrapper is a decoding type util. Alchemy in particular wraps the receipts array result.
 type receiptsWrapper struct {
 	Receipts []*types.Receipt `json:"receipts"`

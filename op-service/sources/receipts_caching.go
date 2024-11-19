@@ -81,6 +81,14 @@ func (p *CachingReceiptsProvider) FetchReceipts(ctx context.Context, blockInfo e
 	return r, nil
 }
 
+func (p *CachingReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error) {
+	// 1: go through the cache and pull any results that we already have
+	// 2: remove the cached results from the batch request
+	// 3: forward the remaining batch request to the inner provider
+	// 4: record each result from the inner batch call to the cache
+	panic("not implemented")
+}
+
 func (p *CachingReceiptsProvider) isInnerNil() bool {
 	return p.inner == nil
 }

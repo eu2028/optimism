@@ -2,6 +2,7 @@ package sources
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -52,6 +53,22 @@ func (f *BasicRPCReceiptsFetcher) FetchReceipts(ctx context.Context, blockInfo e
 	// call successful, remove from cache
 	f.deleteBatchCall(block.Hash)
 	return res, nil
+}
+
+// BatchFetchReceipts is inefficient for this implementation, it just calls FetchReceipts for each blockInfo.
+func (f *BasicRPCReceiptsFetcher) BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error) {
+	if len(blockInfos) != len(txHashes) {
+		return nil, fmt.Errorf("mismatched blockInfos and txHashes lengths: %d != %d", len(blockInfos), len(txHashes))
+	}
+	ret := make([]types.Receipts, len(blockInfos))
+	for i := range blockInfos {
+		recs, err := f.FetchReceipts(ctx, blockInfos[i], txHashes[i])
+		if err != nil {
+			return nil, err
+		}
+		ret[i] = recs
+	}
+	return ret, nil
 }
 
 func (f *BasicRPCReceiptsFetcher) getOrCreateBatchCall(blockHash common.Hash, txHashes []common.Hash) *receiptsBatchCall {

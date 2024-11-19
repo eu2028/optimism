@@ -23,6 +23,11 @@ func (m *mockReceiptsProvider) FetchReceipts(ctx context.Context, blockInfo eth.
 	return args.Get(0).(types.Receipts), args.Error(1)
 }
 
+func (m *mockReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error) {
+	args := m.Called(ctx, blockInfos, txHashes)
+	return args.Get(0).([]types.Receipts), args.Error(1)
+}
+
 func TestCachingReceiptsProvider_Caching(t *testing.T) {
 	block, receipts := randomRpcBlockAndReceipts(rand.New(rand.NewSource(69)), 4)
 	txHashes := receiptTxHashes(receipts)
