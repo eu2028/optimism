@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
+	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
+
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
@@ -42,9 +44,9 @@ type Intent struct {
 
 	UseInterop bool `json:"useInterop" toml:"useInterop"`
 
-	L1ContractsLocator *opcm.ArtifactsLocator `json:"l1ContractsLocator" toml:"l1ContractsLocator"`
+	L1ContractsLocator *artifacts.Locator `json:"l1ContractsLocator" toml:"l1ContractsLocator"`
 
-	L2ContractsLocator *opcm.ArtifactsLocator `json:"l2ContractsLocator" toml:"l2ContractsLocator"`
+	L2ContractsLocator *artifacts.Locator `json:"l2ContractsLocator" toml:"l2ContractsLocator"`
 
 	Chains []*ChainIntent `json:"chains" toml:"chains"`
 
@@ -65,11 +67,11 @@ func (c *Intent) Check() error {
 	}
 
 	if c.L1ContractsLocator == nil {
-		c.L1ContractsLocator = opcm.DefaultL1ContractsLocator
+		c.L1ContractsLocator = artifacts.DefaultL1ContractsLocator
 	}
 
 	if c.L2ContractsLocator == nil {
-		c.L2ContractsLocator = opcm.DefaultL2ContractsLocator
+		c.L2ContractsLocator = artifacts.DefaultL2ContractsLocator
 	}
 
 	var err error
@@ -163,6 +165,8 @@ type ChainIntent struct {
 	Roles ChainRoles `json:"roles" toml:"roles"`
 
 	DeployOverrides map[string]any `json:"deployOverrides" toml:"deployOverrides"`
+
+	DangerousAltDAConfig genesis.AltDADeployConfig `json:"dangerousAltDAConfig,omitempty" toml:"dangerousAltDAConfig,omitempty"`
 }
 
 type ChainRoles struct {
@@ -205,6 +209,10 @@ func (c *ChainIntent) Check() error {
 
 	if c.Roles.Batcher == emptyAddress {
 		return fmt.Errorf("batcher must be set")
+	}
+
+	if c.DangerousAltDAConfig.UseAltDA {
+		return c.DangerousAltDAConfig.Check(nil)
 	}
 
 	return nil
