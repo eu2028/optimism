@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -615,7 +614,7 @@ func (m *l2Source) ExecutionWitness(ctx context.Context, blockNumber uint64) (*e
 	return nil, fmt.Errorf("ExecutionWitness not implemented in mock")
 }
 
-func (m *l2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes, transactions []hexutil.Bytes) (*eth.ExecutionWitness, error) {
+func (m *l2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
 	return nil, fmt.Errorf("ExecutionWitness not implemented in mock")
 }
 

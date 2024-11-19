@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
@@ -343,8 +342,8 @@ func (m *MockL2Source) ExperimentalEnabled() bool {
 	return false
 }
 
-func (m *MockL2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes, transactions []hexutil.Bytes) (*eth.ExecutionWitness, error) {
-	out := m.Mock.MethodCalled("PayloadExecutionWitness", blockHash, payloadAttributes, transactions)
+func (m *MockL2Source) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
+	out := m.Mock.MethodCalled("PayloadExecutionWitness", blockHash, payloadAttributes)
 	return out[0].(*eth.ExecutionWitness), *out[1].(*error)
 }
 func (m *MockL2Source) ExecutionWitness(ctx context.Context, blockNum uint64) (*eth.ExecutionWitness, error) {

@@ -79,11 +79,15 @@ func (o *OracleEngine) ForkchoiceUpdate(ctx context.Context, state *eth.Forkchoi
 	if attr != nil {
 		o.hinter.Hint(PayloadWitnessHint{
 			ParentBlockHash: state.HeadBlockHash,
-			Transactions:    attr.Transactions,
 			PayloadAttributes: eth.PayloadAttributes{
 				PrevRandao:            attr.PrevRandao,
 				Timestamp:             attr.Timestamp,
 				SuggestedFeeRecipient: attr.SuggestedFeeRecipient,
+				Transactions:          attr.Transactions,
+				GasLimit:              attr.GasLimit,
+				EIP1559Params:         attr.EIP1559Params,
+				ParentBeaconBlockRoot: attr.ParentBeaconBlockRoot,
+				NoTxPool:              true,
 			},
 		})
 	}

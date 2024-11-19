@@ -88,7 +88,6 @@ func (l ExecutionWitnessHint) Hint() string {
 
 type PayloadWitnessHint struct {
 	ParentBlockHash   common.Hash           `json:"parentBlockHash"`
-	Transactions      []hexutil.Bytes       `json:"transactions"`
 	PayloadAttributes eth.PayloadAttributes `json:"payloadAttributes"`
 }
 

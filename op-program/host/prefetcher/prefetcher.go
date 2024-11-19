@@ -61,7 +61,7 @@ type L2Source interface {
 	// ExecutionWitness returns the execution witness for the given block hash.
 	ExecutionWitness(ctx context.Context, blockNum uint64) (*eth.ExecutionWitness, error)
 	// ExecutionWitness returns the execution witness for the given block hash.
-	PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes, transactions []hexutil.Bytes) (*eth.ExecutionWitness, error)
+	PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error)
 	// If enabled, GetProof and ExecutionWitness can be called to fetch data from the experimental source.
 	ExperimentalEnabled() bool
 }
@@ -190,7 +190,7 @@ func (p *Prefetcher) bulkPrefetch(ctx context.Context, hint string) error {
 			return fmt.Errorf("failed to unmarshal payload witness hint: %w", err)
 		}
 
-		result, err := p.l2Fetcher.PayloadExecutionWitness(ctx, hint.ParentBlockHash, hint.PayloadAttributes, hint.Transactions)
+		result, err := p.l2Fetcher.PayloadExecutionWitness(ctx, hint.ParentBlockHash, hint.PayloadAttributes)
 		if err != nil {
 			return fmt.Errorf("failed to fetch L2 execution witness for block with parent %v: %w", hint.ParentBlockHash, err)
 		}

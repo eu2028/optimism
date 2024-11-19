@@ -332,10 +332,10 @@ func (s *EthClient) ExecutionWitness(ctx context.Context, blockNum uint64) (*eth
 }
 
 // PayloadExecutionWitness generates a block from a payload and returns execution witness data.
-func (s *EthClient) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes, transactions []hexutil.Bytes) (*eth.ExecutionWitness, error) {
+func (s *EthClient) PayloadExecutionWitness(ctx context.Context, blockHash common.Hash, payloadAttributes eth.PayloadAttributes) (*eth.ExecutionWitness, error) {
 	var witness *eth.ExecutionWitness
 
-	err := s.client.CallContext(ctx, &witness, "debug_executePayload", blockHash, payloadAttributes, transactions)
+	err := s.client.CallContext(ctx, &witness, "debug_executePayload", blockHash, payloadAttributes)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +363,7 @@ func (s *EthClient) GetProof(ctx context.Context, address common.Address, storag
 		return nil, fmt.Errorf("missing storage proof data, got %d proof entries but requested %d storage keys", len(getProofResponse.StorageProof), len(storage))
 	}
 	for i, key := range storage {
-		if key != common.BigToHash(getProofResponse.StorageProof[i].Key.ToInt()) {
+		if key != common.BytesToHash(getProofResponse.StorageProof[i].Key) {
 			return nil, fmt.Errorf("unexpected storage proof key difference for entry %d: got %s but requested %s", i, getProofResponse.StorageProof[i].Key.String(), key)
 		}
 	}
