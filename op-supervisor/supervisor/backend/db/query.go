@@ -167,11 +167,20 @@ func (db *ChainsDB) CrossDerivedFromBlockRef(chainID types.ChainID, derived eth.
 // Check calls the underlying logDB to determine if the given log entry exists at the given location.
 // If the block-seal of the block that includes the log is known, it is returned. It is fully zeroed otherwise, if the block is in-progress.
 func (db *ChainsDB) Check(chain types.ChainID, blockNum uint64, logIdx uint32, logHash common.Hash) (includedIn types.BlockSeal, err error) {
+	db.logger.Warn("Check", "chain", chain, "blockNum", blockNum, "logIdx", logIdx, "logHash", logHash)
 	logDB, ok := db.logDBs.Get(chain)
 	if !ok {
+		db.logger.Warn("Check UnknownChain", "chain", chain)
+		db.logDBs.Range(func(c types.ChainID, v LogStorage) bool {
+			db.logger.Warn("Check KnownChain", "chain", c)
+			return true
+		})
 		return types.BlockSeal{}, fmt.Errorf("%w: %v", types.ErrUnknownChain, chain)
 	}
-	return logDB.Contains(blockNum, logIdx, logHash)
+	ret, err := logDB.Contains(blockNum, logIdx, logHash)
+	db.logger.Warn("Check", "chain", chain, "blockNum", blockNum, "logIdx", logIdx, "logHash", logHash, "ret", ret, "err", err)
+	return ret, err
+	//return logDB.Contains(blockNum, logIdx, logHash)
 }
 
 // OpenBlock returns the Executing Messages for the block at the given number on the given chain.
