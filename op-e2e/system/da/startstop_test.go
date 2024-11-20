@@ -124,15 +124,12 @@ func testStartStopBatcher(t *testing.T, cfgMod func(*e2esys.SystemConfig)) {
 // TestBatcherSafeHeadGap tests that the batcher can handle
 // an (effective) reversal in the sequencer's safe head.
 // This can happen when the sequencer restarts, e.g. during a rollout.
-// To simulate the reversal of the safe head, we instead delete the oldest
-// block in the batcher's state.
+// To simulate the reversal of the safe head, we instead set a single
+// block in the batcher's state with a huge block number.
 func TestBatcherSafeHeadGap(t *testing.T) {
 	op_e2e.InitParallel(t)
-
 	cfg := e2esys.DefaultSystemConfig(t)
-
 	sys, err := cfg.Start(t)
-
 	require.NoError(t, err, "Error starting up system")
 
 	l2Seq := sys.NodeClient("sequencer")
