@@ -299,20 +299,43 @@ func (s *EthClient) PayloadByLabel(ctx context.Context, label eth.BlockLabel) (*
 }
 
 // FetchReceipts returns a block info and all of the receipts associated with transactions in the block.
-// It verifies the receipt hash in the block header against the receipt hash of the fetched receipts
-// to ensure that the execution engine did not fail to return any receipts.
+// The underlying receipts provider handles fetching and validating the receipts.
 func (s *EthClient) FetchReceipts(ctx context.Context, blockHash common.Hash) (eth.BlockInfo, types.Receipts, error) {
 	info, txs, err := s.InfoAndTxsByHash(ctx, blockHash)
 	if err != nil {
 		return nil, nil, fmt.Errorf("querying block: %w", err)
 	}
 
-	txHashes, _ := eth.TransactionsToHashes(txs), eth.ToBlockID(info)
+	txHashes := eth.TransactionsToHashes(txs)
 	receipts, err := s.recProvider.FetchReceipts(ctx, info, txHashes)
 	if err != nil {
 		return nil, nil, err
 	}
 	return info, receipts, nil
+}
+
+// BatchFetchReceipts returns multiple block info and all of the receipts associated with transactions in each block.
+// The underlying receipts provider handles fetching and validating the receipts.
+func (s *EthClient) BatchFetchReceipts(ctx context.Context, blockHashes []common.Hash) ([]eth.BlockInfo, []types.Receipts, error) {
+	// construct the block infos and transaction hashes for each block
+	// this could be a batch call itself in the future
+	infos := make([]eth.BlockInfo, len(blockHashes))
+	txHashes := make([][]common.Hash, len(blockHashes))
+	for i := range blockHashes {
+		info, txs, err := s.InfoAndTxsByHash(ctx, blockHashes[i])
+		if err != nil {
+			return nil, nil, fmt.Errorf("querying block: %w", err)
+		}
+		hashes := eth.TransactionsToHashes(txs)
+		infos[i], txHashes[i] = info, hashes
+	}
+
+	// fetch all receipts for all blocks
+	receipts, err := s.recProvider.BatchFetchReceipts(ctx, infos, txHashes)
+	if err != nil {
+		return nil, nil, err
+	}
+	return infos, receipts, nil
 }
 
 // ExecutionWitness fetches execution witness data for a block number.
