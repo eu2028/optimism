@@ -48,7 +48,7 @@ func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBloc
 	// ensure the dev accounts are not funded unintentionally
 	if devAccounts, err := RetrieveDevAccounts(genspec.Alloc); err != nil {
 		return nil, fmt.Errorf("failed to check dev accounts: %w", err)
-	} else if len(devAccounts) > 0 && !config.FundDevAccounts {
+	} else if (len(devAccounts) > 0) != config.FundDevAccounts {
 		return nil, fmt.Errorf("deploy config mismatch with allocs. Deploy config fundDevAccounts: %v, actual allocs: %v", config.FundDevAccounts, devAccounts)
 	}
 	// sanity check the permit2 immutable, to verify we using the allocs for the right chain.
