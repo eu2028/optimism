@@ -3,10 +3,13 @@ package batcher
 import (
 	"context"
 	"errors"
+	"math"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txpool"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 )
@@ -63,4 +66,17 @@ func (l *TestBatchSubmitter) WaitOnJammingTx(ctx context.Context) error {
 	}
 	l.Log.Info("done waiting on jamming tx", "err", err)
 	return nil
+}
+
+// ForceOldestBlockIntoFuture sets the oldest block in the batcher's state
+// to an empty block with a number = math.MaxInt64.
+// It helps trigger a situation where there is a gap between the safe head of the sequencer
+// (which the batcher perviously started working from) and the oldest block stored by the batcher.
+func (l *TestBatchSubmitter) ForceOldestBlockIntoFuture() {
+	b := types.Block{}
+	h := types.Header{
+		Number: big.NewInt(math.MaxInt64),
+	}
+	f := b.WithSeal(&h)
+	l.state.blocks = []*types.Block{f}
 }

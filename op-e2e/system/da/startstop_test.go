@@ -120,3 +120,59 @@ func testStartStopBatcher(t *testing.T, cfgMod func(*e2esys.SystemConfig)) {
 	require.NoError(t, err)
 	require.Greater(t, newSeqStatus.SafeL2.Number, seqStatus.SafeL2.Number, "Safe chain did not advance after batcher was restarted")
 }
+
+// TestBatcherSafeHeadGap tests that the batcher can handle
+// an (effective) reversal in the sequencer's safe head.
+// This can happen when the sequencer restarts, e.g. during a rollout.
+// To simulate the reversal of the safe head, we instead delete the oldest
+// block in the batcher's state.
+func TestBatcherSafeHeadGap(t *testing.T) {
+	op_e2e.InitParallel(t)
+
+	cfg := e2esys.DefaultSystemConfig(t)
+
+	sys, err := cfg.Start(t)
+
+	require.NoError(t, err, "Error starting up system")
+
+	l2Seq := sys.NodeClient("sequencer")
+
+	nonce := uint64(0)
+	sendTx := func() *types.Receipt {
+		// Submit TX to L2 sequencer node
+		receipt := helpers.SendL2Tx(t, cfg, l2Seq, cfg.Secrets.Alice, func(opts *helpers.TxOpts) {
+			opts.ToAddr = &common.Address{0xff, 0xff}
+			opts.Value = big.NewInt(1_000_000_000)
+			opts.Nonce = nonce
+		})
+		nonce++
+		return receipt
+	}
+
+	// send some transactions
+	for i := 0; i < 3; i++ {
+		sendTx()
+	}
+
+	sys.BatchSubmitter.TestDriver().ForceOldestBlockIntoFuture()
+	t.Log("Set batcher's oldest block number to MaxInt64")
+
+	block, err := wait.ForNextSafeBlock(context.Background(), l2Seq)
+	require.NoError(t, err)
+
+	// send some transactions
+	for i := 0; i < 3; i++ {
+		sendTx()
+	}
+
+	// The batcher should be able to recover from the gap
+	// between the sequencer safe head and its oldest block.
+	// We check that the safe head advances as a signal the batcher is working.
+	require.Eventually(t, func() bool {
+		ss, err := sys.RollupClient(e2esys.RoleSeq).SyncStatus(context.Background())
+		if err == nil && ss.SafeL2.Number > block.Number().Uint64() {
+			return true
+		}
+		return false
+	}, time.Second*10, time.Second, "Safe head did not advance")
+}
