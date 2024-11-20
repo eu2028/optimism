@@ -196,9 +196,10 @@ func (f *RPCReceiptsFetcher) BatchFetchReceipts(ctx context.Context, blockInfos 
 		// create batch elems
 		batchElems := make([]rpc.BatchElem, len(blockInfos))
 		for i := range blockInfos {
+			block := eth.ToBlockID(blockInfos[i])
 			batchElems[i] = rpc.BatchElem{
 				Method: "eth_getBlockReceipts",
-				Args:   []any{blockInfos[i].Hash},
+				Args:   []any{block.Hash},
 				Result: &result[i],
 			}
 		}
