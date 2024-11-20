@@ -34,6 +34,22 @@ func NewCachingRPCReceiptsProvider(client rpcClient, log log.Logger, config RPCR
 	return NewCachingReceiptsProvider(NewRPCReceiptsFetcher(client, log, config), m, cacheSize)
 }
 
+func (p *CachingReceiptsProvider) getOrCreateFetchingLocks(blockHashes []common.Hash) []*sync.Mutex {
+	p.fetchingMu.Lock()
+	defer p.fetchingMu.Unlock()
+	locks := make([]*sync.Mutex, len(blockHashes))
+	for i, blockHash := range blockHashes {
+		if mu, ok := p.fetching[blockHash]; ok {
+			locks[i] = mu
+		} else {
+			mu := new(sync.Mutex)
+			p.fetching[blockHash] = mu
+			locks[i] = mu
+		}
+	}
+	return locks
+}
+
 func (p *CachingReceiptsProvider) getOrCreateFetchingLock(blockHash common.Hash) *sync.Mutex {
 	p.fetchingMu.Lock()
 	defer p.fetchingMu.Unlock()
@@ -43,6 +59,14 @@ func (p *CachingReceiptsProvider) getOrCreateFetchingLock(blockHash common.Hash)
 	mu := new(sync.Mutex)
 	p.fetching[blockHash] = mu
 	return mu
+}
+
+func (p *CachingReceiptsProvider) deleteFetchingLocks(blockHashes []common.Hash) {
+	p.fetchingMu.Lock()
+	defer p.fetchingMu.Unlock()
+	for _, blockHash := range blockHashes {
+		delete(p.fetching, blockHash)
+	}
 }
 
 func (p *CachingReceiptsProvider) deleteFetchingLock(blockHash common.Hash) {
@@ -81,12 +105,81 @@ func (p *CachingReceiptsProvider) FetchReceipts(ctx context.Context, blockInfo e
 	return r, nil
 }
 
+// BatchFetchReceipts fetches receipts for the given blocks and transaction hashes
+// it expects that the inner BatchFetchReceipts implementation handles validation
+// it functions by scanning the cache for any parts of the batch that are already cached
+// and then only fetching the parts that are not cached.
+// it takes a lock for each block that is not immediately cached to avoid duplicate requests, and then
+// double-checks the cache after acquiring the lock to avoid duplicate requests.
 func (p *CachingReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error) {
-	// 1: go through the cache and pull any results that we already have
-	// 2: remove the cached results from the batch request
-	// 3: forward the remaining batch request to the inner provider
-	// 4: record each result from the inner batch call to the cache
-	panic("not implemented")
+	blockHashes := make([]common.Hash, len(blockInfos))
+	results := make([]types.Receipts, len(blockInfos))
+	innerBlockInfos := []eth.BlockInfo{}
+	innerTxHashes := [][]common.Hash{}
+	innerResultIndex := []int{}
+	for i := range blockInfos {
+		if r, ok := p.cache.Get(blockInfos[i].Hash()); ok {
+			results[i] = r
+			continue
+		}
+		// record information which be passed to the inner provider
+		// or used for caching or result loading
+		// a second check for the cache will be done after acquiring the lock
+		blockHashes[i] = eth.ToBlockID(blockInfos[i]).Hash
+		innerBlockInfos = append(innerBlockInfos, blockInfos[i])
+		innerTxHashes = append(innerTxHashes, txHashes[i])
+		innerResultIndex = append(innerResultIndex, i)
+	}
+	// the entire batch could be constructed from the cache, return early
+	if len(innerBlockInfos) == 0 {
+		return results, nil
+	}
+
+	// create fetching locks for the missing blocks
+	locks := p.getOrCreateFetchingLocks(blockHashes)
+	for _, mu := range locks {
+		mu.Lock()
+		defer mu.Unlock()
+	}
+	// it is possible other routines fetched the results while we were waiting for the locks
+	// so do a second check for the results in the cache, now that we are locked
+	finalBlockHashes := []common.Hash{}
+	finalInnerBlockInfos := []eth.BlockInfo{}
+	finalInnerTxHashes := [][]common.Hash{}
+	finalInnerResultIndex := []int{}
+	// one final chance to get the result from the cache
+	// and potentially reserve it from the batch request
+	for i := range innerBlockInfos {
+		if r, ok := p.cache.Get(blockHashes[i]); ok {
+			results[innerResultIndex[i]] = r
+			p.deleteFetchingLock(blockHashes[i])
+		} else {
+			// record final information for the inner provider
+			finalBlockHashes = append(finalBlockHashes, blockHashes[i])
+			finalInnerBlockInfos = append(finalInnerBlockInfos, innerBlockInfos[i])
+			finalInnerTxHashes = append(finalInnerTxHashes, innerTxHashes[i])
+			finalInnerResultIndex = append(finalInnerResultIndex, innerResultIndex[i])
+		}
+	}
+	// if there is no more work after the second check, return early
+	if len(finalInnerBlockInfos) == 0 {
+		return results, nil
+	}
+
+	results, err := p.inner.BatchFetchReceipts(ctx, finalInnerBlockInfos, finalInnerTxHashes)
+	if err != nil {
+		return nil, err
+	}
+
+	// save all the new results to the cache and to the results
+	for i := range results {
+		// save the result to the cache
+		p.cache.Add(finalBlockHashes[i], results[i])
+		// save the result to the outer results
+		results[finalInnerResultIndex[i]] = results[i]
+	}
+	p.deleteFetchingLocks(finalBlockHashes)
+	return results, nil
 }
 
 func (p *CachingReceiptsProvider) isInnerNil() bool {
