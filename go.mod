@@ -215,7 +215,6 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/status-im/keycard-go v0.2.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supranational/blst v0.3.13 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a // indirect
@@ -250,9 +249,11 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101411.2-rc.2
+//replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101411.2-rc.2
 
-//replace github.com/ethereum/go-ethereum => ../go-ethereum
+replace github.com/ethereum/go-ethereum => github.com/roberto-bayardo/op-geth v0.0.0-20241120170924-fdfd720a3d60
+
+//replace github.com/ethereum/go-ethereum => ../op-geth
 
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 
