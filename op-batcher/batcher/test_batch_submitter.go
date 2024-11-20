@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 )
 
@@ -78,5 +79,6 @@ func (l *TestBatchSubmitter) ForceOldestBlockIntoFuture() {
 		Number: big.NewInt(math.MaxInt64),
 	}
 	f := b.WithSeal(&h)
+	l.lastStoredBlock = eth.ToBlockID(f)
 	l.state.blocks = []*types.Block{f}
 }
