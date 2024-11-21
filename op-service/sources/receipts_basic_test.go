@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/retry"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -148,6 +149,73 @@ func TestBasicRPCReceiptsFetcher_Concurrency(t *testing.T) {
 		return nil
 	})
 	require.NoError(err)
+}
+
+// batchRequestData is a helper struct to prepare a batch of requests.
+// all arrays must have the same length, and like indices correspond to each other.
+type batchRequestData struct {
+	blocks   []eth.BlockID
+	infos    []eth.BlockInfo
+	receipts []types.Receipts
+	hashes   [][]common.Hash
+}
+
+func requestBatch(batchSize int) batchRequestData {
+	blocks := []eth.BlockID{}
+	infos := []eth.BlockInfo{}
+	receipts := []types.Receipts{}
+	hashes := [][]common.Hash{}
+	rand := rand.New(rand.NewSource(69))
+	for i := 0; i < batchSize; i++ {
+		block, recs := randomRpcBlockAndReceipts(rand, 4)
+		bInfo, _, _ := block.Info(true, true)
+		blocks = append(blocks, block.BlockID())
+		infos = append(infos, bInfo)
+		receipts = append(receipts, recs)
+		hashes = append(hashes, receiptTxHashes(recs))
+	}
+	return batchRequestData{blocks, infos, receipts, hashes}
+}
+
+func runConcurrentBatchFetchingTest(t *testing.T, rp ReceiptsProvider, numFetchers int, batch batchRequestData) {
+	require := require.New(t)
+
+	// start n fetchers
+	type fetchResult struct {
+		rs  []types.Receipts
+		err error
+	}
+	fetchResults := make(chan fetchResult, numFetchers)
+	barrier := make(chan struct{})
+	ctx, done := context.WithTimeout(context.Background(), 10*time.Second)
+	defer done()
+	for i := 0; i < numFetchers; i++ {
+		go func() {
+			<-barrier
+			recs, err := rp.BatchFetchReceipts(ctx, batch.infos, batch.hashes)
+			fetchResults <- fetchResult{rs: recs, err: err}
+		}()
+	}
+	close(barrier) // Go!
+
+	// assert results
+	for i := 0; i < numFetchers; i++ {
+		select {
+		case f := <-fetchResults:
+			require.NoError(f.err)
+			// batch.receipts is []types.Receipts
+			require.Len(f.rs, len(batch.receipts))
+			// j is types.Receipts
+			for j, recs := range batch.receipts {
+				// k is types.Receipt
+				for k, rec := range recs {
+					requireEqualReceipt(t, rec, f.rs[j][k])
+				}
+			}
+		case <-ctx.Done():
+			t.Fatal("Test timeout")
+		}
+	}
 }
 
 func runConcurrentFetchingTest(t *testing.T, rp ReceiptsProvider, numFetchers int, receipts types.Receipts, block *RPCBlock) {

@@ -25,7 +25,7 @@ func (m *mockReceiptsProvider) FetchReceipts(ctx context.Context, blockInfo eth.
 
 func (m *mockReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error) {
 	args := m.Called(ctx, blockInfos, txHashes)
-	return args.Get(0).([]types.Receipts), args.Error(1)
+	return args.Get(0).(func(infos []eth.BlockInfo) []types.Receipts)(blockInfos), args.Error(1)
 }
 
 func TestCachingReceiptsProvider_Caching(t *testing.T) {
@@ -66,4 +66,71 @@ func TestCachingReceiptsProvider_Concurrency(t *testing.T) {
 	runConcurrentFetchingTest(t, rp, 32, receipts, block)
 
 	mrp.AssertExpectations(t)
+}
+
+func TestCachingReceiptsProvider_Batches(t *testing.T) {
+	batch := requestBatch(5)
+	blocks := batch.blocks
+	infos := batch.infos
+	receipts := batch.receipts
+	hashes := batch.hashes
+
+	mrp := new(mockReceiptsProvider)
+	rp := NewCachingReceiptsProvider(mrp, nil, 1)
+
+	// on the first fetch, the cache should populate with the first block's receipts
+	firstID, firstInfo, firstReceipts, firstTxHashes := blocks[0], infos[0], receipts[0], hashes[0]
+	mrp.On("FetchReceipts", mock.Anything, firstID, firstTxHashes).
+		Return(types.Receipts(firstReceipts), error(nil)).
+		Once() // receipts should be cached after first fetch
+
+	// on the batch fetch, we should see only the uncached blocks fetched
+	remainingInfos, remainingReceipts, remainingHashes := infos[1:], receipts[1:], hashes[1:]
+	mrp.On("BatchFetchReceipts", mock.Anything, remainingInfos, remainingHashes).
+		Return(remainingReceipts, error(nil)).
+		Once() // receipts should be cached after first fetch
+
+	// fetch
+	firstRetReceipts, err := rp.FetchReceipts(context.Background(), firstInfo, firstTxHashes)
+	require.NoError(t, err)
+	require.Equal(t, firstReceipts, firstRetReceipts)
+
+	// batch fetch
+	retReceipts, err := rp.BatchFetchReceipts(context.Background(), infos, hashes)
+	require.NoError(t, err)
+	// all receipts should be returned in order
+	require.Equal(t, receipts, retReceipts)
+	mrp.AssertExpectations(t)
+}
+
+func TestCachingReceiptsProvider_BatchesConcurrency(t *testing.T) {
+	batch := requestBatch(10)
+	mrp := new(mockReceiptsProvider)
+	rp := NewCachingReceiptsProvider(mrp, nil, 1)
+
+	filter := func(infos []eth.BlockInfo) []types.Receipts {
+		result := []types.Receipts{}
+		for i := range infos {
+			found := false
+			for j := range batch.infos {
+				if infos[i] == batch.infos[j] {
+					result = append(result, batch.receipts[j])
+					found = true
+					break
+				}
+			}
+			if !found {
+				require.Fail(t, "unexpected block info", "info: %v", infos[i])
+			}
+		}
+		return result
+	}
+
+	mrp.On("BatchFetchReceipts",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).
+		Return(filter, error(nil))
+
+	runConcurrentBatchFetchingTest(t, rp, 32, batch)
 }

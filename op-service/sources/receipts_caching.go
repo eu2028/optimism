@@ -18,8 +18,9 @@ type CachingReceiptsProvider struct {
 	cache *caching.LRUCache[common.Hash, types.Receipts]
 
 	// lock fetching process for each block hash to avoid duplicate requests
-	fetching   map[common.Hash]*sync.Mutex
-	fetchingMu sync.Mutex // only protects map
+	fetching       map[common.Hash]*sync.Mutex
+	fetchingMu     sync.Mutex // only protects map
+	batchLockingMu sync.Mutex // ensures only one group of locks are acquired at once
 }
 
 func NewCachingReceiptsProvider(inner ReceiptsProvider, m caching.Metrics, cacheSize int) *CachingReceiptsProvider {
@@ -32,47 +33,6 @@ func NewCachingReceiptsProvider(inner ReceiptsProvider, m caching.Metrics, cache
 
 func NewCachingRPCReceiptsProvider(client rpcClient, log log.Logger, config RPCReceiptsConfig, m caching.Metrics, cacheSize int) *CachingReceiptsProvider {
 	return NewCachingReceiptsProvider(NewRPCReceiptsFetcher(client, log, config), m, cacheSize)
-}
-
-func (p *CachingReceiptsProvider) getOrCreateFetchingLocks(blockHashes []common.Hash) []*sync.Mutex {
-	p.fetchingMu.Lock()
-	defer p.fetchingMu.Unlock()
-	locks := make([]*sync.Mutex, len(blockHashes))
-	for i, blockHash := range blockHashes {
-		if mu, ok := p.fetching[blockHash]; ok {
-			locks[i] = mu
-		} else {
-			mu := new(sync.Mutex)
-			p.fetching[blockHash] = mu
-			locks[i] = mu
-		}
-	}
-	return locks
-}
-
-func (p *CachingReceiptsProvider) getOrCreateFetchingLock(blockHash common.Hash) *sync.Mutex {
-	p.fetchingMu.Lock()
-	defer p.fetchingMu.Unlock()
-	if mu, ok := p.fetching[blockHash]; ok {
-		return mu
-	}
-	mu := new(sync.Mutex)
-	p.fetching[blockHash] = mu
-	return mu
-}
-
-func (p *CachingReceiptsProvider) deleteFetchingLocks(blockHashes []common.Hash) {
-	p.fetchingMu.Lock()
-	defer p.fetchingMu.Unlock()
-	for _, blockHash := range blockHashes {
-		delete(p.fetching, blockHash)
-	}
-}
-
-func (p *CachingReceiptsProvider) deleteFetchingLock(blockHash common.Hash) {
-	p.fetchingMu.Lock()
-	defer p.fetchingMu.Unlock()
-	delete(p.fetching, blockHash)
 }
 
 // FetchReceipts fetches receipts for the given block and transaction hashes
@@ -137,10 +97,9 @@ func (p *CachingReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockI
 
 	// create fetching locks for the missing blocks
 	locks := p.getOrCreateFetchingLocks(blockHashes)
-	for _, mu := range locks {
-		mu.Lock()
-		defer mu.Unlock()
-	}
+	unlock := p.takeBatchLocks(locks)
+	defer unlock()
+
 	// it is possible other routines fetched the results while we were waiting for the locks
 	// so do a second check for the results in the cache, now that we are locked
 	finalBlockHashes := []common.Hash{}
@@ -166,17 +125,17 @@ func (p *CachingReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockI
 		return results, nil
 	}
 
-	results, err := p.inner.BatchFetchReceipts(ctx, finalInnerBlockInfos, finalInnerTxHashes)
+	newResults, err := p.inner.BatchFetchReceipts(ctx, finalInnerBlockInfos, finalInnerTxHashes)
 	if err != nil {
 		return nil, err
 	}
 
 	// save all the new results to the cache and to the results
-	for i := range results {
+	for i := range newResults {
 		// save the result to the cache
-		p.cache.Add(finalBlockHashes[i], results[i])
+		p.cache.Add(finalBlockHashes[i], newResults[i])
 		// save the result to the outer results
-		results[finalInnerResultIndex[i]] = results[i]
+		results[finalInnerResultIndex[i]] = newResults[i]
 	}
 	p.deleteFetchingLocks(finalBlockHashes)
 	return results, nil
@@ -184,4 +143,61 @@ func (p *CachingReceiptsProvider) BatchFetchReceipts(ctx context.Context, blockI
 
 func (p *CachingReceiptsProvider) isInnerNil() bool {
 	return p.inner == nil
+}
+
+func (p *CachingReceiptsProvider) getOrCreateFetchingLock(blockHash common.Hash) *sync.Mutex {
+	p.fetchingMu.Lock()
+	defer p.fetchingMu.Unlock()
+	if mu, ok := p.fetching[blockHash]; ok {
+		return mu
+	}
+	mu := new(sync.Mutex)
+	p.fetching[blockHash] = mu
+	return mu
+}
+
+func (p *CachingReceiptsProvider) getOrCreateFetchingLocks(blockHashes []common.Hash) []*sync.Mutex {
+	p.fetchingMu.Lock()
+	defer p.fetchingMu.Unlock()
+	locks := make([]*sync.Mutex, len(blockHashes))
+	for i, blockHash := range blockHashes {
+		if mu, ok := p.fetching[blockHash]; ok {
+			locks[i] = mu
+		} else {
+			mu := new(sync.Mutex)
+			p.fetching[blockHash] = mu
+			locks[i] = mu
+		}
+	}
+	return locks
+}
+
+// takeBatchLocks serializes batch lock-taking to prevent deadlocks
+// it returns a function to release all the locks at once
+func (p *CachingReceiptsProvider) takeBatchLocks(locks []*sync.Mutex) func() {
+	p.batchLockingMu.Lock()
+	defer p.batchLockingMu.Unlock()
+
+	for _, lock := range locks {
+		lock.Lock()
+	}
+	return func() {
+		for _, lock := range locks {
+			lock.Unlock()
+		}
+	}
+}
+
+func (p *CachingReceiptsProvider) deleteFetchingLocks(blockHashes []common.Hash) {
+	p.fetchingMu.Lock()
+	defer p.fetchingMu.Unlock()
+	for _, blockHash := range blockHashes {
+		delete(p.fetching, blockHash)
+	}
+}
+
+func (p *CachingReceiptsProvider) deleteFetchingLock(blockHash common.Hash) {
+	p.fetchingMu.Lock()
+	defer p.fetchingMu.Unlock()
+	delete(p.fetching, blockHash)
 }
