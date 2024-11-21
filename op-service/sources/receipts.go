@@ -18,11 +18,6 @@ type ReceiptsProvider interface {
 	BatchFetchReceipts(ctx context.Context, blockInfos []eth.BlockInfo, txHashes [][]common.Hash) ([]types.Receipts, error)
 }
 
-type ReceiptsForBlock struct {
-	BlockInfo eth.BlockInfo
-	Receipts  types.Receipts
-}
-
 // validateReceipts validates that the receipt contents are valid.
 // Warning: contractAddress is not verified, since it is a more expensive operation for data we do not use.
 // See go-ethereum/crypto.CreateAddress to verify contract deployment address data based on sender and tx nonce.
