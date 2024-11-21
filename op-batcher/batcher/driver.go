@@ -557,6 +557,7 @@ func (l *BatchSubmitter) throttlingLoop(ctx context.Context) {
 			// We'd probably hit this error right after startup, so a short shutdown duration should suffice.
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
+			// Call StopBatchSubmitting in another goroutine to avoid deadlock.
 			go func() {
 				// Always returns nil. An error is only returned to expose this function as an RPC.
 				_ = l.StopBatchSubmitting(ctx)
