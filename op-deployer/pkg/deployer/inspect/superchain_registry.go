@@ -161,7 +161,6 @@ func createAddressList(l1Contracts *L1Contracts, appliedIntent *state.Intent, ch
 		SystemConfigProxy:                 superchain.Address(l1Contracts.OpChainDeployment.SystemConfigProxyAddress),
 
 		ProxyAdmin:       superchain.Address(l1Contracts.OpChainDeployment.ProxyAdminAddress),
-		SuperchainConfig: superchain.Address(l1Contracts.SuperchainDeployment.SuperchainConfigProxyAddress),
 
 		// Fault proof contracts
 		AnchorStateRegistryProxy: superchain.Address(l1Contracts.OpChainDeployment.AnchorStateRegistryProxyAddress),
