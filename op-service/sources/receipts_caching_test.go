@@ -84,8 +84,12 @@ func TestCachingReceiptsProvider_Batches(t *testing.T) {
 		Return(types.Receipts(firstReceipts), error(nil)).
 		Once() // receipts should be cached after first fetch
 
+	remainingReceipts := func(infos []eth.BlockInfo) []types.Receipts {
+		return batch.receipts[1:]
+	}
+
 	// on the batch fetch, we should see only the uncached blocks fetched
-	remainingInfos, remainingReceipts, remainingHashes := infos[1:], receipts[1:], hashes[1:]
+	remainingInfos, remainingHashes := infos[1:], hashes[1:]
 	mrp.On("BatchFetchReceipts", mock.Anything, remainingInfos, remainingHashes).
 		Return(remainingReceipts, error(nil)).
 		Once() // receipts should be cached after first fetch
