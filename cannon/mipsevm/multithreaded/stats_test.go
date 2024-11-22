@@ -44,6 +44,16 @@ func TestStatsTracker(t *testing.T) {
 			operations: []Operation{ll(5), ll(10), scSuccess(15), scFail(25)},
 			expected:   &mipsevm.DebugInfo{RmwSuccessCount: 1, RmwFailCount: 1, MaxStepsBetweenLLAndSC: 5},
 		},
+		{
+			name:       "Invalidate reservation",
+			operations: []Operation{invalidateReservation()},
+			expected:   &mipsevm.DebugInfo{ReservationInvalidationCount: 1},
+		},
+		{
+			name:       "Invalidate reservation twice",
+			operations: []Operation{invalidateReservation(), invalidateReservation()},
+			expected:   &mipsevm.DebugInfo{ReservationInvalidationCount: 2},
+		},
 	}
 
 	for _, c := range cases {
@@ -78,5 +88,11 @@ func scSuccess(step uint64) Operation {
 func scFail(step uint64) Operation {
 	return func(tracker StatsTracker) {
 		tracker.trackSCFailure(step)
+	}
+}
+
+func invalidateReservation() Operation {
+	return func(tracker StatsTracker) {
+		tracker.trackReservationInvalidation()
 	}
 }

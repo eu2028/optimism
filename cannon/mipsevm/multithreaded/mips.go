@@ -348,6 +348,7 @@ func (m *InstrumentedState) handleMemoryUpdate(effMemAddr Word) {
 	if effMemAddr == (arch.AddressMask & m.state.LLAddress) {
 		// Reserved address was modified, clear the reservation
 		m.clearLLMemoryReservation()
+		m.statsTracker.trackReservationInvalidation()
 	}
 }
 

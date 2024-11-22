@@ -11,6 +11,7 @@ type StatsTracker interface {
 	trackLL(step uint64)
 	trackSCSuccess(step uint64)
 	trackSCFailure(step uint64)
+	trackReservationInvalidation()
 	annotateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
@@ -24,6 +25,7 @@ func NoopStatsTracker() StatsTracker {
 func (s *noopStatsTracker) trackLL(step uint64)                            {}
 func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
 func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
+func (s *noopStatsTracker) trackReservationInvalidation()                  {}
 func (s *noopStatsTracker) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
 
 var _ StatsTracker = (*noopStatsTracker)(nil)
@@ -38,6 +40,8 @@ type statsTrackerImpl struct {
 	// Note: Once a new LL operation is executed, we reset lastLLOpStep, losing track of previous RMW operations.
 	// So, maxStepsBetweenLLAndSC is not complete and may miss longer ranges for failed rmw sequences.
 	maxStepsBetweenLLAndSC uint64
+	// Tracks RMW reservation invalidation due to reserved memory being accessed outside of the RMW sequence
+	reservationInvalidationCount int
 }
 
 func NewStatsTracker() StatsTracker {
@@ -48,6 +52,7 @@ func (s *statsTrackerImpl) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.RmwSuccessCount = s.rmwSuccessCount
 	debugInfo.RmwFailCount = s.rmwFailCount
 	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)
+	debugInfo.ReservationInvalidationCount = s.reservationInvalidationCount
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
@@ -71,6 +76,10 @@ func (s *statsTrackerImpl) trackSCFailure(step uint64) {
 	if s.lastLLOpStep > 0 && diff > s.maxStepsBetweenLLAndSC {
 		s.maxStepsBetweenLLAndSC = diff
 	}
+}
+
+func (s *statsTrackerImpl) trackReservationInvalidation() {
+	s.reservationInvalidationCount += 1
 }
 
 var _ StatsTracker = (*statsTrackerImpl)(nil)
