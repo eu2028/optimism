@@ -33,10 +33,11 @@ type statsTrackerImpl struct {
 	// State
 	lastLLOpStep uint64
 	// Stats
-	rmwSuccessCount               int
-	rmwFailCount                  int
-	maxStepsBetweenLLAndSC        uint64
-	maxStepsBetweenLLAndSCFailure uint64
+	rmwSuccessCount int
+	rmwFailCount    int
+	// Note: Once a new LL operation is executed, we reset lastLLOpStep, losing track of previous RMW operations.
+	// So, maxStepsBetweenLLAndSC is not complete and may miss longer ranges for failed rmw sequences.
+	maxStepsBetweenLLAndSC uint64
 }
 
 func NewStatsTracker() StatsTracker {
@@ -47,7 +48,6 @@ func (s *statsTrackerImpl) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.RmwSuccessCount = s.rmwSuccessCount
 	debugInfo.RmwFailCount = s.rmwFailCount
 	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)
-	debugInfo.MaxStepsBetweenLLAndSCFailure = hexutil.Uint64(s.maxStepsBetweenLLAndSCFailure)
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
@@ -68,8 +68,8 @@ func (s *statsTrackerImpl) trackSCFailure(step uint64) {
 	s.rmwFailCount += 1
 
 	diff := step - s.lastLLOpStep
-	if s.lastLLOpStep > 0 && diff > s.maxStepsBetweenLLAndSCFailure {
-		s.maxStepsBetweenLLAndSCFailure = diff
+	if s.lastLLOpStep > 0 && diff > s.maxStepsBetweenLLAndSC {
+		s.maxStepsBetweenLLAndSC = diff
 	}
 }
 

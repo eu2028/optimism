@@ -22,7 +22,7 @@ func TestStatsTracker(t *testing.T) {
 		{
 			name:       "Failed RMW operation",
 			operations: []Operation{ll(3), scFail(13)},
-			expected:   &mipsevm.DebugInfo{RmwFailCount: 1, MaxStepsBetweenLLAndSCFailure: 10},
+			expected:   &mipsevm.DebugInfo{RmwFailCount: 1, MaxStepsBetweenLLAndSC: 10},
 		},
 		{
 			name:       "Failed isolated sc op",
@@ -37,11 +37,11 @@ func TestStatsTracker(t *testing.T) {
 		{
 			name:       "Multiple RMW operations",
 			operations: []Operation{ll(1), scSuccess(2), ll(3), scFail(5), ll(6), scSuccess(16), ll(18), scSuccess(20), ll(21), scFail(30)},
-			expected:   &mipsevm.DebugInfo{RmwSuccessCount: 3, RmwFailCount: 2, MaxStepsBetweenLLAndSC: 10, MaxStepsBetweenLLAndSCFailure: 9},
+			expected:   &mipsevm.DebugInfo{RmwSuccessCount: 3, RmwFailCount: 2, MaxStepsBetweenLLAndSC: 10},
 		},
 		{
 			name:       "Interleaved RMW operations",
-			operations: []Operation{ll(5), ll(10), scSuccess(15), scFail(20)},
+			operations: []Operation{ll(5), ll(10), scSuccess(15), scFail(25)},
 			expected:   &mipsevm.DebugInfo{RmwSuccessCount: 1, RmwFailCount: 1, MaxStepsBetweenLLAndSC: 5},
 		},
 	}
