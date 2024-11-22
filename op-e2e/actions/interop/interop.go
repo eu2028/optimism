@@ -2,6 +2,7 @@ package interop
 
 import (
 	"context"
+	"errors"
 	"os"
 	"time"
 
@@ -132,11 +133,19 @@ func (sa *SupervisorActor) SyncEvents(t helpers.Testing, chainID types.ChainID) 
 }
 
 func (sa *SupervisorActor) SyncCrossUnsafe(t helpers.Testing, chainID types.ChainID) {
-	require.NoError(t, sa.backend.SyncCrossUnsafe(chainID))
+	err := sa.backend.SyncCrossUnsafe(chainID)
+	if errors.Is(err, types.ErrFuture) {
+		return // nothing left to sync
+	}
+	require.NoError(t, err, "failed to sync cross-unsafe")
 }
 
 func (sa *SupervisorActor) SyncCrossSafe(t helpers.Testing, chainID types.ChainID) {
-	require.NoError(t, sa.backend.SyncCrossSafe(chainID))
+	err := sa.backend.SyncCrossSafe(chainID)
+	if errors.Is(err, types.ErrFuture) {
+		return // nothing left to sync
+	}
+	require.NoError(t, err, "failed to sync cross-safe")
 }
 
 // worldToDepSet converts a set of chain configs into a dependency-set for the supervisor.

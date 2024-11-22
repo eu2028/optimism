@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/actions/helpers"
+	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 )
 
 func TestFullInterop(gt *testing.T) {
@@ -21,6 +22,18 @@ func TestFullInterop(gt *testing.T) {
 	// No blocks yet
 	status := actors.ChainA.Sequencer.SyncStatus()
 	require.Equal(t, uint64(0), status.UnsafeL2.Number)
+
+	// Check that supervisor initializes cross-safe
+	actors.ChainA.Sequencer.ActInteropBackendCheck(t)
+	actors.ChainB.Sequencer.ActInteropBackendCheck(t)
+	actors.ChainA.Sequencer.ActL2PipelineFull(t)
+	actors.ChainB.Sequencer.ActL2PipelineFull(t)
+	safeA, err := actors.Supervisor.SafeView(t.Ctx(), actors.ChainA.ChainID, types.ReferenceView{})
+	require.NoError(t, err)
+	require.Equal(t, actors.ChainA.RollupCfg.Genesis.L2, safeA.Cross)
+	safeB, err := actors.Supervisor.SafeView(t.Ctx(), actors.ChainB.ChainID, types.ReferenceView{})
+	require.NoError(t, err)
+	require.Equal(t, actors.ChainB.RollupCfg.Genesis.L2, safeB.Cross)
 
 	// sync chain A
 	actors.Supervisor.SyncEvents(t, actors.ChainA.ChainID)

@@ -226,8 +226,8 @@ func (d *InteropDeriver) onCrossUnsafe(x engine.CrossUnsafeUpdateEvent) error {
 }
 
 func (d *InteropDeriver) onCrossSafeUpdateEvent(x engine.CrossSafeUpdateEvent) error {
-	if x.CrossSafe.Number >= x.LocalSafe.Number {
-		return nil // nothing left to promote
+	if x.CrossSafe.Number >= x.LocalSafe.Number && x.CrossSafe.ID() != d.cfg.Genesis.L2 {
+		return nil // nothing left to promote (always check genesis, to ensure initialization)
 	}
 	// Pre-interop the engine itself handles promotion to cross-safe.
 	// Start checking cross-safe once the local-safe block is in the interop update.
@@ -248,7 +248,7 @@ func (d *InteropDeriver) onCrossSafeUpdateEvent(x engine.CrossSafeUpdateEvent) e
 			if err != nil {
 				return fmt.Errorf("unable to initialize op-supervisor, failed to get anchorLoader-point: %w", err)
 			}
-			d.log.Warn("op-supervisor chain was not initialized, initializing now", "err", err,
+			d.log.Warn("op-supervisor chain was not initialized, initializing now", "err", e,
 				"anchorDerivedFrom", anchor.DerivedFrom, "anchorCrossSafe", anchor.CrossSafe)
 			if err := d.backend.InitializeCrossSafe(ctx, d.chainID, anchor.DerivedFrom, anchor.CrossSafe); err != nil {
 				return fmt.Errorf("failed to initialize cross-safe: %w", err)
