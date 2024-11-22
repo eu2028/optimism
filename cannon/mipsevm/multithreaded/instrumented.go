@@ -36,7 +36,7 @@ func NewInstrumentedState(state *State, po mipsevm.PreimageOracle, stdOut, stdEr
 		stdErr:         stdErr,
 		memoryTracker:  exec.NewMemoryTracker(state.Memory),
 		stackTracker:   &NoopThreadedStackTracker{},
-		statsTracker:   &noopStatsTracker{},
+		statsTracker:   NoopStatsTracker(),
 		preimageOracle: exec.NewTrackingPreimageOracleReader(po),
 		meta:           meta,
 	}
@@ -48,7 +48,7 @@ func (m *InstrumentedState) InitDebug() error {
 		return err
 	}
 	m.stackTracker = stackTracker
-	m.statsTracker = &statsTrackerImpl{}
+	m.statsTracker = NewStatsTracker()
 	return nil
 }
 

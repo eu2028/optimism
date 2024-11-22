@@ -17,6 +17,10 @@ type StatsTracker interface {
 // Noop implementation for when debug is disabled
 type noopStatsTracker struct{}
 
+func NoopStatsTracker() StatsTracker {
+	return &noopStatsTracker{}
+}
+
 func (s *noopStatsTracker) trackLL(step uint64)                            {}
 func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
 func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
@@ -33,6 +37,10 @@ type statsTrackerImpl struct {
 	rmwFailCount                  int
 	maxStepsBetweenLLAndSC        uint64
 	maxStepsBetweenLLAndSCFailure uint64
+}
+
+func NewStatsTracker() StatsTracker {
+	return &statsTrackerImpl{}
 }
 
 func (s *statsTrackerImpl) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {
@@ -52,6 +60,8 @@ func (s *statsTrackerImpl) trackSCSuccess(step uint64) {
 	if diff > s.maxStepsBetweenLLAndSC {
 		s.maxStepsBetweenLLAndSC = diff
 	}
+	// Reset ll op state
+	s.lastLLOpStep = 0
 }
 
 func (s *statsTrackerImpl) trackSCFailure(step uint64) {
