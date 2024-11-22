@@ -50,9 +50,19 @@ func TestStatsTracker(t *testing.T) {
 			expected:   &mipsevm.DebugInfo{ReservationInvalidationCount: 1},
 		},
 		{
-			name:       "Invalidate reservation twice",
+			name:       "Invalidate reservation multiple times",
 			operations: []Operation{invalidateReservation(), invalidateReservation()},
 			expected:   &mipsevm.DebugInfo{ReservationInvalidationCount: 2},
+		},
+		{
+			name:       "Force preemption",
+			operations: []Operation{forcePreempt()},
+			expected:   &mipsevm.DebugInfo{ForcedPreemptionCount: 1},
+		},
+		{
+			name:       "Force preemption multiple times",
+			operations: []Operation{forcePreempt(), forcePreempt()},
+			expected:   &mipsevm.DebugInfo{ForcedPreemptionCount: 2},
 		},
 	}
 
@@ -94,5 +104,11 @@ func scFail(step uint64) Operation {
 func invalidateReservation() Operation {
 	return func(tracker StatsTracker) {
 		tracker.trackReservationInvalidation()
+	}
+}
+
+func forcePreempt() Operation {
+	return func(tracker StatsTracker) {
+		tracker.trackForcedPreemption()
 	}
 }

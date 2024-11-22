@@ -308,6 +308,7 @@ func (m *InstrumentedState) doMipsStep() error {
 			}
 		}
 		m.preemptThread(thread)
+		m.statsTracker.trackForcedPreemption()
 		return nil
 	}
 	m.state.StepsSinceLastContextSwitch += 1

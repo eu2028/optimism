@@ -12,6 +12,7 @@ type StatsTracker interface {
 	trackSCSuccess(step uint64)
 	trackSCFailure(step uint64)
 	trackReservationInvalidation()
+	trackForcedPreemption()
 	populateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
@@ -26,6 +27,7 @@ func (s *noopStatsTracker) trackLL(step uint64)                            {}
 func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
 func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
 func (s *noopStatsTracker) trackReservationInvalidation()                  {}
+func (s *noopStatsTracker) trackForcedPreemption()                         {}
 func (s *noopStatsTracker) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
 
 var _ StatsTracker = (*noopStatsTracker)(nil)
@@ -42,6 +44,7 @@ type statsTrackerImpl struct {
 	maxStepsBetweenLLAndSC uint64
 	// Tracks RMW reservation invalidation due to reserved memory being accessed outside of the RMW sequence
 	reservationInvalidationCount int
+	forcedPreemptionCount        int
 }
 
 func NewStatsTracker() StatsTracker {
@@ -53,6 +56,7 @@ func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.RmwFailCount = s.rmwFailCount
 	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)
 	debugInfo.ReservationInvalidationCount = s.reservationInvalidationCount
+	debugInfo.ForcedPreemptionCount = s.forcedPreemptionCount
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
@@ -80,6 +84,10 @@ func (s *statsTrackerImpl) trackSCFailure(step uint64) {
 
 func (s *statsTrackerImpl) trackReservationInvalidation() {
 	s.reservationInvalidationCount += 1
+}
+
+func (s *statsTrackerImpl) trackForcedPreemption() {
+	s.forcedPreemptionCount += 1
 }
 
 var _ StatsTracker = (*statsTrackerImpl)(nil)
