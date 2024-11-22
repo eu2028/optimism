@@ -103,12 +103,14 @@ func (m *InstrumentedState) GetState() mipsevm.FPVMState {
 }
 
 func (m *InstrumentedState) GetDebugInfo() *mipsevm.DebugInfo {
-	return &mipsevm.DebugInfo{
+	debugInfo := &mipsevm.DebugInfo{
 		Pages:               m.state.Memory.PageCount(),
 		MemoryUsed:          hexutil.Uint64(m.state.Memory.UsageRaw()),
 		NumPreimageRequests: m.preimageOracle.NumPreimageRequests(),
 		TotalPreimageSize:   m.preimageOracle.TotalPreimageSize(),
 	}
+	m.statsTracker.annotateDebugInfo(debugInfo)
+	return debugInfo
 }
 
 func (m *InstrumentedState) Traceback() {
