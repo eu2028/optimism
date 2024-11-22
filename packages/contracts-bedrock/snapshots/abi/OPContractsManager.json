@@ -343,7 +343,7 @@
             "type": "address"
           },
           {
-            "internalType": "contract IOptimismMintableERC20Factory",
+            "internalType": "contract IL1OptimismMintableERC20Factory",
             "name": "optimismMintableERC20FactoryProxy",
             "type": "address"
           },
