@@ -383,6 +383,8 @@ func (m *InstrumentedState) handleRMWOps(insn, opcode uint32) error {
 		m.state.LLReservationStatus = targetStatus
 		m.state.LLAddress = addr
 		m.state.LLOwnerThread = threadId
+
+		m.statsTracker.trackLL(m.GetState().GetStep())
 	case exec.OpStoreConditional, exec.OpStoreConditional64:
 		if m.state.LLReservationStatus == targetStatus && m.state.LLOwnerThread == threadId && m.state.LLAddress == addr {
 			// Complete atomic update: set memory and return 1 for success
@@ -392,6 +394,8 @@ func (m *InstrumentedState) handleRMWOps(insn, opcode uint32) error {
 			exec.StoreSubWord(m.state.GetMemory(), addr, byteLength, val, m.memoryTracker)
 
 			retVal = 1
+
+			m.statsTracker.trackSCSuccess(m.GetState().GetStep())
 		} else {
 			// Atomic update failed, return 0 for failure
 			retVal = 0

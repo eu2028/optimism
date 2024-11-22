@@ -20,6 +20,7 @@ type InstrumentedState struct {
 
 	memoryTracker *exec.MemoryTrackerImpl
 	stackTracker  ThreadedStackTracker
+	statsTracker  StatsTracker
 
 	preimageOracle *exec.TrackingPreimageOracleReader
 	meta           mipsevm.Metadata
@@ -35,6 +36,7 @@ func NewInstrumentedState(state *State, po mipsevm.PreimageOracle, stdOut, stdEr
 		stdErr:         stdErr,
 		memoryTracker:  exec.NewMemoryTracker(state.Memory),
 		stackTracker:   &NoopThreadedStackTracker{},
+		statsTracker:   &noopStatsTracker{},
 		preimageOracle: exec.NewTrackingPreimageOracleReader(po),
 		meta:           meta,
 	}
@@ -46,6 +48,7 @@ func (m *InstrumentedState) InitDebug() error {
 		return err
 	}
 	m.stackTracker = stackTracker
+	m.statsTracker = &statsTrackerImpl{}
 	return nil
 }
 

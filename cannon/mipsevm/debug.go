@@ -7,4 +7,6 @@ type DebugInfo struct {
 	MemoryUsed          hexutil.Uint64 `json:"memory_used"`
 	NumPreimageRequests int            `json:"num_preimage_requests"`
 	TotalPreimageSize   int            `json:"total_preimage_size"`
+	//  Multithreading-related stats below
+	MaxStepsBetweenLLAndSC hexutil.Uint64 `json:"max_steps_between_ll_and_sc"`
 }
