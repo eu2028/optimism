@@ -456,6 +456,8 @@ func (m *InstrumentedState) preemptThread(thread *ThreadState) bool {
 	}
 
 	m.state.StepsSinceLastContextSwitch = 0
+
+	m.statsTracker.trackThreadActivated(m.state.GetCurrentThread().ThreadId, m.state.GetStep())
 	return changeDirections
 }
 

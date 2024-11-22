@@ -16,6 +16,7 @@ type StatsTracker interface {
 	trackWakeupTraversalStart()
 	trackWakeup()
 	trackWakeupFail()
+	trackThreadActivated(tid Word, step uint64)
 	populateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
@@ -34,6 +35,7 @@ func (s *noopStatsTracker) trackForcedPreemption()                         {}
 func (s *noopStatsTracker) trackWakeupTraversalStart()                     {}
 func (s *noopStatsTracker) trackWakeup()                                   {}
 func (s *noopStatsTracker) trackWakeupFail()                               {}
+func (s *noopStatsTracker) trackThreadActivated(tid Word, step uint64)     {}
 func (s *noopStatsTracker) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
 
 var _ StatsTracker = (*noopStatsTracker)(nil)
@@ -41,8 +43,10 @@ var _ StatsTracker = (*noopStatsTracker)(nil)
 // Actual implementation
 type statsTrackerImpl struct {
 	// State
-	lastLLOpStep      uint64
-	isWakeupTraversal bool
+	lastLLOpStep          uint64
+	isWakeupTraversal     bool
+	activeThreadId        Word
+	lastActiveStepThread0 uint64
 	// Stats
 	rmwSuccessCount int
 	rmwFailCount    int
@@ -53,6 +57,7 @@ type statsTrackerImpl struct {
 	reservationInvalidationCount int
 	forcedPreemptionCount        int
 	failedWakeupCount            int
+	idleStepCountThread0         uint64
 }
 
 func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
@@ -62,6 +67,7 @@ func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.ReservationInvalidationCount = s.reservationInvalidationCount
 	debugInfo.ForcedPreemptionCount = s.forcedPreemptionCount
 	debugInfo.FailedWakeupCount = s.failedWakeupCount
+	debugInfo.IdleStepCountThread0 = hexutil.Uint64(s.idleStepCountThread0)
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
@@ -108,6 +114,18 @@ func (s *statsTrackerImpl) trackWakeupFail() {
 		s.failedWakeupCount += 1
 	}
 	s.isWakeupTraversal = false
+}
+
+func (s *statsTrackerImpl) trackThreadActivated(tid Word, step uint64) {
+	if s.activeThreadId == Word(0) && tid != Word(0) {
+		// Thread 0 has been deactivated, start tracking to capture idle steps
+		s.lastActiveStepThread0 = step
+	} else if s.activeThreadId != Word(0) && tid == Word(0) {
+		// Thread 0 has been activated, record idle steps
+		idleSteps := step - s.lastActiveStepThread0
+		s.idleStepCountThread0 += idleSteps
+	}
+	s.activeThreadId = tid
 }
 
 func NewStatsTracker() StatsTracker {

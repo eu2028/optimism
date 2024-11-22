@@ -14,4 +14,5 @@ type DebugInfo struct {
 	ReservationInvalidationCount int            `json:"reservation_invalidation_count"`
 	ForcedPreemptionCount        int            `json:"forced_preemption_count"`
 	FailedWakeupCount            int            `json:"failed_wakeup_count"`
+	IdleStepCountThread0         hexutil.Uint64 `json:"idle_step_count_thread_0"`
 }

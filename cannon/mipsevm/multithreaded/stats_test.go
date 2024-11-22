@@ -84,6 +84,16 @@ func TestStatsTracker(t *testing.T) {
 			operations: []Operation{sleep(), wakeup(), wakeup(), sleep()},
 			expected:   &mipsevm.DebugInfo{FailedWakeupCount: 0},
 		},
+		{
+			name:       "Preempt thread 0 for thread 0",
+			operations: []Operation{activateThread(0, 10), activateThread(0, 20), activateThread(0, 21)},
+			expected:   &mipsevm.DebugInfo{IdleStepCountThread0: 0},
+		},
+		{
+			name:       "Preempt thread 0 for different thread",
+			operations: []Operation{activateThread(1, 10), activateThread(0, 20), activateThread(0, 21), activateThread(1, 22), activateThread(0, 25)},
+			expected:   &mipsevm.DebugInfo{IdleStepCountThread0: 13},
+		},
 	}
 
 	for _, c := range cases {
@@ -148,5 +158,11 @@ func wakeup() Operation {
 func sleep() Operation {
 	return func(tracker StatsTracker) {
 		tracker.trackWakeupFail()
+	}
+}
+
+func activateThread(tid Word, step uint64) Operation {
+	return func(tracker StatsTracker) {
+		tracker.trackThreadActivated(tid, step)
 	}
 }
