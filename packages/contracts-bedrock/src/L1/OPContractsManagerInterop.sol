@@ -31,9 +31,8 @@ contract OPContractsManagerInterop is OPContractsManager {
         override
         returns (bytes memory)
     {
-        bytes4 selector = ISystemConfigInterop.initialize.selector;
         (IResourceMetering.ResourceConfig memory referenceResourceConfig, ISystemConfig.Addresses memory opChainAddrs) =
-            defaultSystemConfigParams(selector, _input, _output);
+            defaultSystemConfigParams(ISystemConfigInterop.initialize.selector, _input, _output);
 
         // TODO For now we assume that the dependency manager is the same as system config owner.
         // This is currently undefined since it's not part of the standard config, so we may need
@@ -42,21 +41,23 @@ contract OPContractsManagerInterop is OPContractsManager {
         // we will make the change described in https://github.com/ethereum-optimism/optimism/issues/11783.
         address dependencyManager = address(_input.roles.systemConfigOwner);
 
-        return abi.encodeWithSelector(
-            selector,
-            ISystemConfig.Roles({
-                owner: _input.roles.systemConfigOwner,
-                feeAdmin: _input.roles.systemConfigFeeAdmin,
-                unsafeBlockSigner: _input.roles.unsafeBlockSigner,
-                batcherHash: bytes32(uint256(uint160(_input.roles.batcher)))
-            }),
-            _input.basefeeScalar,
-            _input.blobBasefeeScalar,
-            _input.gasLimit,
-            referenceResourceConfig,
-            chainIdToBatchInboxAddress(_input.l2ChainId),
-            opChainAddrs,
-            dependencyManager
+        return abi.encodeCall(
+            ISystemConfigInterop.initialize,
+            (
+                ISystemConfig.Roles({
+                    owner: _input.roles.systemConfigOwner,
+                    feeAdmin: _input.roles.systemConfigFeeAdmin,
+                    unsafeBlockSigner: _input.roles.unsafeBlockSigner,
+                    batcherHash: bytes32(uint256(uint160(_input.roles.batcher)))
+                }),
+                _input.basefeeScalar,
+                _input.blobBasefeeScalar,
+                _input.gasLimit,
+                referenceResourceConfig,
+                chainIdToBatchInboxAddress(_input.l2ChainId),
+                opChainAddrs,
+                dependencyManager
+            )
         );
     }
 }

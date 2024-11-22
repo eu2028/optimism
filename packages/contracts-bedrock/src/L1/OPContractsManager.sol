@@ -28,7 +28,7 @@ import { ISystemConfig } from "src/L1/interfaces/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "src/L1/interfaces/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "src/L1/interfaces/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "src/L1/interfaces/IL1StandardBridge.sol";
-import { IOptimismMintableERC20Factory } from "src/universal/interfaces/IOptimismMintableERC20Factory.sol";
+import { IL1OptimismMintableERC20Factory } from "src/L1/interfaces/IL1OptimismMintableERC20Factory.sol";
 
 contract OPContractsManager is ISemver {
     // -------- Structs --------
@@ -71,7 +71,7 @@ contract OPContractsManager is ISemver {
         IAddressManager addressManager;
         IL1ERC721Bridge l1ERC721BridgeProxy;
         ISystemConfig systemConfigProxy;
-        IOptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
+        IL1OptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
         IL1StandardBridge l1StandardBridgeProxy;
         IL1CrossDomainMessenger l1CrossDomainMessengerProxy;
         // Fault proof contracts below.
@@ -225,7 +225,7 @@ contract OPContractsManager is ISemver {
             IOptimismPortal2(payable(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "OptimismPortal")));
         output.systemConfigProxy =
             ISystemConfig(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "SystemConfig"));
-        output.optimismMintableERC20FactoryProxy = IOptimismMintableERC20Factory(
+        output.optimismMintableERC20FactoryProxy = IL1OptimismMintableERC20Factory(
             deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "L1OptimismMintableERC20Factory")
         );
         output.disputeGameFactoryProxy =
@@ -290,7 +290,8 @@ contract OPContractsManager is ISemver {
             output.opChainProxyAdmin, address(output.systemConfigProxy), implementation.systemConfigImpl, data
         );
 
-        data = encodeOptimismMintableERC20FactoryInitializer(IOptimismMintableERC20Factory.initialize.selector, output);
+        data =
+            encodeOptimismMintableERC20FactoryInitializer(IL1OptimismMintableERC20Factory.initialize.selector, output);
         upgradeAndCall(
             output.opChainProxyAdmin,
             address(output.optimismMintableERC20FactoryProxy),
@@ -437,26 +438,25 @@ contract OPContractsManager is ISemver {
         virtual
         returns (bytes memory)
     {
-        bytes4 selector = ISystemConfig.initialize.selector;
         (IResourceMetering.ResourceConfig memory referenceResourceConfig, ISystemConfig.Addresses memory opChainAddrs) =
-            defaultSystemConfigParams(selector, _input, _output);
+            defaultSystemConfigParams(ISystemConfig.initialize.selector, _input, _output);
 
-        return abi.encodeWithSelector(
-            selector,
-            ISystemConfig.Roles({
-                owner: _input.roles.systemConfigOwner,
-                feeAdmin: _input.roles.systemConfigFeeAdmin,
-                unsafeBlockSigner: _input.roles.unsafeBlockSigner,
-                batcherHash: bytes32(uint256(uint160(_input.roles.batcher)))
-            }),
-            _input.basefeeScalar,
-            _input.blobBasefeeScalar,
-            bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
-            _input.gasLimit,
-            _input.roles.unsafeBlockSigner,
-            referenceResourceConfig,
-            chainIdToBatchInboxAddress(_input.l2ChainId),
-            opChainAddrs
+        return abi.encodeCall(
+            ISystemConfig.initialize,
+            (
+                ISystemConfig.Roles({
+                    owner: _input.roles.systemConfigOwner,
+                    feeAdmin: _input.roles.systemConfigFeeAdmin,
+                    unsafeBlockSigner: _input.roles.unsafeBlockSigner,
+                    batcherHash: bytes32(uint256(uint160(_input.roles.batcher)))
+                }),
+                _input.basefeeScalar,
+                _input.blobBasefeeScalar,
+                _input.gasLimit,
+                referenceResourceConfig,
+                chainIdToBatchInboxAddress(_input.l2ChainId),
+                opChainAddrs
+            )
         );
     }
 
