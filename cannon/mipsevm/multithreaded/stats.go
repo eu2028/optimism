@@ -12,7 +12,7 @@ type StatsTracker interface {
 	trackSCSuccess(step uint64)
 	trackSCFailure(step uint64)
 	trackReservationInvalidation()
-	annotateDebugInfo(debugInfo *mipsevm.DebugInfo)
+	populateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
 // Noop implementation for when debug is disabled
@@ -26,7 +26,7 @@ func (s *noopStatsTracker) trackLL(step uint64)                            {}
 func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
 func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
 func (s *noopStatsTracker) trackReservationInvalidation()                  {}
-func (s *noopStatsTracker) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
+func (s *noopStatsTracker) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
 
 var _ StatsTracker = (*noopStatsTracker)(nil)
 
@@ -48,7 +48,7 @@ func NewStatsTracker() StatsTracker {
 	return &statsTrackerImpl{}
 }
 
-func (s *statsTrackerImpl) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {
+func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.RmwSuccessCount = s.rmwSuccessCount
 	debugInfo.RmwFailCount = s.rmwFailCount
 	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)

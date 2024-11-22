@@ -65,7 +65,7 @@ func TestStatsTracker(t *testing.T) {
 
 			// Validate expectations
 			actual := &mipsevm.DebugInfo{}
-			stats.annotateDebugInfo(actual)
+			stats.populateDebugInfo(actual)
 			require.Equal(t, c.expected, actual)
 		})
 	}

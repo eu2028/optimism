@@ -109,7 +109,7 @@ func (m *InstrumentedState) GetDebugInfo() *mipsevm.DebugInfo {
 		NumPreimageRequests: m.preimageOracle.NumPreimageRequests(),
 		TotalPreimageSize:   m.preimageOracle.TotalPreimageSize(),
 	}
-	m.statsTracker.annotateDebugInfo(debugInfo)
+	m.statsTracker.populateDebugInfo(debugInfo)
 	return debugInfo
 }
 
