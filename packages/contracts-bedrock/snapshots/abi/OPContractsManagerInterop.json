@@ -268,19 +268,14 @@
             "type": "uint256"
           },
           {
-            "internalType": "bytes",
-            "name": "startingAnchorRoots",
-            "type": "bytes"
-          },
-          {
-            "internalType": "string",
-            "name": "saltMixer",
-            "type": "string"
-          },
-          {
             "internalType": "uint64",
             "name": "gasLimit",
             "type": "uint64"
+          },
+          {
+            "internalType": "bytes",
+            "name": "feeVaultConfigs",
+            "type": "bytes"
           },
           {
             "internalType": "GameType",
@@ -311,6 +306,16 @@
             "internalType": "Duration",
             "name": "disputeMaxClockDuration",
             "type": "uint64"
+          },
+          {
+            "internalType": "bytes",
+            "name": "startingAnchorRoots",
+            "type": "bytes"
+          },
+          {
+            "internalType": "string",
+            "name": "saltMixer",
+            "type": "string"
           }
         ],
         "internalType": "struct OPContractsManager.DeployInput",
@@ -618,6 +623,11 @@
   {
     "inputs": [],
     "name": "InvalidChainId",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidFeeVaultConfigs",
     "type": "error"
   },
   {
