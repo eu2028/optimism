@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { console2 as console } from "forge-std/console2.sol";
 import { Script } from "forge-std/Script.sol";
 
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -164,7 +163,7 @@ contract DeployOPChainInput is BaseDeployIO {
     }
 
     function feeVaultConfigs() public view returns (bytes memory) {
-        // require(_feeVaultConfigs.length != 0, "DeployOPChainInput: not set");
+        require(_feeVaultConfigs.length != 0, "DeployOPChainInput: not set");
         return _feeVaultConfigs;
     }
 
@@ -552,7 +551,6 @@ contract DeployOPChain is Script {
 
     function assertValidSystemConfig(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {
         ISystemConfig systemConfig = _doo.systemConfigProxy();
-        console.log("assertValidSystemConfig:", address(systemConfig));
 
         DeployUtils.assertInitialized({ _contractAddress: address(systemConfig), _slot: 0, _offset: 0 });
 
