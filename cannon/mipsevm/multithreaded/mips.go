@@ -399,6 +399,8 @@ func (m *InstrumentedState) handleRMWOps(insn, opcode uint32) error {
 		} else {
 			// Atomic update failed, return 0 for failure
 			retVal = 0
+
+			m.statsTracker.trackSCFailure(m.GetState().GetStep())
 		}
 	default:
 		panic(fmt.Sprintf("Invalid instruction passed to handleRMWOps (opcode %08x)", opcode))

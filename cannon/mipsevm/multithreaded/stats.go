@@ -10,17 +10,17 @@ import (
 type StatsTracker interface {
 	trackLL(step uint64)
 	trackSCSuccess(step uint64)
+	trackSCFailure(step uint64)
 	annotateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
 // Noop implementation for when debug is disabled
 type noopStatsTracker struct{}
 
-func (s *noopStatsTracker) trackSCSuccess(step uint64) {}
-
+func (s *noopStatsTracker) trackLL(step uint64)                            {}
+func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
+func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
 func (s *noopStatsTracker) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
-
-func (s *noopStatsTracker) trackLL(step uint64) {}
 
 var _ StatsTracker = (*noopStatsTracker)(nil)
 
@@ -29,11 +29,17 @@ type statsTrackerImpl struct {
 	// State
 	lastLLOpStep uint64
 	// Stats
-	maxStepsBetweenLLAndSC uint64
+	rmwSuccessCount               int
+	rmwFailCount                  int
+	maxStepsBetweenLLAndSC        uint64
+	maxStepsBetweenLLAndSCFailure uint64
 }
 
 func (s *statsTrackerImpl) annotateDebugInfo(debugInfo *mipsevm.DebugInfo) {
+	debugInfo.RmwSuccessCount = s.rmwSuccessCount
+	debugInfo.RmwFailCount = s.rmwFailCount
 	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)
+	debugInfo.MaxStepsBetweenLLAndSCFailure = hexutil.Uint64(s.maxStepsBetweenLLAndSCFailure)
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
@@ -41,9 +47,19 @@ func (s *statsTrackerImpl) trackLL(step uint64) {
 }
 
 func (s *statsTrackerImpl) trackSCSuccess(step uint64) {
+	s.rmwSuccessCount += 1
 	diff := step - s.lastLLOpStep
 	if diff > s.maxStepsBetweenLLAndSC {
 		s.maxStepsBetweenLLAndSC = diff
+	}
+}
+
+func (s *statsTrackerImpl) trackSCFailure(step uint64) {
+	s.rmwFailCount += 1
+
+	diff := step - s.lastLLOpStep
+	if s.lastLLOpStep > 0 && diff > s.maxStepsBetweenLLAndSCFailure {
+		s.maxStepsBetweenLLAndSCFailure = diff
 	}
 }
 
