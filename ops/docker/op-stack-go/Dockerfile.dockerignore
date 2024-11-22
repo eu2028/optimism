@@ -4,7 +4,6 @@
 
 !/cannon
 !/op-batcher
-!/op-bootnode
 !/op-chain-ops
 !/op-deployer
 !/op-challenger
@@ -21,3 +20,5 @@
 !/op-alt-da
 !/go.mod
 !/go.sum
+!/just
+!/versions.json

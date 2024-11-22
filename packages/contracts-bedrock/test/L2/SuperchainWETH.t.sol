@@ -28,10 +28,10 @@ contract SuperchainWETH_Test is CommonTest {
     event Withdrawal(address indexed src, uint256 wad);
 
     /// @notice Emitted when a crosschain transfer mints tokens.
-    event CrosschainMint(address indexed to, uint256 amount);
+    event CrosschainMint(address indexed to, uint256 amount, address indexed sender);
 
     /// @notice Emitted when a crosschain transfer burns tokens.
-    event CrosschainBurn(address indexed from, uint256 amount);
+    event CrosschainBurn(address indexed from, uint256 amount, address indexed sender);
 
     address internal constant ZERO_ADDRESS = address(0);
 
@@ -162,7 +162,7 @@ contract SuperchainWETH_Test is CommonTest {
 
         // Look for the emit of the `CrosschainMint` event
         vm.expectEmit(address(superchainWeth));
-        emit CrosschainMint(_to, _amount);
+        emit CrosschainMint(_to, _amount, Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
         // Mock the `isCustomGasToken` function to return false
         _mockAndExpect(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(false));
@@ -195,7 +195,7 @@ contract SuperchainWETH_Test is CommonTest {
 
         // Look for the emit of the `CrosschainMint` event
         vm.expectEmit(address(superchainWeth));
-        emit CrosschainMint(_to, _amount);
+        emit CrosschainMint(_to, _amount, Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
         // Mock the `isCustomGasToken` function to return false
         _mockAndExpect(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(true));
@@ -248,7 +248,7 @@ contract SuperchainWETH_Test is CommonTest {
 
         // Look for the emit of the `CrosschainBurn` event
         vm.expectEmit(address(superchainWeth));
-        emit CrosschainBurn(_from, _amount);
+        emit CrosschainBurn(_from, _amount, Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
         // Mock the `isCustomGasToken` function to return false
         _mockAndExpect(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(false));
@@ -290,7 +290,7 @@ contract SuperchainWETH_Test is CommonTest {
 
         // Look for the emit of the `CrosschainBurn` event
         vm.expectEmit(address(superchainWeth));
-        emit CrosschainBurn(_from, _amount);
+        emit CrosschainBurn(_from, _amount, Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
         // Expect to not call the `burn` function in the `ETHLiquidity` contract
         vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.burn, ()), 0);
@@ -322,7 +322,7 @@ contract SuperchainWETH_Test is CommonTest {
     }
 
     /// @notice Test that the internal mint function reverts to protect against accidentally changing the visibility.
-    function testFuzz_calling_internal_mint_function_reverts(address _caller, address _to, uint256 _amount) public {
+    function testFuzz_calling_internalMintFunction_reverts(address _caller, address _to, uint256 _amount) public {
         // Arrange
         bytes memory _calldata = abi.encodeWithSignature("_mint(address,uint256)", _to, _amount); // nosemgrep:
             // sol-style-use-abi-encodecall
@@ -337,7 +337,7 @@ contract SuperchainWETH_Test is CommonTest {
     }
 
     /// @notice Test that the mint function reverts to protect against accidentally changing the visibility.
-    function testFuzz_calling_mint_function_reverts(address _caller, address _to, uint256 _amount) public {
+    function testFuzz_calling_mintFunction_reverts(address _caller, address _to, uint256 _amount) public {
         // Arrange
         bytes memory _calldata = abi.encodeWithSignature("mint(address,uint256)", _to, _amount); // nosemgrep:
             // sol-style-use-abi-encodecall
@@ -352,7 +352,7 @@ contract SuperchainWETH_Test is CommonTest {
     }
 
     /// @notice Test that the internal burn function reverts to protect against accidentally changing the visibility.
-    function testFuzz_calling_internal_burn_function_reverts(address _caller, address _from, uint256 _amount) public {
+    function testFuzz_calling_internalBurnFunction_reverts(address _caller, address _from, uint256 _amount) public {
         // Arrange
         bytes memory _calldata = abi.encodeWithSignature("_burn(address,uint256)", _from, _amount); // nosemgrep:
             // sol-style-use-abi-encodecall
@@ -367,7 +367,7 @@ contract SuperchainWETH_Test is CommonTest {
     }
 
     /// @notice Test that the burn function reverts to protect against accidentally changing the visibility.
-    function testFuzz_calling_burn_function_reverts(address _caller, address _from, uint256 _amount) public {
+    function testFuzz_calling_burnFuunction_reverts(address _caller, address _from, uint256 _amount) public {
         // Arrange
         bytes memory _calldata = abi.encodeWithSignature("burn(address,uint256)", _from, _amount); // nosemgrep:
             // sol-style-use-abi-encodecall
@@ -469,7 +469,7 @@ contract SuperchainWETH_Test is CommonTest {
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
     /// `IERC7802` one.
-    function testFuzz_supportInterface_returnFalse(bytes4 _interfaceId) public view {
+    function testFuzz_supportInterface_works(bytes4 _interfaceId) public view {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
         vm.assume(_interfaceId != type(IERC20).interfaceId);
