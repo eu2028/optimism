@@ -64,6 +64,26 @@ func TestStatsTracker(t *testing.T) {
 			operations: []Operation{forcePreempt(), forcePreempt()},
 			expected:   &mipsevm.DebugInfo{ForcedPreemptionCount: 2},
 		},
+		{
+			name:       "Successful wakeup traversal",
+			operations: []Operation{wakeupTraversal(), wakeup(), sleep(), wakeup()},
+			expected:   &mipsevm.DebugInfo{FailedWakeupCount: 0},
+		},
+		{
+			name:       "Failed wakeup traversal",
+			operations: []Operation{wakeupTraversal(), sleep(), wakeup(), sleep()},
+			expected:   &mipsevm.DebugInfo{FailedWakeupCount: 1},
+		},
+		{
+			name:       "Multiple failed wakeup traversals",
+			operations: []Operation{wakeupTraversal(), sleep(), wakeupTraversal(), sleep(), wakeupTraversal(), wakeup()},
+			expected:   &mipsevm.DebugInfo{FailedWakeupCount: 2},
+		},
+		{
+			name:       "Wakeups and sleeps outside of wakeup traversal",
+			operations: []Operation{sleep(), wakeup(), wakeup(), sleep()},
+			expected:   &mipsevm.DebugInfo{FailedWakeupCount: 0},
+		},
 	}
 
 	for _, c := range cases {
@@ -110,5 +130,23 @@ func invalidateReservation() Operation {
 func forcePreempt() Operation {
 	return func(tracker StatsTracker) {
 		tracker.trackForcedPreemption()
+	}
+}
+
+func wakeupTraversal() Operation {
+	return func(tracker StatsTracker) {
+		tracker.trackWakeupTraversalStart()
+	}
+}
+
+func wakeup() Operation {
+	return func(tracker StatsTracker) {
+		tracker.trackWakeup()
+	}
+}
+
+func sleep() Operation {
+	return func(tracker StatsTracker) {
+		tracker.trackWakeupFail()
 	}
 }

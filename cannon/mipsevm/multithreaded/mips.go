@@ -128,8 +128,7 @@ func (m *InstrumentedState) handleSyscall() error {
 				return nil
 			}
 		case exec.FutexWakePrivate:
-			// Trigger thread traversal starting from the left stack until we find one waiting on the wakeup
-			// address
+			// Trigger a wakeup traversal
 			m.state.Wakeup = effAddr
 			// Don't indicate to the program that we've woken up a waiting thread, as there are no guarantees.
 			// The woken up thread should indicate this in userspace.
@@ -138,6 +137,7 @@ func (m *InstrumentedState) handleSyscall() error {
 			exec.HandleSyscallUpdates(&thread.Cpu, &thread.Registers, v0, v1)
 			m.preemptThread(thread)
 			m.state.TraverseRight = len(m.state.LeftThreadStack) == 0
+			m.statsTracker.trackWakeupTraversalStart()
 			return nil
 		default:
 			v0 = exec.SysErrorSignal
@@ -288,6 +288,7 @@ func (m *InstrumentedState) doMipsStep() error {
 			if thread.FutexVal == mem {
 				// still got expected value, continue sleeping, try next thread.
 				m.preemptThread(thread)
+				m.statsTracker.trackWakeupFail()
 				return nil
 			} else {
 				// wake thread up, the value at its address changed!
@@ -426,6 +427,7 @@ func (m *InstrumentedState) onWaitComplete(thread *ThreadState, isTimedOut bool)
 		v1 = exec.MipsETIMEDOUT
 	}
 	exec.HandleSyscallUpdates(&thread.Cpu, &thread.Registers, v0, v1)
+	m.statsTracker.trackWakeup()
 }
 
 func (m *InstrumentedState) preemptThread(thread *ThreadState) bool {

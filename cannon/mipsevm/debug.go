@@ -13,4 +13,5 @@ type DebugInfo struct {
 	MaxStepsBetweenLLAndSC       hexutil.Uint64 `json:"max_steps_between_ll_and_sc"`
 	ReservationInvalidationCount int            `json:"reservation_invalidation_count"`
 	ForcedPreemptionCount        int            `json:"forced_preemption_count"`
+	FailedWakeupCount            int            `json:"failed_wakeup_count"`
 }

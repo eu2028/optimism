@@ -13,6 +13,9 @@ type StatsTracker interface {
 	trackSCFailure(step uint64)
 	trackReservationInvalidation()
 	trackForcedPreemption()
+	trackWakeupTraversalStart()
+	trackWakeup()
+	trackWakeupFail()
 	populateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
@@ -28,6 +31,9 @@ func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
 func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
 func (s *noopStatsTracker) trackReservationInvalidation()                  {}
 func (s *noopStatsTracker) trackForcedPreemption()                         {}
+func (s *noopStatsTracker) trackWakeupTraversalStart()                     {}
+func (s *noopStatsTracker) trackWakeup()                                   {}
+func (s *noopStatsTracker) trackWakeupFail()                               {}
 func (s *noopStatsTracker) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {}
 
 var _ StatsTracker = (*noopStatsTracker)(nil)
@@ -35,7 +41,8 @@ var _ StatsTracker = (*noopStatsTracker)(nil)
 // Actual implementation
 type statsTrackerImpl struct {
 	// State
-	lastLLOpStep uint64
+	lastLLOpStep      uint64
+	isWakeupTraversal bool
 	// Stats
 	rmwSuccessCount int
 	rmwFailCount    int
@@ -45,10 +52,7 @@ type statsTrackerImpl struct {
 	// Tracks RMW reservation invalidation due to reserved memory being accessed outside of the RMW sequence
 	reservationInvalidationCount int
 	forcedPreemptionCount        int
-}
-
-func NewStatsTracker() StatsTracker {
-	return &statsTrackerImpl{}
+	failedWakeupCount            int
 }
 
 func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
@@ -57,6 +61,7 @@ func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)
 	debugInfo.ReservationInvalidationCount = s.reservationInvalidationCount
 	debugInfo.ForcedPreemptionCount = s.forcedPreemptionCount
+	debugInfo.FailedWakeupCount = s.failedWakeupCount
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
@@ -88,6 +93,25 @@ func (s *statsTrackerImpl) trackReservationInvalidation() {
 
 func (s *statsTrackerImpl) trackForcedPreemption() {
 	s.forcedPreemptionCount += 1
+}
+
+func (s *statsTrackerImpl) trackWakeupTraversalStart() {
+	s.isWakeupTraversal = true
+}
+
+func (s *statsTrackerImpl) trackWakeup() {
+	s.isWakeupTraversal = false
+}
+
+func (s *statsTrackerImpl) trackWakeupFail() {
+	if s.isWakeupTraversal {
+		s.failedWakeupCount += 1
+	}
+	s.isWakeupTraversal = false
+}
+
+func NewStatsTracker() StatsTracker {
+	return &statsTrackerImpl{}
 }
 
 var _ StatsTracker = (*statsTrackerImpl)(nil)
