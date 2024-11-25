@@ -152,7 +152,7 @@ commands:
             just <<parameters.command>>
             git diff --quiet --exit-code
           working_directory: packages/contracts-bedrock
-          when: always
+          when: true
           environment:
             FOUNDRY_PROFILE: ci
 
@@ -225,7 +225,7 @@ jobs:
           path: ./tmp/test-results
       - store_artifacts:
           path: ./tmp/testlogs
-          when: always
+          when: true
       - when:
           condition: <<parameters.notify>>
           steps:
@@ -865,7 +865,7 @@ jobs:
           path: tmp/test-results
       - store_artifacts:
           path: tmp/testlogs
-          when: always
+          when: true
 
   go-tests:
     parameters:
@@ -933,7 +933,7 @@ jobs:
           path: ./tmp/test-results
       - store_artifacts:
           path: ./tmp/testlogs
-          when: always
+          when: true
       - when:
           condition: "<<parameters.notify>>"
           steps:
