@@ -25,7 +25,6 @@ import {
 } from "scripts/deploy/DeployImplementations.s.sol";
 
 // Contracts
-import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { OPContractsManager } from "src/L1/OPContractsManager.sol";
 
 // Libraries
@@ -44,8 +43,6 @@ import { IL2OutputOracle } from "src/L1/interfaces/IL2OutputOracle.sol";
 import { ISuperchainConfig } from "src/L1/interfaces/ISuperchainConfig.sol";
 import { ISystemConfig } from "src/L1/interfaces/ISystemConfig.sol";
 import { IDataAvailabilityChallenge } from "src/L1/interfaces/IDataAvailabilityChallenge.sol";
-import { IL1ERC721Bridge } from "src/L1/interfaces/IL1ERC721Bridge.sol";
-import { IL1StandardBridge } from "src/L1/interfaces/IL1StandardBridge.sol";
 import { ProtocolVersion } from "src/L1/interfaces/IProtocolVersions.sol";
 import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
 import { IDisputeGameFactory } from "src/dispute/interfaces/IDisputeGameFactory.sol";
@@ -54,11 +51,7 @@ import { IFaultDisputeGame } from "src/dispute/interfaces/IFaultDisputeGame.sol"
 import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "src/dispute/interfaces/IAnchorStateRegistry.sol";
 import { IMIPS } from "src/cannon/interfaces/IMIPS.sol";
-import { IMIPS2 } from "src/cannon/interfaces/IMIPS2.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
-import { IAddressManager } from "src/legacy/interfaces/IAddressManager.sol";
-import { IL1ChugSplashProxy } from "src/legacy/interfaces/IL1ChugSplashProxy.sol";
-import { IResolvedDelegateProxy } from "src/legacy/interfaces/IResolvedDelegateProxy.sol";
 
 /// @title Deploy
 /// @notice Script used to deploy a bedrock system. The entire system is deployed within the `run` function.
