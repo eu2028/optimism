@@ -563,41 +563,6 @@ contract Deploy is Deployer {
     //                Proxy Deployment Functions                  //
     ////////////////////////////////////////////////////////////////
 
-    /// @notice Deploy the L1StandardBridgeProxy using a ChugSplashProxy
-    function deployL1StandardBridgeProxy() public broadcast returns (address addr_) {
-        address proxyAdmin = mustGetAddress("ProxyAdmin");
-        IL1ChugSplashProxy proxy = IL1ChugSplashProxy(
-            DeployUtils.create2AndSave({
-                _save: this,
-                _salt: _implSalt(),
-                _name: "L1ChugSplashProxy",
-                _nick: "L1StandardBridgeProxy",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL1ChugSplashProxy.__constructor__, (proxyAdmin)))
-            })
-        );
-        require(EIP1967Helper.getAdmin(address(proxy)) == proxyAdmin);
-        addr_ = address(proxy);
-    }
-
-    /// @notice Deploy the L1CrossDomainMessengerProxy using a ResolvedDelegateProxy
-    function deployL1CrossDomainMessengerProxy() public broadcast returns (address addr_) {
-        IResolvedDelegateProxy proxy = IResolvedDelegateProxy(
-            DeployUtils.create2AndSave({
-                _save: this,
-                _salt: _implSalt(),
-                _name: "ResolvedDelegateProxy",
-                _nick: "L1CrossDomainMessengerProxy",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IResolvedDelegateProxy.__constructor__,
-                        (IAddressManager(mustGetAddress("AddressManager")), "OVM_L1CrossDomainMessenger")
-                    )
-                )
-            })
-        );
-        addr_ = address(proxy);
-    }
-
     /// @notice Deploys an ERC1967Proxy contract with the ProxyAdmin as the owner.
     /// @param _name The name of the proxy contract to be deployed.
     /// @return addr_ The address of the deployed proxy contract.
@@ -694,95 +659,6 @@ contract Deploy is Deployer {
         });
 
         addr_ = address(oracle);
-    }
-
-    /// @notice Deploy Mips VM. Deploys either MIPS or MIPS64 depending on the environment
-    function deployMips() public broadcast returns (address addr_) {
-        addr_ = DeployUtils.create2AndSave({
-            _save: this,
-            _salt: _implSalt(),
-            _name: Config.useMultithreadedCannon() ? "MIPS64" : "MIPS",
-            _args: DeployUtils.encodeConstructor(
-                abi.encodeCall(IMIPS2.__constructor__, (IPreimageOracle(mustGetAddress("PreimageOracle"))))
-            )
-        });
-        save("Mips", address(addr_));
-    }
-
-    /// @notice Deploy the AnchorStateRegistry
-    function deployAnchorStateRegistry() public broadcast returns (address addr_) {
-        IAnchorStateRegistry anchorStateRegistry = IAnchorStateRegistry(
-            DeployUtils.create2AndSave({
-                _save: this,
-                _salt: _implSalt(),
-                _name: "AnchorStateRegistry",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IAnchorStateRegistry.__constructor__,
-                        (IDisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy")))
-                    )
-                )
-            })
-        );
-
-        addr_ = address(anchorStateRegistry);
-    }
-
-    /// @notice Deploy the L1StandardBridge
-    function deployL1StandardBridge() public broadcast returns (address addr_) {
-        IL1StandardBridge bridge = IL1StandardBridge(
-            DeployUtils.create2AndSave({
-                _save: this,
-                _salt: _implSalt(),
-                _name: "L1StandardBridge",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL1StandardBridge.__constructor__, ()))
-            })
-        );
-
-        // Override the `L1StandardBridge` contract to the deployed implementation. This is necessary
-        // to check the `L1StandardBridge` implementation alongside dependent contracts, which
-        // are always proxies.
-        Types.ContractSet memory contracts = _proxies();
-        contracts.L1StandardBridge = address(bridge);
-        ChainAssertions.checkL1StandardBridge({ _contracts: contracts, _isProxy: false });
-
-        addr_ = address(bridge);
-    }
-
-    /// @notice Deploy the L1ERC721Bridge
-    function deployL1ERC721Bridge() public broadcast returns (address addr_) {
-        IL1ERC721Bridge bridge = IL1ERC721Bridge(
-            DeployUtils.create2AndSave({
-                _save: this,
-                _salt: _implSalt(),
-                _name: "L1ERC721Bridge",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL1ERC721Bridge.__constructor__, ()))
-            })
-        );
-
-        // Override the `L1ERC721Bridge` contract to the deployed implementation. This is necessary
-        // to check the `L1ERC721Bridge` implementation alongside dependent contracts, which
-        // are always proxies.
-        Types.ContractSet memory contracts = _proxies();
-        contracts.L1ERC721Bridge = address(bridge);
-
-        ChainAssertions.checkL1ERC721Bridge({ _contracts: contracts, _isProxy: false });
-
-        addr_ = address(bridge);
-    }
-
-    /// @notice Transfer ownership of the address manager to the ProxyAdmin
-    function transferAddressManagerOwnership() public broadcast {
-        console.log("Transferring AddressManager ownership to IProxyAdmin");
-        IAddressManager addressManager = IAddressManager(mustGetAddress("AddressManager"));
-        address owner = addressManager.owner();
-        address proxyAdmin = mustGetAddress("ProxyAdmin");
-        if (owner != proxyAdmin) {
-            addressManager.transferOwnership(proxyAdmin);
-            console.log("AddressManager ownership transferred to %s", proxyAdmin);
-        }
-
-        require(addressManager.owner() == proxyAdmin);
     }
 
     /// @notice Deploy the DataAvailabilityChallenge
@@ -1047,28 +923,6 @@ contract Deploy is Deployer {
         });
     }
 
-    /// @notice Sets the implementation for the `PERMISSIONED_CANNON` game type in the `DisputeGameFactory`
-    function setPermissionedCannonFaultGameImplementation(bool _allowUpgrade) public broadcast {
-        console.log("Setting Cannon PermissionedDisputeGame implementation");
-        IDisputeGameFactory factory = IDisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
-        IDelayedWETH weth = IDelayedWETH(mustGetAddress("PermissionedDelayedWETHProxy"));
-
-        // Deploys and sets the Permissioned FaultDisputeGame implementation in the factory.
-        _setFaultGameImplementation({
-            _factory: factory,
-            _allowUpgrade: _allowUpgrade,
-            _params: FaultDisputeGameParams({
-                anchorStateRegistry: IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
-                weth: weth,
-                gameType: GameTypes.PERMISSIONED_CANNON,
-                absolutePrestate: loadMipsAbsolutePrestate(),
-                faultVm: IBigStepper(mustGetAddress("Mips")),
-                maxGameDepth: cfg.faultGameMaxDepth(),
-                maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration()))
-            })
-        });
-    }
-
     /// @notice Sets the implementation for the `ALPHABET` game type in the `DisputeGameFactory`
     function setAlphabetFaultGameImplementation(bool _allowUpgrade) public onlyDevnet broadcast {
         console.log("Setting Alphabet FaultDisputeGame implementation");
@@ -1272,6 +1126,7 @@ contract Deploy is Deployer {
         });
     }
 
+    /// @notice Reset the initialized value on a proxy contract so that it can be initialized again
     function resetInitializedProxy(string memory _contractName) internal {
         console.log("resetting initialized value on %s Proxy", _contractName);
         address proxy = mustGetAddress(string.concat(_contractName, "Proxy"));
