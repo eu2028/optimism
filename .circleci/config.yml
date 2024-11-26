@@ -139,6 +139,26 @@ commands:
           branch_pattern: develop
           mentions: "<< parameters.mentions >>"
 
+  check-failures-on-develop:
+    description: "Check Failures"
+    steps:
+      - run:
+          name: "Check job status"
+          command: |
+            if [ "$CIRCLE_JOB_STATUS" == "failed" ]; then
+              echo "Job failed, sending notification"
+              circleci-agent step halt
+            fi
+      - run:
+          name: "Check job failures"
+          command: |
+            # Verificar si todas las instancias han fallado
+            if grep -q "failed" /tmp/circleci-job-status.txt; then
+              echo "All instances failed, sending notification."
+              # Aquí puedes agregar la lógica para notificar a Slack
+              curl -X POST -H 'Content-type: application/json' --data '{"text":"Job failed on all instances!"}' https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+            fi
+
   run-contracts-check:
     parameters:
       command:
@@ -712,6 +732,29 @@ jobs:
           key: golang-build-cache-contracts-bedrock-tests-{{ checksum "go.sum" }}
           paths:
             - "/root/.cache/go-build"
+      - run:
+          name: "Run tests"
+          command: |
+            # Ejecutar los tests y capturar el estado
+            set +e
+            forge test --match-path "$MATCH_PATH"
+            STATUS=$?
+            set -e
+            # Registrar el estado en un archivo temporal
+            if [ $STATUS -ne 0 ]; then
+              echo "failed" >> /tmp/circleci-job-status.txt
+            fi
+      - run:
+          name: "Check and notify"
+          command: |
+            # Solo una instancia debe hacer la verificación y notificación
+            if [ "$CIRCLE_NODE_INDEX" -eq 0 ]; then
+              if grep -q "failed" /tmp/circleci-job-status.txt; then
+                echo "All instances failed, sending notification."
+                # Aquí puedes agregar la lógica para notificar a Slack
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"Job failed on all instances!"}' https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+              fi
+            fi
       - notify-failures-on-develop
 
   contracts-bedrock-checks:
