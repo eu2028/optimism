@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/automation"
-	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/helpers"
+	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/expectations"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
@@ -66,7 +66,7 @@ func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
 }
 
 func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
-	model := helpers.GetBehaviorModel(ti.spec.Config.MempoolFiltering())
+	model := expectations.GetBehaviorModel(ti.spec.Config.MempoolFiltering())
 	alice, bob, chainA, chainB := ti.getShorthands()
 
 	data := []struct {
