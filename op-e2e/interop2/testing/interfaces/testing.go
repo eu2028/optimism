@@ -52,7 +52,7 @@ func (EmptyTestSpec[S]) Conform(s S) bool {
 
 type TestLogic[S SystemBase] interface {
 	Spec() TestSpec[S]
-	Setup(t Test, s S) error
+	Setup(t Test, s S)
 	Apply(t Test, s S)
 }
 
@@ -62,9 +62,7 @@ func (f TestLogicFunc[S]) Spec() TestSpec[S] {
 	return &EmptyTestSpec[S]{}
 }
 
-func (f TestLogicFunc[S]) Setup(t Test, s S) error {
-	return nil
-}
+func (f TestLogicFunc[S]) Setup(t Test, s S) {}
 
 func (f TestLogicFunc[S]) Apply(t Test, s S) {
 	f(t, s)

@@ -47,7 +47,7 @@ func (ti *testInteropBlockBuilding) getShorthands() (alice, bob, chainA, chainB 
 	return
 }
 
-func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
+func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) {
 	ti.auto = automation.NewSuperSystemAutomation(s, testlog.Logger(t, log.LevelInfo), t)
 	// oplog.SetGlobalLogHandler(logger.Handler())
 	ti.auto.NewUniqueUsers(numberOfUsers)
@@ -62,7 +62,6 @@ func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
 	require.NoError(t, err)
 
 	ti.setupSyncPoint = syncPoint
-	return nil
 }
 
 func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {

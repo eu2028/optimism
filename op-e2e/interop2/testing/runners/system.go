@@ -25,9 +25,6 @@ func (t SystemTest[S]) Run() {
 	}
 
 	wrapped := interfaces.WrapT(t.T)
-	if err := t.Logic.Setup(wrapped, s); err != nil {
-		t.Fatalf("failed to setup system: %s", err)
-	}
-
+	t.Logic.Setup(wrapped, s)
 	t.Logic.Apply(wrapped, s)
 }
