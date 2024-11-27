@@ -8,11 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
+	"github.com/ethereum-optimism/optimism/op-challenger/metrics"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 )
 
 func TestGenerateProof(t *testing.T) {
@@ -144,12 +146,12 @@ func TestGenerateProof(t *testing.T) {
 }
 
 type stubVmMetrics struct {
+	metrics.NoopTypedVmMetrics
 	executionTimeRecordCount int
 }
 
+var _ Metricer = (*stubVmMetrics)(nil)
+
 func (c *stubVmMetrics) RecordExecutionTime(_ time.Duration) {
 	c.executionTimeRecordCount++
-}
-
-func (c *stubVmMetrics) RecordMemoryUsed(_ uint64) {
 }
