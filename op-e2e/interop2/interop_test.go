@@ -32,35 +32,33 @@ func TestInteropNoop(t *testing.T) {
 type testInteropBlockBuilding struct {
 	spec           *interfaces.SuperSystemSpec
 	setupSyncPoint *automation.SyncPoint
-	users          []string
-	chains         []string
+	auto           *automation.SuperSystemAutomation
 }
 
 func (ti *testInteropBlockBuilding) Spec() TestSpec {
-	// TODO: we should push the N required chains into the spec ?
 	return ti.spec
 }
 
+func (ti *testInteropBlockBuilding) getShorthands() (alice, bob, chainA, chainB string) {
+	alice = ti.auto.User(0)
+	bob = ti.auto.User(1)
+	chainA = ti.auto.Chain(0)
+	chainB = ti.auto.Chain(1)
+	return
+}
+
 func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
-	auto := &automation.SuperSystemAutomation{
-		Sys:    s,
-		Logger: testlog.Logger(t, log.LevelInfo),
-		T:      t,
-	}
+	ti.auto = automation.NewSuperSystemAutomation(s, testlog.Logger(t, log.LevelInfo), t)
 	// oplog.SetGlobalLogHandler(logger.Handler())
+	ti.auto.NewUniqueUsers(numberOfUsers)
 
-	ti.users = make([]string, numberOfUsers)
-	for i := 0; i < numberOfUsers; i++ {
-		ti.users[i] = auto.NewUniqueUser(fmt.Sprintf("User%d", i))
-	}
+	alice, _, chainA, chainB := ti.getShorthands()
 
-	ti.chains = s.L2IDs()
-
-	err := auto.SetupXChainMessaging(ti.users[0], ti.chains[0], ti.chains[1])
+	err := ti.auto.SetupXChainMessaging(alice, chainA, chainB)
 	require.NoError(t, err)
 
 	// emit log on chain A
-	syncPoint, err := auto.SendXChainMessage(ti.users[0], ti.chains[0], "hello world")
+	syncPoint, err := ti.auto.SendXChainMessage(alice, chainA, "hello world")
 	require.NoError(t, err)
 
 	ti.setupSyncPoint = syncPoint
@@ -69,6 +67,8 @@ func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
 
 func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
 	model := helpers.GetBehaviorModel(ti.spec.Config.MempoolFiltering())
+	alice, bob, chainA, chainB := ti.getShorthands()
+
 	data := []struct {
 		name                 string
 		expectedError        error
@@ -91,15 +91,17 @@ func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
 
 	for _, tt := range data {
 		t.Run(tt.name, func(t Test) {
-			bobAddr := s.Address(ti.chains[0], ti.users[1]) // direct it to a random account without code
+			bobAddr := s.Address(chainA, bob) // direct it to a random account without code
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
 
-			_, err := s.ExecuteMessage(ctx, ti.chains[1], ti.users[0], ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
+			_, err := s.ExecuteMessage(ctx, chainB, alice, ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
 			tt.executionExpectation(ctx, t, err)
 		})
 	}
 }
+
+var _ TestLogic = (*testInteropBlockBuilding)(nil)
 
 func TestInteropBlockBuilding(t *testing.T) {
 	for _, useFiltering := range []bool{

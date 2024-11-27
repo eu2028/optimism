@@ -21,8 +21,21 @@ type SuperSystemAutomation struct {
 	Logger log.Logger
 	T      interfaces.Test
 
+	users  []string
+	chains []string
+
 	rollupClients map[string]*sources.RollupClient
-	mtx           sync.Mutex
+	mtx           sync.RWMutex
+}
+
+func NewSuperSystemAutomation(sys interfaces.SuperSystem, logger log.Logger, t interfaces.Test) *SuperSystemAutomation {
+	return &SuperSystemAutomation{
+		Sys:    sys,
+		Logger: logger,
+		T:      t,
+
+		chains: sys.L2IDs(),
+	}
 }
 
 type SyncPoint struct {
@@ -70,11 +83,51 @@ func (s *SuperSystemAutomation) GetRollupClient(chain string) (*sources.RollupCl
 	return client, nil
 }
 
-func (s *SuperSystemAutomation) NewUniqueUser(prefix string) string {
-	// TODO: make this more robust
-	name := fmt.Sprintf("%s_%d", prefix, time.Now().UnixNano())
+func (s *SuperSystemAutomation) addUser(name string) {
 	s.Sys.AddUser(name)
+	s.users = append(s.users, name)
+}
+
+func nameGenerator(prefix string) string {
+	return fmt.Sprintf("%s_%d", prefix, time.Now().UnixNano())
+}
+
+func (s *SuperSystemAutomation) NewUniqueUser(prefix string) string {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	name := nameGenerator(prefix)
+	s.addUser(name)
 	return name
+}
+
+func (s *SuperSystemAutomation) NewUniqueUsers(n int) []string {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	names := make([]string, n)
+	for i := 0; i < n; i++ {
+		name := nameGenerator(fmt.Sprintf("User%d", i))
+		names[i] = name
+		s.addUser(name)
+	}
+	return names
+}
+
+func (s *SuperSystemAutomation) User(idx int) string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	require.Less(s.T, idx, len(s.users), "user index out of bounds")
+	return s.users[idx]
+}
+
+func (s *SuperSystemAutomation) Chain(idx int) string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	require.Less(s.T, idx, len(s.chains), "chain index out of bounds")
+	return s.chains[idx]
 }
 
 func (s *SuperSystemAutomation) SetupXChainMessaging(sender string, orig string, dest string) error {
