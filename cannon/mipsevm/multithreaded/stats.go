@@ -48,15 +48,15 @@ type statsTrackerImpl struct {
 	activeThreadId        Word
 	lastActiveStepThread0 uint64
 	// Stats
-	rmwSuccessCount int
-	rmwFailCount    int
+	rmwSuccessCount uint64
+	rmwFailCount    uint64
 	// Note: Once a new LL operation is executed, we reset lastLLOpStep, losing track of previous RMW operations.
 	// So, maxStepsBetweenLLAndSC is not complete and may miss longer ranges for failed rmw sequences.
 	maxStepsBetweenLLAndSC uint64
 	// Tracks RMW reservation invalidation due to reserved memory being accessed outside of the RMW sequence
-	reservationInvalidationCount int
-	forcedPreemptionCount        int
-	failedWakeupCount            int
+	reservationInvalidationCount uint64
+	forcedPreemptionCount        uint64
+	failedWakeupCount            uint64
 	idleStepCountThread0         uint64
 }
 

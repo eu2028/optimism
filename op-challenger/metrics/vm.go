@@ -11,12 +11,12 @@ import (
 type VmMetricer interface {
 	RecordVmExecutionTime(vmType string, t time.Duration)
 	RecordVmMemoryUsed(vmType string, memoryUsed uint64)
-	RecordVmRmwSuccessCount(vmType string, val int)
-	RecordVmRmwFailCount(vmType string, val int)
+	RecordVmRmwSuccessCount(vmType string, val uint64)
+	RecordVmRmwFailCount(vmType string, val uint64)
 	RecordVmMaxStepsBetweenLLAndSC(vmType string, val uint64)
-	RecordVmReservationInvalidationCount(vmType string, val int)
-	RecordVmForcedPreemptionCount(vmType string, val int)
-	RecordVmFailedWakeupCount(vmType string, val int)
+	RecordVmReservationInvalidationCount(vmType string, val uint64)
+	RecordVmForcedPreemptionCount(vmType string, val uint64)
+	RecordVmFailedWakeupCount(vmType string, val uint64)
 	RecordVmIdleStepCountThread0(vmType string, val uint64)
 }
 
@@ -24,12 +24,12 @@ type VmMetricer interface {
 type TypedVmMetricer interface {
 	RecordExecutionTime(t time.Duration)
 	RecordMemoryUsed(memoryUsed uint64)
-	RecordRmwSuccessCount(val int)
-	RecordRmwFailCount(val int)
+	RecordRmwSuccessCount(val uint64)
+	RecordRmwFailCount(val uint64)
 	RecordMaxStepsBetweenLLAndSC(val uint64)
-	RecordReservationInvalidationCount(val int)
-	RecordForcedPreemptionCount(val int)
-	RecordFailedWakeupCount(val int)
+	RecordReservationInvalidationCount(val uint64)
+	RecordForcedPreemptionCount(val uint64)
+	RecordFailedWakeupCount(val uint64)
 	RecordIdleStepCountThread0(val uint64)
 }
 
@@ -55,11 +55,11 @@ func (m *VmMetrics) RecordVmMemoryUsed(vmType string, memoryUsed uint64) {
 	m.vmMemoryUsed.WithLabelValues(vmType).Observe(float64(memoryUsed))
 }
 
-func (m *VmMetrics) RecordVmRmwSuccessCount(vmType string, val int) {
+func (m *VmMetrics) RecordVmRmwSuccessCount(vmType string, val uint64) {
 	m.vmRmwSuccessCount.WithLabelValues(vmType).Set(float64(val))
 }
 
-func (m *VmMetrics) RecordVmRmwFailCount(vmType string, val int) {
+func (m *VmMetrics) RecordVmRmwFailCount(vmType string, val uint64) {
 	m.vmRmwFailCount.WithLabelValues(vmType).Set(float64(val))
 }
 
@@ -67,15 +67,15 @@ func (m *VmMetrics) RecordVmMaxStepsBetweenLLAndSC(vmType string, val uint64) {
 	m.vmMaxStepsBetweenLLAndSC.WithLabelValues(vmType).Set(float64(val))
 }
 
-func (m *VmMetrics) RecordVmReservationInvalidationCount(vmType string, val int) {
+func (m *VmMetrics) RecordVmReservationInvalidationCount(vmType string, val uint64) {
 	m.vmReservationInvalidations.WithLabelValues(vmType).Set(float64(val))
 }
 
-func (m *VmMetrics) RecordVmForcedPreemptionCount(vmType string, val int) {
+func (m *VmMetrics) RecordVmForcedPreemptionCount(vmType string, val uint64) {
 	m.vmForcedPreemptions.WithLabelValues(vmType).Set(float64(val))
 }
 
-func (m *VmMetrics) RecordVmFailedWakeupCount(vmType string, val int) {
+func (m *VmMetrics) RecordVmFailedWakeupCount(vmType string, val uint64) {
 	m.vmFailedWakeup.WithLabelValues(vmType).Set(float64(val))
 }
 
@@ -143,15 +143,15 @@ type NoopVmMetrics struct{}
 
 var _ VmMetricer = NoopVmMetrics{}
 
-func (n NoopVmMetrics) RecordVmExecutionTime(vmType string, t time.Duration)        {}
-func (n NoopVmMetrics) RecordVmMemoryUsed(vmType string, memoryUsed uint64)         {}
-func (n NoopVmMetrics) RecordVmRmwSuccessCount(vmType string, val int)              {}
-func (n NoopVmMetrics) RecordVmRmwFailCount(vmType string, val int)                 {}
-func (n NoopVmMetrics) RecordVmMaxStepsBetweenLLAndSC(vmType string, val uint64)    {}
-func (n NoopVmMetrics) RecordVmReservationInvalidationCount(vmType string, val int) {}
-func (n NoopVmMetrics) RecordVmForcedPreemptionCount(vmType string, val int)        {}
-func (n NoopVmMetrics) RecordVmFailedWakeupCount(vmType string, val int)            {}
-func (n NoopVmMetrics) RecordVmIdleStepCountThread0(vmType string, val uint64)      {}
+func (n NoopVmMetrics) RecordVmExecutionTime(vmType string, t time.Duration)           {}
+func (n NoopVmMetrics) RecordVmMemoryUsed(vmType string, memoryUsed uint64)            {}
+func (n NoopVmMetrics) RecordVmRmwSuccessCount(vmType string, val uint64)              {}
+func (n NoopVmMetrics) RecordVmRmwFailCount(vmType string, val uint64)                 {}
+func (n NoopVmMetrics) RecordVmMaxStepsBetweenLLAndSC(vmType string, val uint64)       {}
+func (n NoopVmMetrics) RecordVmReservationInvalidationCount(vmType string, val uint64) {}
+func (n NoopVmMetrics) RecordVmForcedPreemptionCount(vmType string, val uint64)        {}
+func (n NoopVmMetrics) RecordVmFailedWakeupCount(vmType string, val uint64)            {}
+func (n NoopVmMetrics) RecordVmIdleStepCountThread0(vmType string, val uint64)         {}
 
 type typedVmMetricsImpl struct {
 	m      VmMetricer
@@ -168,11 +168,11 @@ func (m *typedVmMetricsImpl) RecordMemoryUsed(memoryUsed uint64) {
 	m.m.RecordVmMemoryUsed(m.vmType, memoryUsed)
 }
 
-func (m *typedVmMetricsImpl) RecordRmwSuccessCount(val int) {
+func (m *typedVmMetricsImpl) RecordRmwSuccessCount(val uint64) {
 	m.m.RecordVmRmwSuccessCount(m.vmType, val)
 }
 
-func (m *typedVmMetricsImpl) RecordRmwFailCount(val int) {
+func (m *typedVmMetricsImpl) RecordRmwFailCount(val uint64) {
 	m.m.RecordVmRmwFailCount(m.vmType, val)
 }
 
@@ -180,15 +180,15 @@ func (m *typedVmMetricsImpl) RecordMaxStepsBetweenLLAndSC(val uint64) {
 	m.m.RecordVmMaxStepsBetweenLLAndSC(m.vmType, val)
 }
 
-func (m *typedVmMetricsImpl) RecordReservationInvalidationCount(val int) {
+func (m *typedVmMetricsImpl) RecordReservationInvalidationCount(val uint64) {
 	m.m.RecordVmReservationInvalidationCount(m.vmType, val)
 }
 
-func (m *typedVmMetricsImpl) RecordForcedPreemptionCount(val int) {
+func (m *typedVmMetricsImpl) RecordForcedPreemptionCount(val uint64) {
 	m.m.RecordVmForcedPreemptionCount(m.vmType, val)
 }
 
-func (m *typedVmMetricsImpl) RecordFailedWakeupCount(val int) {
+func (m *typedVmMetricsImpl) RecordFailedWakeupCount(val uint64) {
 	m.m.RecordVmFailedWakeupCount(m.vmType, val)
 }
 
@@ -207,12 +207,12 @@ type NoopTypedVmMetrics struct{}
 
 var _ TypedVmMetricer = NoopTypedVmMetrics{}
 
-func (n NoopTypedVmMetrics) RecordExecutionTime(t time.Duration)        {}
-func (n NoopTypedVmMetrics) RecordMemoryUsed(memoryUsed uint64)         {}
-func (n NoopTypedVmMetrics) RecordRmwSuccessCount(val int)              {}
-func (n NoopTypedVmMetrics) RecordRmwFailCount(val int)                 {}
-func (n NoopTypedVmMetrics) RecordMaxStepsBetweenLLAndSC(val uint64)    {}
-func (n NoopTypedVmMetrics) RecordReservationInvalidationCount(val int) {}
-func (n NoopTypedVmMetrics) RecordForcedPreemptionCount(val int)        {}
-func (n NoopTypedVmMetrics) RecordFailedWakeupCount(val int)            {}
-func (n NoopTypedVmMetrics) RecordIdleStepCountThread0(val uint64)      {}
+func (n NoopTypedVmMetrics) RecordExecutionTime(t time.Duration)           {}
+func (n NoopTypedVmMetrics) RecordMemoryUsed(memoryUsed uint64)            {}
+func (n NoopTypedVmMetrics) RecordRmwSuccessCount(val uint64)              {}
+func (n NoopTypedVmMetrics) RecordRmwFailCount(val uint64)                 {}
+func (n NoopTypedVmMetrics) RecordMaxStepsBetweenLLAndSC(val uint64)       {}
+func (n NoopTypedVmMetrics) RecordReservationInvalidationCount(val uint64) {}
+func (n NoopTypedVmMetrics) RecordForcedPreemptionCount(val uint64)        {}
+func (n NoopTypedVmMetrics) RecordFailedWakeupCount(val uint64)            {}
+func (n NoopTypedVmMetrics) RecordIdleStepCountThread0(val uint64)         {}
