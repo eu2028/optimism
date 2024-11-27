@@ -16,11 +16,11 @@ func provideE2E[T any](t interfaces.Test, spec interfaces.TestSpec[T]) (T, error
 		// TODO: yikes, fix it please, this is a mess
 		spec := spec.(interfaces.TestSpec[interfaces.SuperSystem])
 		switch spec := spec.(type) {
-		case *e2e_backends.SuperSystemSpec:
+		case *interfaces.SuperSystemSpec:
 			s, err := e2e_backends.NewSuperSystem(t, spec)
 			return s.(T), err
 		case *interfaces.EmptyTestSpec[interfaces.SuperSystem]:
-			s, err := e2e_backends.NewSuperSystem(t, &e2e_backends.SuperSystemSpec{})
+			s, err := e2e_backends.NewSuperSystem(t, &interfaces.SuperSystemSpec{})
 			return s.(T), err
 		default:
 			var void T

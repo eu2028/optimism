@@ -70,50 +70,36 @@ import (
 type Test = interfaces.Test
 type SuperSystem = interfaces.SuperSystem
 
-type SuperSystemConfig struct {
-	MempoolFiltering bool
-}
+func newFullSuperSystemSpec(spec *interfaces.SuperSystemSpec) *interfaces.FullSuperSystemSpec {
+	l2ChainIDs := []uint64{}
+	for i := 0; i < spec.Config.NumberOfL2s(); i++ {
+		l2ChainIDs = append(l2ChainIDs, uint64(900200+i))
+	}
 
-type SuperSystemSpec struct {
-	Config SuperSystemConfig
-}
-
-type FullSuperSystemSpec struct {
-	Recipe *interopgen.InteropDevRecipe
-	World  WorldResourcePaths
-	*SuperSystemSpec
-}
-
-func newFullSuperSystemSpec(spec *SuperSystemSpec) *FullSuperSystemSpec {
 	recipe := interopgen.InteropDevRecipe{
 		L1ChainID:        900100,
-		L2ChainIDs:       []uint64{900200, 900201},
+		L2ChainIDs:       l2ChainIDs,
 		GenesisTimestamp: uint64(time.Now().Unix() + 3), // start chain 3 seconds from now
 	}
-	worldResources := WorldResourcePaths{
+	worldResources := interfaces.WorldResourcePaths{
 		FoundryArtifacts: "../../packages/contracts-bedrock/forge-artifacts",
 		SourceMap:        "../../packages/contracts-bedrock",
 	}
 
-	return &FullSuperSystemSpec{
+	return &interfaces.FullSuperSystemSpec{
 		Recipe:          &recipe,
 		World:           worldResources,
 		SuperSystemSpec: spec,
 	}
 }
 
-func (s SuperSystemSpec) Conform(ss SuperSystem) bool {
-	// TODO: do something !
-	return true
-}
-
-func NewSuperSystem(t Test, spec *SuperSystemSpec) (SuperSystem, error) {
+func NewSuperSystem(t Test, spec *interfaces.SuperSystemSpec) (SuperSystem, error) {
 	fspec := newFullSuperSystemSpec(spec)
 	return newSuperSystem(t, fspec.Recipe, fspec.World, fspec.Config), nil
 }
 
 // NewSuperSystem creates a new SuperSystem from a recipe. It creates an interopE2ESystem.
-func newSuperSystem(t Test, recipe *interopgen.InteropDevRecipe, w WorldResourcePaths, config SuperSystemConfig) SuperSystem {
+func newSuperSystem(t Test, recipe *interopgen.InteropDevRecipe, w interfaces.WorldResourcePaths, config interfaces.SuperSystemConfig) SuperSystem {
 	s2 := &InteropE2ESystem{recipe: recipe, Config: &config}
 	s2.prepare(t, w)
 	return s2
@@ -137,7 +123,7 @@ type InteropE2ESystem struct {
 	l2GethClients   map[string]*ethclient.Client
 	supervisor      *supervisor.SupervisorService
 	superClient     *sources.SupervisorClient
-	Config          *SuperSystemConfig
+	Config          *interfaces.SuperSystemConfig
 }
 
 // l2Set is a set of resources for an L2 chain
@@ -159,13 +145,8 @@ func (s *InteropE2ESystem) prepareHDWallet() *devkeys.MnemonicDevKeys {
 	return hdWallet
 }
 
-type WorldResourcePaths struct {
-	FoundryArtifacts string
-	SourceMap        string
-}
-
 // prepareWorld creates the world configuration from the recipe and deploys it
-func (s *InteropE2ESystem) prepareWorld(w WorldResourcePaths) (*interopgen.WorldDeployment, *interopgen.WorldOutput) {
+func (s *InteropE2ESystem) prepareWorld(w interfaces.WorldResourcePaths) (*interopgen.WorldDeployment, *interopgen.WorldOutput) {
 	// Build the world configuration from the recipe and the HD wallet
 	worldCfg, err := s.recipe.Build(s.hdWallet)
 	require.NoError(s.t, err)
@@ -257,7 +238,7 @@ func (s *InteropE2ESystem) newGethForL2(id string, l2Out *interopgen.L2Output) *
 	l2Geth, err := geth.InitL2(name, l2Out.Genesis, jwtPath,
 		func(ethCfg *ethconfig.Config, nodeCfg *gn.Config) error {
 			ethCfg.InteropMessageRPC = s.supervisor.RPC()
-			ethCfg.InteropMempoolFiltering = s.Config.MempoolFiltering
+			ethCfg.InteropMempoolFiltering = s.Config.MempoolFiltering()
 			return nil
 		})
 	require.NoError(s.t, err)
@@ -519,7 +500,7 @@ func (s *InteropE2ESystem) SupervisorClient() *sources.SupervisorClient {
 // prepare sets up the system for testing
 // components are built iteratively, so that they can be reused or modified
 // their creation can't be safely skipped or reordered at this time
-func (s *InteropE2ESystem) prepare(t Test, w WorldResourcePaths) {
+func (s *InteropE2ESystem) prepare(t Test, w interfaces.WorldResourcePaths) {
 	s.t = t
 	s.logger = testlog.Logger(s.t, log.LevelDebug)
 	s.hdWallet = s.prepareHDWallet()

@@ -7,11 +7,17 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/helpers"
+	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/providers/e2e_backends"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	numberOfL2s   = 2
+	numberOfUsers = 2
 )
 
 func testInteropNoop(t Test, s SuperSystem) {
@@ -24,14 +30,10 @@ func TestInteropNoop(t *testing.T) {
 }
 
 type testInteropBlockBuilding struct {
-	spec           *e2e_backends.SuperSystemSpec
+	spec           *interfaces.SuperSystemSpec
 	setupSyncPoint *e2e_backends.SyncPoint
-
-	alice string
-	bob   string
-
-	chainA string
-	chainB string
+	users          []string
+	chains         []string
 }
 
 func (ti *testInteropBlockBuilding) Spec() TestSpec {
@@ -47,18 +49,18 @@ func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
 	}
 	// oplog.SetGlobalLogHandler(logger.Handler())
 
-	ti.alice = auto.NewUniqueUser("Alice")
-	ti.bob = auto.NewUniqueUser("Bob")
+	ti.users = make([]string, numberOfUsers)
+	for i := 0; i < numberOfUsers; i++ {
+		ti.users[i] = auto.NewUniqueUser(fmt.Sprintf("User%d", i))
+	}
 
-	ids := s.L2IDs()
-	ti.chainA = ids[0]
-	ti.chainB = ids[1]
+	ti.chains = s.L2IDs()
 
-	err := auto.SetupXChainMessaging(ti.alice, ti.chainA, ti.chainB)
+	err := auto.SetupXChainMessaging(ti.users[0], ti.chains[0], ti.chains[1])
 	require.NoError(t, err)
 
 	// emit log on chain A
-	syncPoint, err := auto.SendXChainMessage(ti.alice, ti.chainA, "hello world")
+	syncPoint, err := auto.SendXChainMessage(ti.users[0], ti.chains[0], "hello world")
 	require.NoError(t, err)
 
 	ti.setupSyncPoint = syncPoint
@@ -66,7 +68,7 @@ func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
 }
 
 func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
-	model := helpers.GetBehaviorModel(ti.spec.Config.MempoolFiltering)
+	model := helpers.GetBehaviorModel(ti.spec.Config.MempoolFiltering())
 	data := []struct {
 		name                 string
 		expectedError        error
@@ -89,11 +91,11 @@ func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
 
 	for _, tt := range data {
 		t.Run(tt.name, func(t Test) {
-			bobAddr := s.Address(ti.chainA, ti.bob) // direct it to a random account without code
+			bobAddr := s.Address(ti.chains[0], ti.users[1]) // direct it to a random account without code
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
 
-			_, err := s.ExecuteMessage(ctx, ti.chainB, ti.alice, ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
+			_, err := s.ExecuteMessage(ctx, ti.chains[1], ti.users[0], ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
 			tt.executionExpectation(ctx, t, err)
 		})
 	}
@@ -107,12 +109,15 @@ func TestInteropBlockBuilding(t *testing.T) {
 		mempoolFiltering := useFiltering
 		t.Run(fmt.Sprintf("mempoolFiltering=%t", mempoolFiltering), func(t *testing.T) {
 			t.Parallel()
-			spec := &e2e_backends.SuperSystemSpec{
-				Config: e2e_backends.SuperSystemConfig{
-					MempoolFiltering: mempoolFiltering,
-				},
+			spec := &interfaces.SuperSystemSpec{
+				Config: interfaces.NewSuperSystemConfig(
+					interfaces.WithMempoolFiltering(mempoolFiltering),
+					interfaces.WithNumberOfL2s(numberOfL2s),
+				),
 			}
-			SystemTest{T: t, Logic: &testInteropBlockBuilding{spec: spec}}.Run()
+			SystemTest{T: t, Logic: &testInteropBlockBuilding{
+				spec: spec,
+			}}.Run()
 		})
 	}
 }
