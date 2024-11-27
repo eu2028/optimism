@@ -21,15 +21,18 @@ func TestInteropMessageExecution(gt *testing.T) {
 	is := SetupInterop(t)
 	actors := is.CreateActors()
 
+	chainAUserKeys := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)
+	chainBUserKeys := devkeys.ChainUserKeys(actors.ChainB.ChainCfg.ChainID)
+
+	userAChainAKey := chainAUserKeys(0)
+	userAChainBKey := chainBUserKeys(0)
+
 	// Get both sequencers ready
 	actors.ChainA.Sequencer.ActL2PipelineFull(t)
 	actors.ChainB.Sequencer.ActL2PipelineFull(t)
 
 	// We'll use User 0 for our testing
-	secret, err := is.Keys.Secret(devkeys.ChainOperatorKey{
-		ChainID: actors.ChainA.ChainCfg.ChainID,
-		Role:    devkeys.ProposerRole,
-	})
+	secret, err := is.Keys.Secret(userAChainAKey)
 
 	// Create transaction options for the user
 	deployerAuth, err := bind.NewKeyedTransactorWithChainID(
@@ -46,13 +49,13 @@ func TestInteropMessageExecution(gt *testing.T) {
 
 	// Include the deploy transaction
 	actors.ChainA.Sequencer.ActL2StartBlock(t)
-	actors.ChainA.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(secret.PublicKey))
+	err = actors.ChainA.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(secret.PublicKey))
+	require.NoError(t, err)
 	actors.ChainA.Sequencer.ActL2EndBlock(t)
 
 	// Create test user
-
-	userChainKey := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)(0)
-	userSecret, err := is.Keys.Secret(userChainKey)
+	userSecret, err := is.Keys.Secret(userAChainAKey)
+	require.NoError(t, err)
 	userAuthA, err := bind.NewKeyedTransactorWithChainID(
 		userSecret,
 		actors.ChainA.ChainCfg.ChainID,
@@ -82,12 +85,13 @@ func TestInteropMessageExecution(gt *testing.T) {
 	actors.Supervisor.SyncCrossUnsafe(t, actors.ChainA.ChainID)
 	actors.Supervisor.SyncCrossSafe(t, actors.ChainA.ChainID)
 
-	// Now try to execute the message on Chain B using the same key
+	// Now try to execute the message on Chain B using the same user
+	userSecret, err = is.Keys.Secret(userAChainBKey)
+	require.NoError(t, err)
 	userAuthB, err := bind.NewKeyedTransactorWithChainID(
 		userSecret,
 		actors.ChainB.ChainCfg.ChainID,
 	)
-	require.NoError(t, err)
 	require.NoError(t, err)
 	userAuthB.GasLimit = 3000000
 	userAuthB.GasTipCap = big.NewInt(2 * params.GWei)
