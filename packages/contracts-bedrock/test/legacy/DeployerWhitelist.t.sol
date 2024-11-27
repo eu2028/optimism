@@ -46,7 +46,7 @@ contract DeployerWhitelist_Test is Test {
     }
 
     /// @dev Tests that `setOwner` reverts when the caller is not the owner.
-    function test_setOwner_reverts(address _caller, address _owner) external {
+    function test_setOwner_callerNotOwner_reverts(address _caller, address _owner) external {
         vm.store(address(list), bytes32(uint256(0)), bytes32(uint256(uint160(owner))));
         assertEq(list.owner(), owner);
 
@@ -58,7 +58,7 @@ contract DeployerWhitelist_Test is Test {
     }
 
     /// @dev Tests that `setOwner` reverts when the new owner is the zero address.
-    function test_setOwner_reverts_zeroAddress() external {
+    function test_setOwner_zeroAddress_reverts() external {
         vm.store(address(list), bytes32(uint256(0)), bytes32(uint256(uint160(owner))));
         assertEq(list.owner(), owner);
 
@@ -85,7 +85,7 @@ contract DeployerWhitelist_Test is Test {
     }
 
     /// @dev Tests that `enableArbitraryContractDeployment` reverts when the caller is not the owner.
-    function test_enableArbitraryContractDeployment_reverts(address _caller) external {
+    function test_enableArbitraryContractDeployment_callerNotOwner_reverts(address _caller) external {
         vm.store(address(list), bytes32(uint256(0)), bytes32(uint256(uint160(owner))));
         assertEq(list.owner(), owner);
 
@@ -114,7 +114,13 @@ contract DeployerWhitelist_Test is Test {
     }
 
     /// @dev Tests that `setWhitelistedDeployer` reverts when the caller is not the owner.
-    function test_setWhitelistedDeployer_reverts(address _caller, address _deployer, bool _isWhitelisted) external {
+    function test_setWhitelistedDeployer_callerNotOwner_reverts(
+        address _caller,
+        address _deployer,
+        bool _isWhitelisted
+    )
+        external
+    {
         vm.store(address(list), bytes32(uint256(0)), bytes32(uint256(uint160(owner))));
         assertEq(list.owner(), owner);
 
