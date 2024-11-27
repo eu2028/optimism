@@ -690,7 +690,7 @@ func (s *InteropE2ESystem) SendL2Tx(
 		opts.Nonce = nonce
 	}
 	return helpers.SendL2TxWithID(
-		s.t.(*interfaces.WrappedT).T, // TODO: fix this shortcut
+		s.t,
 		s.l2s[id].chainID,
 		s.L2GethClient(id),
 		&senderSecret,

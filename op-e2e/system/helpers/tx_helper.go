@@ -26,7 +26,7 @@ import (
 // The L2 transaction options can be configured by modifying the DepositTxOps value supplied to applyL2Opts
 // Will verify that the transaction is included with the expected status on L1 and L2
 // Returns the receipt of the L2 transaction
-func SendDepositTx(t *testing.T, cfg e2esys.SystemConfig, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts DepositTxOptsFn) *types.Receipt {
+func SendDepositTx(t testing.TB, cfg e2esys.SystemConfig, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts DepositTxOptsFn) *types.Receipt {
 	l2Opts := defaultDepositTxOpts(l1Opts)
 	applyL2Opts(l2Opts)
 
@@ -86,7 +86,7 @@ func defaultDepositTxOpts(opts *bind.TransactOpts) *DepositTxOpts {
 // The supplied privKey is used to specify the account to send from and the transaction is sent to the supplied l2Client
 // Transaction options and expected status can be configured in the applyTxOpts function by modifying the supplied TxOpts
 // Will verify that the transaction is included with the expected status on l2Client and any clients added to TxOpts.VerifyClients
-func SendL2TxWithID(t *testing.T, chainID *big.Int, l2Client *ethclient.Client, privKey *ecdsa.PrivateKey, applyTxOpts TxOptsFn) *types.Receipt {
+func SendL2TxWithID(t testing.TB, chainID *big.Int, l2Client *ethclient.Client, privKey *ecdsa.PrivateKey, applyTxOpts TxOptsFn) *types.Receipt {
 	opts := defaultTxOpts()
 	applyTxOpts(opts)
 	tx := types.MustSignNewTx(privKey, types.LatestSignerForChainID(chainID), &types.DynamicFeeTx{
@@ -117,7 +117,7 @@ func SendL2TxWithID(t *testing.T, chainID *big.Int, l2Client *ethclient.Client, 
 	return receipt
 }
 
-func SendL2Tx(t *testing.T, cfg e2esys.SystemConfig, l2Client *ethclient.Client, privKey *ecdsa.PrivateKey, applyTxOpts TxOptsFn) *types.Receipt {
+func SendL2Tx(t testing.TB, cfg e2esys.SystemConfig, l2Client *ethclient.Client, privKey *ecdsa.PrivateKey, applyTxOpts TxOptsFn) *types.Receipt {
 	return SendL2TxWithID(t, cfg.L2ChainIDBig(), l2Client, privKey, applyTxOpts)
 }
 
