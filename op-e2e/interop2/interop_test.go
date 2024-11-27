@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/automation"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/helpers"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
-	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/providers/e2e_backends"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -31,7 +31,7 @@ func TestInteropNoop(t *testing.T) {
 
 type testInteropBlockBuilding struct {
 	spec           *interfaces.SuperSystemSpec
-	setupSyncPoint *e2e_backends.SyncPoint
+	setupSyncPoint *automation.SyncPoint
 	users          []string
 	chains         []string
 }
@@ -42,7 +42,7 @@ func (ti *testInteropBlockBuilding) Spec() TestSpec {
 }
 
 func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) error {
-	auto := &e2e_backends.SuperSystemAutomation{
+	auto := &automation.SuperSystemAutomation{
 		Sys:    s,
 		Logger: testlog.Logger(t, log.LevelInfo),
 		T:      t,

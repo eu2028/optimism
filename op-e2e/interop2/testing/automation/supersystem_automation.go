@@ -1,4 +1,4 @@
-package e2e_backends
+package automation
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 )
 
 type SuperSystemAutomation struct {
-	Sys    SuperSystem
+	Sys    interfaces.SuperSystem
 	Logger log.Logger
 	T      interfaces.Test
 
