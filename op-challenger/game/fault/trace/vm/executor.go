@@ -137,8 +137,15 @@ func (e *Executor) DoGenerateProof(ctx context.Context, dir string, begin uint64
 		if info, err := jsonutil.LoadJSON[debugInfo](filepath.Join(dataDir, debugFilename)); err != nil {
 			e.logger.Warn("Failed to load debug metrics", "err", err)
 		} else {
-			e.metrics.RecordMemoryUsed(uint64(info.MemoryUsed))
 			memoryUsed = fmt.Sprintf("%d", uint64(info.MemoryUsed))
+			e.metrics.RecordMemoryUsed(uint64(info.MemoryUsed))
+			e.metrics.RecordRmwSuccessCount(uint64(info.RmwSuccessCount))
+			e.metrics.RecordRmwFailCount(uint64(info.RmwFailCount))
+			e.metrics.RecordMaxStepsBetweenLLAndSC(uint64(info.MaxStepsBetweenLLAndSC))
+			e.metrics.RecordReservationInvalidationCount(uint64(info.ReservationInvalidationCount))
+			e.metrics.RecordForcedPreemptionCount(uint64(info.ForcedPreemptionCount))
+			e.metrics.RecordFailedWakeupCount(uint64(info.FailedWakeupCount))
+			e.metrics.RecordIdleStepCountThread0(uint64(info.IdleStepCountThread0))
 		}
 	}
 	e.logger.Info("VM execution complete", "time", execTime, "memory", memoryUsed)
@@ -146,5 +153,12 @@ func (e *Executor) DoGenerateProof(ctx context.Context, dir string, begin uint64
 }
 
 type debugInfo struct {
-	MemoryUsed hexutil.Uint64 `json:"memory_used"`
+	MemoryUsed                   hexutil.Uint64 `json:"memory_used"`
+	RmwSuccessCount              int            `json:"rmw_success_count"`
+	RmwFailCount                 int            `json:"rmw_fail_count"`
+	MaxStepsBetweenLLAndSC       hexutil.Uint64 `json:"max_steps_between_ll_and_sc"`
+	ReservationInvalidationCount int            `json:"reservation_invalidation_count"`
+	ForcedPreemptionCount        int            `json:"forced_preemption_count"`
+	FailedWakeupCount            int            `json:"failed_wakeup_count"`
+	IdleStepCountThread0         hexutil.Uint64 `json:"idle_step_count_thread_0"`
 }
