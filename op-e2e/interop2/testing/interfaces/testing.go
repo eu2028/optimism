@@ -1,6 +1,8 @@
 package interfaces
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -13,14 +15,8 @@ type Test interface {
 	Run(name string, f func(t Test)) bool
 }
 
-// TODO: add support for testing phases.
-// to separate setup failures from apply failures.
 type WrappedT struct {
 	*testing.T
-}
-
-func (t *WrappedT) Deadline() (deadline time.Time, ok bool) {
-	return t.T.Deadline()
 }
 
 func (t *WrappedT) Run(name string, f func(t Test)) bool {
@@ -30,13 +26,54 @@ func (t *WrappedT) Run(name string, f func(t Test)) bool {
 	})
 }
 
-func (t *WrappedT) Parallel() {
-	t.T.Parallel()
-}
-
 func WrapT(t *testing.T) *WrappedT {
 	return &WrappedT{T: t}
 }
+
+type RecoverableT struct {
+	*testing.T
+}
+
+type RecoverableError struct {
+	Err error
+}
+
+func (t *RecoverableT) FailNow() {
+	panic(&RecoverableError{
+		Err: errors.New("failed"),
+	})
+}
+
+func (t *RecoverableT) Fatal(args ...any) {
+	t.T.Log(args...)
+	t.FailNow()
+}
+
+func (t *RecoverableT) Fatalf(format string, args ...any) {
+	t.T.Logf(format, args...)
+	panic(&RecoverableError{
+		Err: fmt.Errorf(format, args...),
+	})
+}
+
+func (t *RecoverableT) SkipNow() {
+	panic(&RecoverableError{
+		Err: errors.New("skipped"),
+	})
+}
+
+func (t *RecoverableT) Run(name string, f func(t Test)) bool {
+	return t.T.Run(name, func(t *testing.T) {
+		t.Helper()
+		f(&RecoverableT{T: t})
+	})
+}
+
+func RecoverT(t *testing.T) *RecoverableT {
+	return &RecoverableT{T: t}
+}
+
+var _ Test = (*RecoverableT)(nil)
 
 type SystemBase = any
 

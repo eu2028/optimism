@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/providers"
+	"github.com/pkg/errors"
 )
 
 type SystemTest[S interfaces.SystemBase] struct {
@@ -18,13 +19,23 @@ func (t SystemTest[S]) Run() {
 	spec := t.Logic.Spec()
 	s, err := providers.Provide[S](interfaces.WrapT(t.T), spec)
 	if err != nil {
-		t.Fatalf("failed to provide system: %s", err)
+		t.Fatalf("system provider failed: %s", err)
 	}
 	if !spec.Conform(s) {
 		t.Fatalf("system does not conform to spec")
 	}
 
-	wrapped := interfaces.WrapT(t.T)
-	t.Logic.Setup(wrapped, s)
-	t.Logic.Apply(wrapped, s)
+	{
+		defer func() {
+			if r := recover(); r != nil {
+				if r, ok := r.(*interfaces.RecoverableError); ok {
+					t.Fatal(errors.Wrapf(r.Err, "setup failed"))
+				}
+				panic(r)
+			}
+		}()
+		t.Logic.Setup(interfaces.RecoverT(t.T), s)
+	}
+
+	t.Logic.Apply(interfaces.WrapT(t.T), s)
 }
