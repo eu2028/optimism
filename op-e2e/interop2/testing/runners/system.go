@@ -1,6 +1,7 @@
 package runners
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
@@ -13,29 +14,40 @@ type SystemTest[S interfaces.SystemBase] struct {
 	Logic interfaces.TestLogic[S]
 }
 
+func recoverPhase(t testing.TB, phase string) func() {
+	return func() {
+		if r := recover(); r != nil {
+			if r, ok := r.(*interfaces.RecoverableError); ok {
+				msg := fmt.Sprintf("%s failed", phase)
+				t.Fatal(errors.Wrapf(r.Err, msg))
+			}
+		}
+	}
+}
+
 func (t SystemTest[S]) Run() {
 	t.Helper()
 
 	spec := t.Logic.Spec()
-	s, err := providers.Provide[S](interfaces.WrapT(t.T), spec)
-	if err != nil {
-		t.Fatalf("system provider failed: %s", err)
-	}
-	if !spec.Conform(s) {
-		t.Fatalf("system does not conform to spec")
+	var system S
+
+	{
+		defer recoverPhase(t, "system provider")()
+
+		s, err := providers.Provide[S](interfaces.RecoverT(t.T), spec)
+		if err != nil {
+			t.Fatalf("system provider failed: %s", err)
+		}
+		if !spec.Conform(s) {
+			t.Fatalf("system does not conform to spec")
+		}
+		system = s
 	}
 
 	{
-		defer func() {
-			if r := recover(); r != nil {
-				if r, ok := r.(*interfaces.RecoverableError); ok {
-					t.Fatal(errors.Wrapf(r.Err, "setup failed"))
-				}
-				panic(r)
-			}
-		}()
-		t.Logic.Setup(interfaces.RecoverT(t.T), s)
+		defer recoverPhase(t, "setup")()
+		t.Logic.Setup(interfaces.RecoverT(t.T), system)
 	}
 
-	t.Logic.Apply(interfaces.WrapT(t.T), s)
+	t.Logic.Apply(interfaces.WrapT(t.T), system)
 }
