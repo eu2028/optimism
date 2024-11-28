@@ -15,25 +15,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// high-level requirements for the tests in here.
+// We need 2 L2s to communicate across.
+// We need 2 users (on both L2s) to send messages back and forth.
 const (
 	numberOfL2s   = 2
 	numberOfUsers = 2
 )
-
-func testInteropNoop(t Test, s SuperSystem) {
-	t.Helper()
-}
-
-// TestInteropNoop is a test that does nothing but bring up a stack.
-func TestInteropNoop(t *testing.T) {
-	SystemTest{T: t, Logic: TestLogicFunc(testInteropNoop)}.Run()
-}
 
 type testInteropBlockBuilding struct {
 	spec           *interfaces.SuperSystemSpec
 	setupSyncPoint *automation.SyncPoint
 	auto           *automation.SuperSystemAutomation
 }
+
+var _ TestLogic = (*testInteropBlockBuilding)(nil)
 
 func (ti *testInteropBlockBuilding) Spec() TestSpec {
 	return ti.spec
@@ -99,8 +95,6 @@ func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
 		})
 	}
 }
-
-var _ TestLogic = (*testInteropBlockBuilding)(nil)
 
 func TestInteropBlockBuilding(t *testing.T) {
 	for _, useFiltering := range []bool{
