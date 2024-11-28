@@ -67,39 +67,8 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 )
 
-type Test = interfaces.Test
-type SuperSystem = interfaces.SuperSystem
-
-func newFullSuperSystemSpec(spec *interfaces.SuperSystemSpec) *interfaces.FullSuperSystemSpec {
-	l2ChainIDs := []uint64{}
-	for i := 0; i < spec.Config.NumberOfL2s(); i++ {
-		l2ChainIDs = append(l2ChainIDs, uint64(900200+i))
-	}
-
-	recipe := interopgen.InteropDevRecipe{
-		L1ChainID:        900100,
-		L2ChainIDs:       l2ChainIDs,
-		GenesisTimestamp: uint64(time.Now().Unix() + 3), // start chain 3 seconds from now
-	}
-	worldResources := interfaces.WorldResourcePaths{
-		FoundryArtifacts: "../../packages/contracts-bedrock/forge-artifacts",
-		SourceMap:        "../../packages/contracts-bedrock",
-	}
-
-	return &interfaces.FullSuperSystemSpec{
-		Recipe:          &recipe,
-		World:           worldResources,
-		SuperSystemSpec: spec,
-	}
-}
-
-func NewSpecifiedSuperSystem(t Test, spec *interfaces.SuperSystemSpec) (SuperSystem, error) {
-	fspec := newFullSuperSystemSpec(spec)
-	return NewSuperSystem(t, fspec.Recipe, fspec.World, fspec.Config), nil
-}
-
 // NewSuperSystem creates a new SuperSystem from a recipe. It creates an interopE2ESystem.
-func NewSuperSystem(t Test, recipe *interopgen.InteropDevRecipe, w interfaces.WorldResourcePaths, config interfaces.SuperSystemConfig) SuperSystem {
+func NewSuperSystem(t testing.TB, recipe *interopgen.InteropDevRecipe, w interfaces.WorldResourcePaths, config interfaces.SuperSystemConfig) interfaces.SuperSystem {
 	s2 := &InteropE2ESystem{recipe: recipe, Config: &config}
 	s2.prepare(t, w)
 	return s2
@@ -110,7 +79,7 @@ func NewSuperSystem(t Test, recipe *interopgen.InteropDevRecipe, w interfaces.Wo
 // the functionality is broken down into smaller functions so that
 // the system can be prepared iteratively if desired
 type InteropE2ESystem struct {
-	t               Test
+	t               testing.TB
 	recipe          *interopgen.InteropDevRecipe
 	logger          log.Logger
 	hdWallet        *devkeys.MnemonicDevKeys
@@ -500,7 +469,7 @@ func (s *InteropE2ESystem) SupervisorClient() *sources.SupervisorClient {
 // prepare sets up the system for testing
 // components are built iteratively, so that they can be reused or modified
 // their creation can't be safely skipped or reordered at this time
-func (s *InteropE2ESystem) prepare(t Test, w interfaces.WorldResourcePaths) {
+func (s *InteropE2ESystem) prepare(t testing.TB, w interfaces.WorldResourcePaths) {
 	s.t = t
 	s.logger = testlog.Logger(s.t, log.LevelDebug)
 	s.hdWallet = s.prepareHDWallet()
@@ -807,7 +776,7 @@ func (s *InteropE2ESystem) Contract(id string, name string) interface{} {
 	return s.l2s[id].contracts[name]
 }
 
-func mustDial(t Test, logger log.Logger) func(v string) *rpc.Client {
+func mustDial(t testing.TB, logger log.Logger) func(v string) *rpc.Client {
 	return func(v string) *rpc.Client {
 		cl, err := dial.DialRPCClientWithTimeout(context.Background(), 30*time.Second, logger, v)
 		require.NoError(t, err, "failed to dial")
