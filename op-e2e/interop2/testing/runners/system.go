@@ -19,7 +19,7 @@ func recoverPhase(t testing.TB, phase string) func() {
 		if r := recover(); r != nil {
 			if r, ok := r.(*interfaces.RecoverableError); ok {
 				msg := fmt.Sprintf("%s phase failed", phase)
-				t.Fatal(errors.Wrapf(r.Err, msg))
+				t.Fatal(errors.Wrap(r.Err, msg))
 			}
 		}
 	}
