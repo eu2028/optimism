@@ -93,13 +93,13 @@ func newFullSuperSystemSpec(spec *interfaces.SuperSystemSpec) *interfaces.FullSu
 	}
 }
 
-func NewSuperSystem(t Test, spec *interfaces.SuperSystemSpec) (SuperSystem, error) {
+func NewSpecifiedSuperSystem(t Test, spec *interfaces.SuperSystemSpec) (SuperSystem, error) {
 	fspec := newFullSuperSystemSpec(spec)
-	return newSuperSystem(t, fspec.Recipe, fspec.World, fspec.Config), nil
+	return NewSuperSystem(t, fspec.Recipe, fspec.World, fspec.Config), nil
 }
 
 // NewSuperSystem creates a new SuperSystem from a recipe. It creates an interopE2ESystem.
-func newSuperSystem(t Test, recipe *interopgen.InteropDevRecipe, w interfaces.WorldResourcePaths, config interfaces.SuperSystemConfig) SuperSystem {
+func NewSuperSystem(t Test, recipe *interopgen.InteropDevRecipe, w interfaces.WorldResourcePaths, config interfaces.SuperSystemConfig) SuperSystem {
 	s2 := &InteropE2ESystem{recipe: recipe, Config: &config}
 	s2.prepare(t, w)
 	return s2
