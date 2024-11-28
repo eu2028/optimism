@@ -101,12 +101,10 @@ func TestInteropBlockBuilding(t *testing.T) {
 		false,
 		true,
 	} {
-		mempoolFiltering := useFiltering
-		t.Run(fmt.Sprintf("mempoolFiltering=%t", mempoolFiltering), func(t *testing.T) {
-			t.Parallel()
+		t.Run(fmt.Sprintf("mempoolFiltering=%t", useFiltering), func(t *testing.T) {
 			spec := &interfaces.SuperSystemSpec{
 				Config: interfaces.NewSuperSystemConfig(
-					interfaces.WithMempoolFiltering(mempoolFiltering),
+					interfaces.WithMempoolFiltering(useFiltering),
 					interfaces.WithNumberOfL2s(numberOfL2s),
 				),
 			}
