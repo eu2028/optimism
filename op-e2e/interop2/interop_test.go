@@ -60,7 +60,7 @@ func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) {
 	ti.setupSyncPoint = syncPoint
 }
 
-func (ti *testInteropBlockBuilding) Apply(t Test, s SuperSystem) {
+func (ti *testInteropBlockBuilding) Check(t Test, s SuperSystem) {
 	model := expectations.GetBehaviorModel(ti.spec.Config.MempoolFiltering())
 	alice, bob, chainA, chainB := ti.getShorthands()
 

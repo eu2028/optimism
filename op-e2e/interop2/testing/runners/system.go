@@ -18,7 +18,7 @@ func recoverPhase(t testing.TB, phase string) func() {
 	return func() {
 		if r := recover(); r != nil {
 			if r, ok := r.(*interfaces.RecoverableError); ok {
-				msg := fmt.Sprintf("%s failed", phase)
+				msg := fmt.Sprintf("%s phase failed", phase)
 				t.Fatal(errors.Wrapf(r.Err, msg))
 			}
 		}
@@ -32,22 +32,33 @@ func (t SystemTest[S]) Run() {
 	var system S
 
 	{
-		defer recoverPhase(t, "system provider")()
-
+		defer recoverPhase(t, "system provisioning")()
 		s, err := providers.Provide[S](interfaces.RecoverT(t.T), spec)
 		if err != nil {
-			t.Fatalf("system provider failed: %s", err)
-		}
-		if !spec.Conform(s) {
-			t.Fatalf("system does not conform to spec")
+			t.Fatalf("provider failed: %s", err)
 		}
 		system = s
 	}
 
 	{
-		defer recoverPhase(t, "setup")()
-		t.Logic.Setup(interfaces.RecoverT(t.T), system)
+		defer recoverPhase(t, "spec conformance")()
+		if !spec.Conform(system) {
+			t.Fatalf("system does not conform to spec")
+		}
 	}
 
-	t.Logic.Apply(interfaces.WrapT(t.T), system)
+	if logic, ok := t.Logic.(interfaces.TestLogicSetup[S]); ok {
+		defer recoverPhase(t, "SUT setup")()
+		logic.Setup(interfaces.RecoverT(t.T), system)
+	}
+
+	{
+		defer recoverPhase(t, "test execution")()
+		t.Logic.Check(interfaces.WrapT(t.T), system)
+	}
+
+	if logic, ok := t.Logic.(interfaces.TestLogicCleanup[S]); ok {
+		defer recoverPhase(t, "SUT cleanup")()
+		logic.Cleanup(interfaces.RecoverT(t.T), system)
+	}
 }
