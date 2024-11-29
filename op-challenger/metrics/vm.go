@@ -202,17 +202,3 @@ func NewTypedVmMetrics(m VmMetricer, vmType string) TypedVmMetricer {
 		vmType: vmType,
 	}
 }
-
-type NoopTypedVmMetrics struct{}
-
-var _ TypedVmMetricer = NoopTypedVmMetrics{}
-
-func (n NoopTypedVmMetrics) RecordExecutionTime(t time.Duration)           {}
-func (n NoopTypedVmMetrics) RecordMemoryUsed(memoryUsed uint64)            {}
-func (n NoopTypedVmMetrics) RecordRmwSuccessCount(val uint64)              {}
-func (n NoopTypedVmMetrics) RecordRmwFailCount(val uint64)                 {}
-func (n NoopTypedVmMetrics) RecordMaxStepsBetweenLLAndSC(val uint64)       {}
-func (n NoopTypedVmMetrics) RecordReservationInvalidationCount(val uint64) {}
-func (n NoopTypedVmMetrics) RecordForcedPreemptionCount(val uint64)        {}
-func (n NoopTypedVmMetrics) RecordFailedWakeupCount(val uint64)            {}
-func (n NoopTypedVmMetrics) RecordIdleStepCountThread0(val uint64)         {}
