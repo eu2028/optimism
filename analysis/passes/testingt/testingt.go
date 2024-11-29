@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/go/ast/inspector"
 )
 
 // TestingTBUnsafeFact indicates a function uses non-testing.TB methods
@@ -23,83 +25,96 @@ var Analyzer = &analysis.Analyzer{
 	Name:       "testingt",
 	Doc:        "find constraining uses of *testing.T in non-test files",
 	Run:        run,
+	Requires:   []*analysis.Analyzer{inspect.Analyzer},
 	ResultType: nil,
 	FactTypes:  []analysis.Fact{(*TestingTBUnsafeFact)(nil)},
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
+	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+
 	// Filter out test files first
 	var nonTestFiles []*ast.File
-	for _, file := range pass.Files {
+	inspect.Preorder([]ast.Node{(*ast.File)(nil)}, func(n ast.Node) {
+		file := n.(*ast.File)
 		if !strings.HasSuffix(pass.Fset.File(file.Pos()).Name(), "_test.go") {
 			nonTestFiles = append(nonTestFiles, file)
 		}
-	}
+	})
 
 	// First pass: find all unsafe functions
-	for _, file := range nonTestFiles {
-		ast.Inspect(file, func(n ast.Node) bool {
-			if call, ok := n.(*ast.CallExpr); ok {
-				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-					if recv, ok := pass.TypesInfo.TypeOf(sel.X).(*types.Pointer); ok {
-						if named, ok := recv.Elem().(*types.Named); ok {
-							if named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "testing" && named.Obj().Name() == "T" {
-								switch sel.Sel.Name {
-								case "Deadline", "Run", "Parallel":
-									if fn := enclosingFunction(pass, call); fn != nil {
-										pass.ExportObjectFact(fn, new(TestingTBUnsafeFact))
-									}
-								}
+	inspect.Preorder([]ast.Node{(*ast.CallExpr)(nil)}, func(n ast.Node) {
+		if !isInNonTestFile(n, nonTestFiles) {
+			return
+		}
+		call := n.(*ast.CallExpr)
+		if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+			if recv, ok := pass.TypesInfo.TypeOf(sel.X).(*types.Pointer); ok {
+				if named, ok := recv.Elem().(*types.Named); ok {
+					if named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "testing" && named.Obj().Name() == "T" {
+						switch sel.Sel.Name {
+						case "Deadline", "Run", "Parallel":
+							if fn := enclosingFunction(pass, call); fn != nil {
+								pass.ExportObjectFact(fn, new(TestingTBUnsafeFact))
 							}
 						}
 					}
 				}
 			}
-			return true
-		})
-	}
+		}
+	})
 
 	// Second pass: find functions calling unsafe functions
 	var changed bool
 	for {
 		changed = false
-		for _, file := range nonTestFiles {
-			ast.Inspect(file, func(n ast.Node) bool {
-				if call, ok := n.(*ast.CallExpr); ok {
-					if fn := getFunctionObject(pass, call.Fun); fn != nil {
-						if pass.ImportObjectFact(fn, new(TestingTBUnsafeFact)) {
-							if caller := enclosingFunction(pass, call); caller != nil {
-								if !pass.ImportObjectFact(caller, new(TestingTBUnsafeFact)) {
-									pass.ExportObjectFact(caller, new(TestingTBUnsafeFact))
-									changed = true
-								}
-							}
+		inspect.Preorder([]ast.Node{(*ast.CallExpr)(nil)}, func(n ast.Node) {
+			if !isInNonTestFile(n, nonTestFiles) {
+				return
+			}
+			call := n.(*ast.CallExpr)
+			if fn := getFunctionObject(pass, call.Fun); fn != nil {
+				if pass.ImportObjectFact(fn, new(TestingTBUnsafeFact)) {
+					if caller := enclosingFunction(pass, call); caller != nil {
+						if !pass.ImportObjectFact(caller, new(TestingTBUnsafeFact)) {
+							pass.ExportObjectFact(caller, new(TestingTBUnsafeFact))
+							changed = true
 						}
 					}
 				}
-				return true
-			})
-		}
+			}
+		})
 		if !changed {
 			break
 		}
 	}
 
 	// Final pass: check for *testing.T usage
-	for _, file := range nonTestFiles {
-		ast.Inspect(file, func(n ast.Node) bool {
-			switch n := n.(type) {
-			case *ast.Field:
-				checkType(pass, n.Type, n.Pos())
-			case *ast.ValueSpec:
-				for _, v := range n.Values {
-					checkType(pass, v, v.Pos())
-				}
+	inspect.Preorder([]ast.Node{(*ast.Field)(nil), (*ast.ValueSpec)(nil)}, func(n ast.Node) {
+		if !isInNonTestFile(n, nonTestFiles) {
+			return
+		}
+		switch n := n.(type) {
+		case *ast.Field:
+			checkType(pass, n.Type, n.Pos())
+		case *ast.ValueSpec:
+			for _, v := range n.Values {
+				checkType(pass, v, v.Pos())
 			}
-			return true
-		})
-	}
+		}
+	})
+
 	return nil, nil
+}
+
+func isInNonTestFile(n ast.Node, nonTestFiles []*ast.File) bool {
+	pos := n.Pos()
+	for _, f := range nonTestFiles {
+		if f.Pos() <= pos && pos <= f.End() {
+			return true
+		}
+	}
+	return false
 }
 
 func checkType(pass *analysis.Pass, expr ast.Expr, pos token.Pos) {
