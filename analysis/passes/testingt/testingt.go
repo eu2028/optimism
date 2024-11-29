@@ -1,3 +1,10 @@
+// Package testingt finds uses of *testing.T in non-test files.
+//
+// Those are a testability issue as *testing.T cannot be constructed. So the
+// corresponding code can only run in a proper test. Generally there's no good
+// reason to tie the implementation to testing infrastructure though. Using
+// testing.TB is more flexible, and opens the possibility of running the code
+// outside of tests (or with tests that use a different testing framework).
 package testingt
 
 import (
