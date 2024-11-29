@@ -35,6 +35,7 @@ func TestDebugInfo_Serialization(t *testing.T) {
 
 	// Deserialize
 	fromJson, err := jsonutil.LoadJSON[DebugInfo](path)
+	require.NoError(t, err)
 
 	require.Equal(t, debugInfo, fromJson)
 }
