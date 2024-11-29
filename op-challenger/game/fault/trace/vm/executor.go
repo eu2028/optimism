@@ -154,11 +154,11 @@ func (e *Executor) DoGenerateProof(ctx context.Context, dir string, begin uint64
 
 type debugInfo struct {
 	MemoryUsed                   hexutil.Uint64 `json:"memory_used"`
-	RmwSuccessCount              int            `json:"rmw_success_count"`
-	RmwFailCount                 int            `json:"rmw_fail_count"`
-	MaxStepsBetweenLLAndSC       hexutil.Uint64 `json:"max_steps_between_ll_and_sc"`
-	ReservationInvalidationCount int            `json:"reservation_invalidation_count"`
-	ForcedPreemptionCount        int            `json:"forced_preemption_count"`
-	FailedWakeupCount            int            `json:"failed_wakeup_count"`
-	IdleStepCountThread0         hexutil.Uint64 `json:"idle_step_count_thread_0"`
+	RmwSuccessCount              uint64         `json:"rmw_success_count"`
+	RmwFailCount                 uint64         `json:"rmw_fail_count"`
+	MaxStepsBetweenLLAndSC       uint64         `json:"max_steps_between_ll_and_sc"`
+	ReservationInvalidationCount uint64         `json:"reservation_invalidation_count"`
+	ForcedPreemptionCount        uint64         `json:"forced_preemption_count"`
+	FailedWakeupCount            uint64         `json:"failed_wakeup_count"`
+	IdleStepCountThread0         uint64         `json:"idle_step_count_thread_0"`
 }

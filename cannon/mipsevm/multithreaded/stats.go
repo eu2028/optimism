@@ -1,8 +1,6 @@
 package multithreaded
 
 import (
-	"github.com/ethereum/go-ethereum/common/hexutil"
-
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 )
 
@@ -63,11 +61,11 @@ type statsTrackerImpl struct {
 func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.RmwSuccessCount = s.rmwSuccessCount
 	debugInfo.RmwFailCount = s.rmwFailCount
-	debugInfo.MaxStepsBetweenLLAndSC = hexutil.Uint64(s.maxStepsBetweenLLAndSC)
+	debugInfo.MaxStepsBetweenLLAndSC = s.maxStepsBetweenLLAndSC
 	debugInfo.ReservationInvalidationCount = s.reservationInvalidationCount
 	debugInfo.ForcedPreemptionCount = s.forcedPreemptionCount
 	debugInfo.FailedWakeupCount = s.failedWakeupCount
-	debugInfo.IdleStepCountThread0 = hexutil.Uint64(s.idleStepCountThread0)
+	debugInfo.IdleStepCountThread0 = s.idleStepCountThread0
 }
 
 func (s *statsTrackerImpl) trackLL(step uint64) {
