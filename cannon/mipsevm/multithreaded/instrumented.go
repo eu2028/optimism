@@ -108,6 +108,7 @@ func (m *InstrumentedState) GetDebugInfo() *mipsevm.DebugInfo {
 		MemoryUsed:          hexutil.Uint64(m.state.Memory.UsageRaw()),
 		NumPreimageRequests: m.preimageOracle.NumPreimageRequests(),
 		TotalPreimageSize:   m.preimageOracle.TotalPreimageSize(),
+		TotalSteps:          m.state.GetStep(),
 	}
 	m.statsTracker.populateDebugInfo(debugInfo)
 	return debugInfo

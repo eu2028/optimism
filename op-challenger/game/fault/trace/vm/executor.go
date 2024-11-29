@@ -139,6 +139,7 @@ func (e *Executor) DoGenerateProof(ctx context.Context, dir string, begin uint64
 		} else {
 			memoryUsed = fmt.Sprintf("%d", uint64(info.MemoryUsed))
 			e.metrics.RecordMemoryUsed(uint64(info.MemoryUsed))
+			e.metrics.RecordSteps(info.Steps)
 			e.metrics.RecordRmwSuccessCount(uint64(info.RmwSuccessCount))
 			e.metrics.RecordRmwFailCount(uint64(info.RmwFailCount))
 			e.metrics.RecordMaxStepsBetweenLLAndSC(uint64(info.MaxStepsBetweenLLAndSC))
@@ -154,6 +155,7 @@ func (e *Executor) DoGenerateProof(ctx context.Context, dir string, begin uint64
 
 type debugInfo struct {
 	MemoryUsed                   hexutil.Uint64 `json:"memory_used"`
+	Steps                        uint64         `json:"steps"`
 	RmwSuccessCount              uint64         `json:"rmw_success_count"`
 	RmwFailCount                 uint64         `json:"rmw_fail_count"`
 	MaxStepsBetweenLLAndSC       uint64         `json:"max_steps_between_ll_and_sc"`

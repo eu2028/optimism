@@ -12,6 +12,7 @@ type VmMetricer interface {
 	RecordVmExecutionTime(vmType string, t time.Duration)
 	RecordVmMemoryUsed(vmType string, memoryUsed uint64)
 	RecordVmRmwSuccessCount(vmType string, val uint64)
+	RecordVmSteps(vmType string, val uint64)
 	RecordVmRmwFailCount(vmType string, val uint64)
 	RecordVmMaxStepsBetweenLLAndSC(vmType string, val uint64)
 	RecordVmReservationInvalidationCount(vmType string, val uint64)
@@ -24,6 +25,7 @@ type VmMetricer interface {
 type TypedVmMetricer interface {
 	RecordExecutionTime(t time.Duration)
 	RecordMemoryUsed(memoryUsed uint64)
+	RecordSteps(val uint64)
 	RecordRmwSuccessCount(val uint64)
 	RecordRmwFailCount(val uint64)
 	RecordMaxStepsBetweenLLAndSC(val uint64)
@@ -36,6 +38,7 @@ type TypedVmMetricer interface {
 type VmMetrics struct {
 	vmExecutionTime            *prometheus.HistogramVec
 	vmMemoryUsed               *prometheus.HistogramVec
+	vmSteps                    *prometheus.GaugeVec
 	vmRmwSuccessCount          *prometheus.GaugeVec
 	vmRmwFailCount             *prometheus.GaugeVec
 	vmMaxStepsBetweenLLAndSC   *prometheus.GaugeVec
@@ -53,6 +56,10 @@ func (m *VmMetrics) RecordVmExecutionTime(vmType string, dur time.Duration) {
 
 func (m *VmMetrics) RecordVmMemoryUsed(vmType string, memoryUsed uint64) {
 	m.vmMemoryUsed.WithLabelValues(vmType).Observe(float64(memoryUsed))
+}
+
+func (m *VmMetrics) RecordVmSteps(vmType string, val uint64) {
+	m.vmSteps.WithLabelValues(vmType).Set(float64(val))
 }
 
 func (m *VmMetrics) RecordVmRmwSuccessCount(vmType string, val uint64) {
@@ -100,6 +107,11 @@ func NewVmMetrics(namespace string, factory metrics.Factory) *VmMetrics {
 			// 100MiB increments from 0 to 1.5GiB
 			Buckets: prometheus.LinearBuckets(0, 1024*1024*100, 15),
 		}, []string{"vm"}),
+		vmSteps: factory.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "vm_step_count",
+			Help:      "Number of steps executed during vm run",
+		}, []string{"vm"}),
 		vmRmwSuccessCount: factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "vm_rmw_success_count",
@@ -145,6 +157,7 @@ var _ VmMetricer = NoopVmMetrics{}
 
 func (n NoopVmMetrics) RecordVmExecutionTime(vmType string, t time.Duration)           {}
 func (n NoopVmMetrics) RecordVmMemoryUsed(vmType string, memoryUsed uint64)            {}
+func (n NoopVmMetrics) RecordVmSteps(vmType string, val uint64)                        {}
 func (n NoopVmMetrics) RecordVmRmwSuccessCount(vmType string, val uint64)              {}
 func (n NoopVmMetrics) RecordVmRmwFailCount(vmType string, val uint64)                 {}
 func (n NoopVmMetrics) RecordVmMaxStepsBetweenLLAndSC(vmType string, val uint64)       {}
@@ -166,6 +179,10 @@ func (m *typedVmMetricsImpl) RecordExecutionTime(dur time.Duration) {
 
 func (m *typedVmMetricsImpl) RecordMemoryUsed(memoryUsed uint64) {
 	m.m.RecordVmMemoryUsed(m.vmType, memoryUsed)
+}
+
+func (m *typedVmMetricsImpl) RecordSteps(val uint64) {
+	m.m.RecordVmSteps(m.vmType, val)
 }
 
 func (m *typedVmMetricsImpl) RecordRmwSuccessCount(val uint64) {

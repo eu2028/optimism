@@ -17,6 +17,7 @@ func TestDebugInfo_Serialization(t *testing.T) {
 		MemoryUsed:                   2,
 		NumPreimageRequests:          3,
 		TotalPreimageSize:            4,
+		TotalSteps:                   123456,
 		RmwSuccessCount:              5,
 		RmwFailCount:                 6,
 		MaxStepsBetweenLLAndSC:       7,

@@ -7,6 +7,7 @@ type DebugInfo struct {
 	MemoryUsed          hexutil.Uint64 `json:"memory_used"`
 	NumPreimageRequests int            `json:"num_preimage_requests"`
 	TotalPreimageSize   int            `json:"total_preimage_size"`
+	TotalSteps          uint64         `json:"total_steps"`
 	//  Multithreading-related stats below
 	RmwSuccessCount              uint64 `json:"rmw_success_count"`
 	RmwFailCount                 uint64 `json:"rmw_fail_count"`

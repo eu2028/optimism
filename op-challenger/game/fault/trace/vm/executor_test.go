@@ -46,6 +46,7 @@ func TestGenerateProof(t *testing.T) {
 
 	info := &debugInfo{
 		MemoryUsed:                   11,
+		Steps:                        123455,
 		RmwSuccessCount:              12,
 		RmwFailCount:                 34,
 		MaxStepsBetweenLLAndSC:       56,
@@ -183,6 +184,7 @@ func validateMetrics(t require.TestingT, m *capturingVmMetrics, expected *debugI
 	// Check metrics sourced from cannon.mipsevm.DebugInfo json file
 	if cfg.DebugInfo {
 		require.Equal(t, expected.MemoryUsed, m.memoryUsed)
+		require.Equal(t, expected.Steps, m.steps)
 		require.Equal(t, expected.RmwSuccessCount, m.rmwSuccessCount)
 		require.Equal(t, expected.RmwFailCount, m.rmwFailCount)
 		require.Equal(t, expected.MaxStepsBetweenLLAndSC, m.maxStepsBetweenLLAndSC)
@@ -193,6 +195,7 @@ func validateMetrics(t require.TestingT, m *capturingVmMetrics, expected *debugI
 	} else {
 		// If debugInfo is disabled, json file should not be written and metrics should be zeroed out
 		require.Equal(t, hexutil.Uint64(0), m.memoryUsed)
+		require.Equal(t, uint64(0), m.steps)
 		require.Equal(t, uint64(0), m.rmwSuccessCount)
 		require.Equal(t, uint64(0), m.rmwFailCount)
 		require.Equal(t, uint64(0), m.maxStepsBetweenLLAndSC)
@@ -210,6 +213,7 @@ func newMetrics() *capturingVmMetrics {
 type capturingVmMetrics struct {
 	executionTimeRecordCount int
 	memoryUsed               hexutil.Uint64
+	steps                    uint64
 	rmwSuccessCount          uint64
 	rmwFailCount             uint64
 	maxStepsBetweenLLAndSC   uint64
@@ -217,6 +221,10 @@ type capturingVmMetrics struct {
 	forcedPreemptions        uint64
 	failedWakeup             uint64
 	idleStepsThread0         uint64
+}
+
+func (c *capturingVmMetrics) RecordSteps(val uint64) {
+	c.steps = val
 }
 
 func (c *capturingVmMetrics) RecordExecutionTime(t time.Duration) {
