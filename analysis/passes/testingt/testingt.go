@@ -21,6 +21,14 @@ func (*TestingTBUnsafeFact) String() string {
 	return "TestingTBUnsafe"
 }
 
+// unsafeTestingTMethods defines methods that are specific to *testing.T and cannot
+// be used with testing.TB interface
+var unsafeTestingTMethods = map[string]bool{
+	"Deadline": true,
+	"Run":      true,
+	"Parallel": true,
+}
+
 var Analyzer = &analysis.Analyzer{
 	Name:       "testingt",
 	Doc:        "find constraining uses of *testing.T in non-test files",
@@ -48,18 +56,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 		call := n.(*ast.CallExpr)
-		if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-			if recv, ok := pass.TypesInfo.TypeOf(sel.X).(*types.Pointer); ok {
-				if named, ok := recv.Elem().(*types.Named); ok {
-					if named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "testing" && named.Obj().Name() == "T" {
-						switch sel.Sel.Name {
-						case "Deadline", "Run", "Parallel":
-							if fn := enclosingFunction(pass, call); fn != nil {
-								pass.ExportObjectFact(fn, new(TestingTBUnsafeFact))
-							}
-						}
-					}
-				}
+		if isUnsafeTestingTMethod(pass, call) {
+			if fn := enclosingFunction(pass, call); fn != nil {
+				pass.ExportObjectFact(fn, new(TestingTBUnsafeFact))
 			}
 		}
 	})
@@ -73,16 +72,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return
 			}
 			call := n.(*ast.CallExpr)
-			if fn := getFunctionObject(pass, call.Fun); fn != nil {
-				if pass.ImportObjectFact(fn, new(TestingTBUnsafeFact)) {
-					if caller := enclosingFunction(pass, call); caller != nil {
-						if !pass.ImportObjectFact(caller, new(TestingTBUnsafeFact)) {
-							pass.ExportObjectFact(caller, new(TestingTBUnsafeFact))
-							changed = true
-						}
-					}
-				}
-			}
+			changed = checkAndMarkCallerUnsafe(pass, call) || changed
 		})
 		if !changed {
 			break
@@ -125,16 +115,7 @@ func checkType(pass *analysis.Pass, expr ast.Expr, pos token.Pos) {
 				Pos:     pos,
 				Message: "avoid using *testing.T directly",
 				SuggestedFixes: []analysis.SuggestedFix{
-					{
-						Message: "Replace *testing.T with testing.TB",
-						TextEdits: []analysis.TextEdit{
-							{
-								Pos:     pos,
-								End:     pos + token.Pos(len("*testing.T")),
-								NewText: []byte("testing.TB"),
-							},
-						},
-					},
+					createTestingTBSuggestedFix(pos),
 				},
 			})
 		} else {
@@ -189,4 +170,63 @@ func getFunctionObject(pass *analysis.Pass, expr ast.Expr) types.Object {
 		return pass.TypesInfo.ObjectOf(expr.Sel)
 	}
 	return nil
+}
+
+// isUnsafeTestingTMethod checks if the call expression is using a *testing.T-specific method
+func isUnsafeTestingTMethod(pass *analysis.Pass, call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	recv, ok := pass.TypesInfo.TypeOf(sel.X).(*types.Pointer)
+	if !ok {
+		return false
+	}
+
+	named, ok := recv.Elem().(*types.Named)
+	if !ok {
+		return false
+	}
+
+	return named.Obj().Pkg() != nil &&
+		named.Obj().Pkg().Path() == "testing" &&
+		named.Obj().Name() == "T" &&
+		unsafeTestingTMethods[sel.Sel.Name]
+}
+
+func checkAndMarkCallerUnsafe(pass *analysis.Pass, call *ast.CallExpr) bool {
+	fn := getFunctionObject(pass, call.Fun)
+	if fn == nil {
+		return false
+	}
+
+	if !pass.ImportObjectFact(fn, new(TestingTBUnsafeFact)) {
+		return false
+	}
+
+	caller := enclosingFunction(pass, call)
+	if caller == nil {
+		return false
+	}
+
+	if !pass.ImportObjectFact(caller, new(TestingTBUnsafeFact)) {
+		pass.ExportObjectFact(caller, new(TestingTBUnsafeFact))
+		return true
+	}
+
+	return false
+}
+
+func createTestingTBSuggestedFix(pos token.Pos) analysis.SuggestedFix {
+	return analysis.SuggestedFix{
+		Message: "Replace *testing.T with testing.TB",
+		TextEdits: []analysis.TextEdit{
+			{
+				Pos:     pos,
+				End:     pos + token.Pos(len("*testing.T")),
+				NewText: []byte("testing.TB"),
+			},
+		},
+	}
 }
