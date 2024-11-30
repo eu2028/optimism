@@ -260,9 +260,13 @@ func (l *BatchSubmitter) loadBlocksIntoState(syncStatus eth.SyncStatus, ctx cont
 		return errors.New("start number is >= end number")
 	}
 
+	if end.Number > start.Number+1 {
+		l.Log.Info("loading blocks into state", "start", start.Number+1, "end", end.Number)
+	}
+
 	var latestBlock *types.Block
 	// Add all blocks to "state"
-	for i := start.Number + 1; i < end.Number+1; i++ {
+	for i := start.Number + 1; i <= end.Number; i++ {
 		block, err := l.loadBlockIntoState(ctx, i)
 		if errors.Is(err, ErrReorg) {
 			l.Log.Warn("Found L2 reorg", "block_number", i)
