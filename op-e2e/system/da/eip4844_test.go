@@ -57,7 +57,6 @@ func testSystem4844E2E(t *testing.T, multiBlob bool, daType batcherFlags.DataAva
 	cfg.BatcherBatchType = derive.SpanBatchType
 	cfg.DeployConfig.L1GenesisBlockBaseFeePerGas = (*hexutil.Big)(big.NewInt(7000))
 
-	const maxBlobs = eth.MaxBlobsPerBlobTx
 	var maxL1TxSize int
 	if multiBlob {
 		cfg.BatcherTargetNumFrames = eth.MaxBlobsPerBlobTx
@@ -214,7 +213,8 @@ func testSystem4844E2E(t *testing.T, multiBlob bool, daType batcherFlags.DataAva
 	if !multiBlob {
 		require.NotZero(t, numBlobs, "single-blob: expected to find L1 blob tx")
 	} else {
-		require.Equal(t, maxBlobs, numBlobs, fmt.Sprintf("multi-blob: expected to find L1 blob tx with %d blobs", eth.MaxBlobsPerBlobTx))
+		const maxBlobs = eth.MaxBlobsPerBlobTx
+		require.Equal(t, maxBlobs, numBlobs, fmt.Sprintf("multi-blob: expected to find L1 blob tx with %d blobs", maxBlobs))
 		// blob tx should have filled up all but last blob
 		bcl := sys.L1BeaconHTTPClient()
 		hashes := toIndexedBlobHashes(blobTx.BlobHashes()...)
