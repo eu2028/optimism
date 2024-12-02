@@ -9,10 +9,11 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 	"github.com/ethereum-optimism/optimism/op-service/dial"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 
+	supervisorTypes "github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 	gethTypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -48,17 +49,17 @@ func (sp *SyncPoint) Event() *gethTypes.Log {
 	return sp.ev
 }
 
-func (sp *SyncPoint) Identifier() types.Identifier {
+func (sp *SyncPoint) Identifier() supervisorTypes.Identifier {
 	ethCl := sp.auto.Sys.L2GethClient(sp.chain)
 	header, err := ethCl.HeaderByHash(context.Background(), sp.ev.BlockHash)
 	require.NoError(sp.auto.T, err)
 
-	return types.Identifier{
+	return supervisorTypes.Identifier{
 		Origin:      sp.ev.Address,
 		BlockNumber: sp.ev.BlockNumber,
 		LogIndex:    uint32(sp.ev.Index),
 		Timestamp:   header.Time,
-		ChainID:     types.ChainIDFromBig(sp.auto.Sys.ChainID(sp.chain)),
+		ChainID:     supervisorTypes.ChainIDFromBig(sp.auto.Sys.ChainID(sp.chain)),
 	}
 }
 
@@ -166,4 +167,16 @@ func (s *SuperSystemAutomation) SendXChainMessage(sender string, chain string, d
 	require.Len(s.T, emitRec.Logs, 1)
 	ev := emitRec.Logs[0]
 	return &SyncPoint{ev: ev, chain: chain, auto: s}, nil
+}
+
+func (s *SuperSystemAutomation) ExecuteMessage(
+	ctx context.Context,
+	id string,
+	sender string,
+	msgIdentifier supervisorTypes.Identifier,
+	target common.Address,
+	message []byte,
+	expectedError error,
+) (*gethTypes.Receipt, error) {
+	return s.Sys.ExecuteMessage(ctx, id, sender, msgIdentifier, target, message, expectedError)
 }

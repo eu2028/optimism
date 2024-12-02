@@ -90,7 +90,7 @@ func (ti *testInteropBlockBuilding) Check(t Test, s SuperSystem) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
 
-			_, err := s.ExecuteMessage(ctx, chainB, alice, ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
+			_, err := ti.auto.ExecuteMessage(ctx, chainB, alice, ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
 			tt.executionExpectation(ctx, t, err)
 		})
 	}
