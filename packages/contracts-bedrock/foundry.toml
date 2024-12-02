@@ -15,7 +15,7 @@ optimizer_runs = 999999
 extra_output = ['devdoc', 'userdoc', 'metadata', 'storageLayout']
 bytecode_hash = 'none'
 ast = true
-evm_version = "cancun"
+evm_version = 'paris'
 
 remappings = [
   '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts',
