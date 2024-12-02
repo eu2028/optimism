@@ -69,7 +69,7 @@ type InteropActors struct {
 
 // SetupInterop creates an InteropSetup to instantiate actors on, with 2 L2 chains.
 func SetupInterop(t helpers.Testing) *InteropSetup {
-	logger := testlog.Logger(t, log.LevelDebug)
+	logger := testlog.Logger(t, log.LevelError)
 
 	recipe := interopgen.InteropDevRecipe{
 		L1ChainID:        900100,
