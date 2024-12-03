@@ -40,3 +40,6 @@ deploy-config/devnetL1.json
 
 # Getting Started guide deploy config
 deploy-config/getting-started.json
+
+# Op-deployer binary
+scripts/op-deployer
