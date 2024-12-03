@@ -213,7 +213,7 @@
   },
   "src/vendor/asterisc/RISCV.sol": {
     "initCodeHash": "0x7329cca924e189eeaa2d883234f6cb5fd787c8bf3339d8298e721778c2947ce5",
-    "sourceCodeHash": "0xf85f3dac3e0fcc7f52fb62f8e66b74f2bc6798b6c9fb43e1a610c5edc04be412"
+    "sourceCodeHash": "0x23aaeb215e35aa87d7f042886d590fdcca19b2fdf8cbd48a4205fd102067f86b"
   },
   "src/vendor/eas/EAS.sol": {
     "initCodeHash": "0xf96d1ebc530ed95e2dffebcfa2b4a1f18103235e6352d97838b77b7a2c14567b",
