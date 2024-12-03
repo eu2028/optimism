@@ -10,9 +10,6 @@ import { stdJson } from "forge-std/StdJson.sol";
 import { Deploy } from "scripts/deploy/Deploy.s.sol";
 import { DeploySuperchainInput, DeploySuperchain, DeploySuperchainOutput } from "scripts/deploy/DeploySuperchain.s.sol";
 
-// Helpers
-// import { FFIInterface } from "test/setup/FFIInterface";
-
 // Libraries
 import { Types } from "scripts/libraries/Types.sol";
 import { Process } from "scripts/libraries/Process.sol";
@@ -36,5 +33,11 @@ contract Upgrade is Deploy {
     function run() public override {
         console.log("Deploying fresh Superchain Shared contracts");
         deploySuperchain();
+
+        string[] memory cmds = new string[](1);
+        cmds[0] = "ls";
+
+        bytes memory result = Process.run(cmds);
+        console.log(vm.toString(result));
     }
 }
