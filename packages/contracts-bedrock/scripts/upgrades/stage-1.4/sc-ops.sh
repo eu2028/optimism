@@ -41,15 +41,15 @@ DELAYED_WETH_PROXY=$(jq -r '.contracts.DelayedWETHProxy' "$DEPLOYMENTS_JSON_PATH
 REGISTRY_ADDRESSES="$(curl -LsS https://raw.githubusercontent.com/ethereum-optimism/superchain-registry/refs/heads/main/superchain/extra/addresses/addresses.json)"
 PROXY_ADMIN_ADDR="$(jq -r ".[\"$L2_CHAIN_ID\"].ProxyAdmin" <<< "$REGISTRY_ADDRESSES")"
 ANCHOR_STATE_REGISTRY_PROXY_ADDR="$(jq -r ".[\"$L2_CHAIN_ID\"].AnchorStateRegistryProxy" <<< "$REGISTRY_ADDRESSES")"
-ANCHOR_STATE_REGISTRY_IMPL_ADDR="$(cast admin "$ANCHOR_STATE_REGISTRY_PROXY_ADDR")"
+ANCHOR_STATE_REGISTRY_IMPL_ADDR="$(cast impl "$ANCHOR_STATE_REGISTRY_PROXY_ADDR")"
 SUPERCHAIN_CONFIG_PROXY_ADDR="$(cast call "$ANCHOR_STATE_REGISTRY_PROXY_ADDR" "superchainConfig()(address)")"
 DISPUTE_GAME_FACTORY_PROXY_ADDR="$(jq -r ".[\"$L2_CHAIN_ID\"].DisputeGameFactoryProxy" <<< "$REGISTRY_ADDRESSES")"
 
 echo "✨ Fetched addresses for L2 Chain \"$L2_CHAIN_ID\" from the superchain-registry"
 echo "  -> ProxyAdmin: $PROXY_ADMIN_ADDR"
-echo "  -> SuperchainConfigProxy: $SUPERCHAIN_CONFIG_PROXY_ADDR"
 echo "  -> AnchorStateRegistryProxy: $ANCHOR_STATE_REGISTRY_PROXY_ADDR"
 echo "  -> AnchorStateRegistryImpl: $ANCHOR_STATE_REGISTRY_IMPL_ADDR"
+echo "  -> SuperchainConfigProxy: $SUPERCHAIN_CONFIG_PROXY_ADDR"
 echo "  -> DisputeGameFactoryProxy: $DISPUTE_GAME_FACTORY_PROXY_ADDR"
 
 # 3. Create the task folder from the template
@@ -67,8 +67,10 @@ replace_in_place "$TASK_DIR/input.json" '%%TX_1_DATA%%' "$TX_1_DATA"
 replace_in_place "$TASK_DIR/input.json" '%%TX_1_DATA_INNER%%' "$TX_1_DATA_INNER"
 
 ## Tx #2 - Upgrade ASR, re-initialize with new implementation
-STARTING_ANCHOR="$(cast call "$ANCHOR_STATE_REGISTRY_PROXY_ADDR" "anchors(uint32)(bytes32)" 0)"
-TX_2_DATA_INNER="$(cast calldata "initialize((uint32,bytes32)[],address)" "[($ASTERISC_KONA_GAME_TYPE, $STARTING_ANCHOR)]" "$SUPERCHAIN_CONFIG_PROXY_ADDR")"
+STARTING_ANCHOR="$(cast call "$ANCHOR_STATE_REGISTRY_PROXY_ADDR" "anchors(uint32)" 0)"
+STARTING_ANCHOR_ROOT="0x${STARTING_ANCHOR:2:64}"
+STARTING_ANCHOR_BLOCK="$(cast 2d "0x${STARTING_ANCHOR:66:64}")"
+TX_2_DATA_INNER="$(cast calldata "initialize((uint32,(bytes32,uint256))[],address)" "[($ASTERISC_KONA_GAME_TYPE, ($STARTING_ANCHOR_ROOT,$STARTING_ANCHOR_BLOCK))]" "$SUPERCHAIN_CONFIG_PROXY_ADDR")"
 TX_2_DATA="$(cast calldata "upgradeAndCall(address,address,bytes)" "$ANCHOR_STATE_REGISTRY_PROXY_ADDR" "$ANCHOR_STATE_REGISTRY_IMPL_ADDR" "$TX_2_DATA_INNER")"
 
 replace_in_place "$TASK_DIR/input.json" '%%ANCHOR_STATE_REGISTRY_PROXY_ADDR%%' "$ANCHOR_STATE_REGISTRY_PROXY_ADDR"
@@ -92,7 +94,8 @@ replace_in_place "$TASK_DIR/README.md" '%%FDG_IMPL%%' "$FDG_IMPL"
 replace_in_place "$TASK_DIR/VALIDATION.md" '%%DISPUTE_GAME_FACTORY_PROXY_ADDR%%' "$DISPUTE_GAME_FACTORY_PROXY_ADDR"
 replace_in_place "$TASK_DIR/VALIDATION.md" '%%FDG_IMPL_B32%%' "$(cast 2u "$FDG_IMPL")"
 replace_in_place "$TASK_DIR/VALIDATION.md" '%%ANCHOR_STATE_REGISTRY_PROXY_ADDR%%' "$ANCHOR_STATE_REGISTRY_PROXY_ADDR"
-replace_in_place "$TASK_DIR/VALIDATION.md" '%%STARTING_ANCHOR%%' "$STARTING_ANCHOR"
+replace_in_place "$TASK_DIR/VALIDATION.md" '%%STARTING_ANCHOR_ROOT%%' "$STARTING_ANCHOR_ROOT"
+replace_in_place "$TASK_DIR/VALIDATION.md" '%%STARTING_ANCHOR_BLOCK%%' "$(cast 2u "$STARTING_ANCHOR_BLOCK")"
 
 # 7. Finalize
 echo "✨ Created upgrade task in $TASK_DIR"
