@@ -194,6 +194,8 @@ func CommitForDeployTag(tag string) (string, error) {
 		return "33f06d2d5e4034125df02264a5ffe84571bd0359", nil
 	case "op-contracts/v1.7.0-beta.1+l2-contracts":
 		return "5e14a61547a45eef2ebeba677aee4a049f106ed8", nil
+	case "op-contracts/v1.9.0-rc.3":
+		return "5f20abb01a1e71881c92f3115e86d7be42d59ad3", nil
 	default:
 		return "", fmt.Errorf("unsupported tag: %s", tag)
 	}
@@ -261,6 +263,8 @@ func ArtifactsURLForTag(tag string) (*url.URL, error) {
 		return url.Parse(standardArtifactsURL("b0fb1f6f674519d637cff39a22187a5993d7f81a6d7b7be6507a0b50a5e38597"))
 	case "op-contracts/v1.8.0-rc.3":
 		return url.Parse(standardArtifactsURL("3bcff2944953862596d5fd0125d166a04af2ba6426dc693983291d3cb86b2e2e"))
+	case "op-contracts/v1.9.0-rc.3":
+		return url.Parse(standardArtifactsURL("e65a562c16a3d02572874a721a60c82cebc422c1fd30df1149d422f2094b96ba"))
 	default:
 		return nil, fmt.Errorf("unsupported tag: %s", tag)
 	}
@@ -274,6 +278,8 @@ func ArtifactsHashForTag(tag string) (common.Hash, error) {
 		return common.HexToHash("9e3ad322ec9b2775d59143ce6874892f9b04781742c603ad59165159e90b00b9"), nil
 	case "op-contracts/v1.8.0-rc.3":
 		return common.HexToHash("7c133142165fbbdba28ced5d9a04af8bea68baf58b19a07cdd8ae531b01fbe9d"), nil
+	case "op-contracts/v1.9.0-rc.3":
+		return common.HexToHash("012d8712c21da2b7231536e2f9989fda5acc90cb9c7cc847dc27988e15de91fd"), nil
 	default:
 		return common.Hash{}, fmt.Errorf("unsupported tag: %s", tag)
 	}
