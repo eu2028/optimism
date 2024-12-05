@@ -191,6 +191,9 @@ type AstNode struct {
 	SymbolAliases []Expression `json:"symbolAliases,omitempty"`
 	UnitAlias     string       `json:"unitAlias,omitempty"`
 
+	// Pragma specific
+	Literals []string `json:"literals,omitempty"`
+
 	// Other fields
 	Arguments []Expression `json:"arguments,omitempty"`
 	Condition *Expression  `json:"condition,omitempty"`

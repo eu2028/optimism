@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
 )
 
@@ -10,17 +11,44 @@ func GenerateTypeDefinition(udtype solc.AstNode) string {
 	return fmt.Sprintf("type %s is %s;", udtype.Name, udtype.UnderlyingType.Name)
 }
 
-func GenerateFunctionSignature(fn solc.AstNode) string {
+func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
+	signature := "function "
+
+	if fn.NodeType == "VariableDeclaration" {
+		signature += fn.Name + "() external view"
+
+		if fn.TypeDescriptions != nil {
+			var returnType = fn.TypeDescriptions.TypeString
+			if fn.StorageLocation == "memory" || fn.StorageLocation == "calldata" {
+				returnType += " " + fn.StorageLocation
+			}
+
+			signature += " returns (" + returnType + ")"
+		}
+
+		signature += ";"
+		return signature
+	}
+
 	if fn.Kind == "constructor" {
 		fn.Name = "__constructor__"
 	}
-	signature := "function " + fn.Name + "("
+	signature += fn.Name + "("
 
 	if fn.Parameters != nil {
 		params := []string{}
 		for _, param := range fn.Parameters.Parameters {
 			paramType := param.TypeDescriptions.TypeString
-			params = append(params, paramType)
+			paramName := param.Name
+			if paramName == "" {
+				paramName = "_"
+			}
+
+			if param.StorageLocation == "memory" || param.StorageLocation == "calldata" {
+				paramType += " " + param.StorageLocation
+			}
+
+			params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
 		}
 		signature += strings.Join(params, ", ")
 	}
@@ -34,16 +62,24 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 		var returns []string
 		for _, ret := range fn.ReturnParameters.Parameters {
 			returnType := ret.TypeDescriptions.TypeString
+
+			if ret.StorageLocation == "memory" || ret.StorageLocation == "calldata" {
+				returnType += " " + ret.StorageLocation
+			}
+
 			returns = append(returns, returnType)
 		}
 		signature += " returns (" + strings.Join(returns, ", ") + ")"
 	}
 
+	signature += ";"
 	return signature
 }
 
 func GenerateEventDefinition(event solc.AstNode) string {
-	eventSignature := "event " + event.Name + "("
+	var builder strings.Builder
+
+	builder.WriteString(fmt.Sprintf("event %s(", event.Name))
 
 	if event.Parameters != nil {
 		params := []string{}
@@ -53,17 +89,20 @@ func GenerateEventDefinition(event solc.AstNode) string {
 			if paramName == "" {
 				paramName = "_"
 			}
-			isIndexed := ""
-			if param.StorageLocation == "indexed" {
-				isIndexed = " indexed"
+
+			if strings.HasPrefix(paramType, "enum ") {
+				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
 			}
-			params = append(params, fmt.Sprintf("%s%s %s", paramType, isIndexed, paramName))
+
+			params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
 		}
-		eventSignature += strings.Join(params, ", ")
+		builder.WriteString(strings.Join(params, ", "))
 	}
 
-	eventSignature += ");"
-	return eventSignature
+	// Close the event definition
+	builder.WriteString(");")
+
+	return builder.String()
 }
 
 func GenerateErrorDefinition(errorDef solc.AstNode) string {
@@ -111,12 +150,12 @@ func GenerateEnumSignature(enumDef EnumDefinition) string {
 
 	for i, member := range enumDef.Members {
 		if i > 0 {
-			builder.WriteString(", ")
+			builder.WriteString(",\n")
 		}
-		builder.WriteString(member.Name)
+		builder.WriteString(fmt.Sprintf("\t\t%s", member.Name))
 	}
 
-	builder.WriteString("\n}\n")
+	builder.WriteString("\n\t}\n")
 
 	return builder.String()
 }

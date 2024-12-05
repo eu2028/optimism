@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
+	"os"
+	"strings"
 )
 
 type ContractData struct {
@@ -34,19 +37,41 @@ type EnumMember struct {
 	Name string
 }
 
-func ExtractASTData(ast solc.Ast) ContractData {
+func ExtractASTData(ast solc.Ast, inherited bool) ContractData {
 	var contractData ContractData
+	var version string
 
 	for _, node := range ast.Nodes {
-		if node.NodeType == "ContractDefinition" {
-			contractData = ExtractContractASTData(node)
+		switch node.NodeType {
+		case "PragmaDirective":
+			version = fmt.Sprint(node.Literals[1], node.Literals[2])
+		case "ContractDefinition":
+			extractedData := ExtractContractASTData(node, inherited)
+			contractData.Functions = append(contractData.Functions, extractedData.Functions...)
+			contractData.Events = append(contractData.Events, extractedData.Events...)
+			contractData.Errors = append(contractData.Errors, extractedData.Errors...)
+			contractData.Types = append(contractData.Types, extractedData.Types...)
+			contractData.Structs = append(contractData.Structs, extractedData.Structs...)
+			contractData.Enums = append(contractData.Enums, extractedData.Enums...)
 			for i := 0; i < len(node.BaseContracts); i++ {
-				artifact, _ := common.ReadForgeArtifact(fmt.Sprintf(
-					"packages/contracts-bedrock/scripts/interfaces/mockcontracts/forge-artifacts/%s.sol/%s.json",
-					node.BaseContracts[i].BaseName.Name,
-					node.BaseContracts[i].BaseName.Name,
-				))
-				data := ExtractASTData(artifact.Ast)
+				var artifact *solc.ForgeArtifact
+
+				versionedPath := fmt.Sprintf("packages/contracts-bedrock/forge-artifacts/%s.sol/%s.%s.json", node.BaseContracts[i].BaseName.Name,
+					node.BaseContracts[i].BaseName.Name, version)
+
+				if _, err := os.Stat(versionedPath); err == nil {
+					artifact, _ = common.ReadForgeArtifact(versionedPath)
+
+				} else if errors.Is(err, os.ErrNotExist) {
+					artifact, _ = common.ReadForgeArtifact(fmt.Sprintf(
+						"packages/contracts-bedrock/forge-artifacts/%s.sol/%s.json",
+						node.BaseContracts[i].BaseName.Name,
+						node.BaseContracts[i].BaseName.Name,
+					))
+
+				}
+
+				data := ExtractASTData(artifact.Ast, true)
 				contractData.Functions = append(contractData.Functions, data.Functions...)
 				contractData.Events = append(contractData.Events, data.Events...)
 				contractData.Errors = append(contractData.Errors, data.Errors...)
@@ -54,20 +79,33 @@ func ExtractASTData(ast solc.Ast) ContractData {
 				contractData.Structs = append(contractData.Structs, data.Structs...)
 				contractData.Enums = append(contractData.Enums, data.Enums...)
 			}
+		case "ErrorDefinition":
+			contractData.Errors = append(contractData.Errors, node)
+		case "UserDefinedValueTypeDefinition":
+			contractData.Types = append(contractData.Types, node)
 		}
 	}
 
 	return contractData
 }
 
-func ExtractContractASTData(node solc.AstNode) ContractData {
+func ExtractContractASTData(node solc.AstNode, inherited bool) ContractData {
 	var data ContractData
 	for _, innerNode := range node.Nodes {
 		switch innerNode.NodeType {
 		case "FunctionDefinition":
+			if inherited && innerNode.Kind == "constructor" {
+				continue
+			}
 			if (innerNode.Visibility == "public" || innerNode.Visibility == "external") && innerNode.Kind != "receive" {
 				data.Functions = append(data.Functions, innerNode)
 			}
+		case "VariableDeclaration":
+			if innerNode.Visibility == "public" {
+				//innerNode.TypeDescriptions.TypeString
+				data.Functions = append(data.Functions, innerNode)
+			}
+
 		case "EventDefinition":
 			data.Events = append(data.Events, innerNode)
 		case "ErrorDefinition":
@@ -79,6 +117,22 @@ func ExtractContractASTData(node solc.AstNode) ContractData {
 
 			for _, member := range innerNode.Members {
 				memberType := member.TypeDescriptions.TypeString
+				/*
+					if strings.HasPrefix(memberType, fmt.Sprintf("%s.", node.CanonicalName)) {
+
+						idx := strings.Index(memberType, ".")
+						if idx != -1 {
+
+							memberType = memberType[idx+1:]
+						}
+					}
+				*/
+				idx := strings.Index(memberType, ".")
+				if idx != -1 {
+
+					memberType = memberType[idx+1:]
+				}
+
 				memberName := member.Name
 				structDef.Members = append(structDef.Members, StructMember{
 					Name: memberName,
