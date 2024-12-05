@@ -2,6 +2,7 @@ package interop
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"testing"
@@ -19,166 +20,150 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/interop/contracts/bindings/inbox"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/interop/contracts/bindings/systemconfig"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+
+	stypes "github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 )
 
-// func TestInteropMessageExecution(gt *testing.T) {
-// 	t := helpers.NewDefaultTesting(gt)
-// 	is := SetupInterop(t)
-// 	actors := is.CreateActors()
-//
-// 	chainAUserKeys := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)
-// 	chainBUserKeys := devkeys.ChainUserKeys(actors.ChainB.ChainCfg.ChainID)
-//
-// 	userAChainAKey := chainAUserKeys(0)
-// 	userAChainBKey := chainBUserKeys(0)
-//
-// 	// Get both sequencers ready
-// 	actors.ChainA.Sequencer.ActL2PipelineFull(t)
-// 	actors.ChainB.Sequencer.ActL2PipelineFull(t)
-//
-// 	// We'll use User A for our testing
-// 	secret, err := is.Keys.Secret(userAChainAKey)
-// 	require.NoError(t, err)
-//
-// 	// Create transaction options for the user
-// 	deployerAuth, err := bind.NewKeyedTransactorWithChainID(
-// 		secret,
-// 		actors.ChainA.ChainCfg.ChainID,
-// 	)
-// 	require.NoError(t, err)
-// 	deployerAuth.GasLimit = 3000000
-// 	deployerAuth.GasTipCap = big.NewInt(2 * params.GWei)
-//
-// 	// Deploy the Emit contract on Chain A
-// 	emitAddr, tx, emitContract, err := emit.DeployEmit(deployerAuth, actors.ChainA.SequencerEngine.EthClient())
-// 	require.NoError(t, err)
-//
-// 	actors.ChainA.Sequencer.ActL2StartBlock(t)
-// 	err = actors.ChainA.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(secret.PublicKey))
-// 	require.NoError(t, err)
-// 	actors.ChainA.Sequencer.ActL2EndBlock(t)
-//
-// 	// Create test user
-// 	userSecret, err := is.Keys.Secret(userAChainAKey)
-// 	require.NoError(t, err)
-// 	userAuthA, err := bind.NewKeyedTransactorWithChainID(
-// 		userSecret,
-// 		actors.ChainA.ChainCfg.ChainID,
-// 	)
-// 	require.NoError(t, err)
-//
-// 	// Create and emit the test message
-// 	testData := []byte("hello chain B!")
-// 	tx, err = emitContract.EmitData(userAuthA, testData)
-// 	require.NoError(t, err)
-//
-// 	// Include the emit transaction
-// 	actors.ChainA.Sequencer.ActL2StartBlock(t)
-// 	err = actors.ChainA.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(secret.PublicKey))
-// 	require.NoError(t, err)
-// 	actors.ChainA.Sequencer.ActL2EndBlock(t)
-//
-// 	// Submit batch and mine it
-// 	actors.ChainA.Batcher.ActSubmitAll(t)
-// 	actors.L1Miner.ActL1StartBlock(12)(t)
-// 	actors.L1Miner.ActL1IncludeTx(actors.ChainA.BatcherAddr)(t)
-// 	actors.L1Miner.ActL1EndBlock(t)
-//
-// 	// Sync Chain A status to supervisor and wait for safety
-// 	actors.Supervisor.SyncEvents(t, actors.ChainA.ChainID)
-// 	actors.ChainA.Sequencer.ActL2PipelineFull(t)
-// 	actors.Supervisor.SyncCrossUnsafe(t, actors.ChainA.ChainID)
-// 	actors.Supervisor.SyncCrossSafe(t, actors.ChainA.ChainID)
-//
-// 	// Now try to execute the message on Chain B using the same user
-// 	userSecret, err = is.Keys.Secret(userAChainBKey)
-// 	require.NoError(t, err)
-// 	userAuthB, err := bind.NewKeyedTransactorWithChainID(
-// 		userSecret,
-// 		actors.ChainB.ChainCfg.ChainID,
-// 	)
-// 	require.NoError(t, err)
-// 	userAuthB.GasLimit = 3000000
-// 	userAuthB.GasTipCap = big.NewInt(2 * params.GWei)
-//
-// 	inboxContract, err := inbox.NewInbox(predeploys.CrossL2InboxAddr, actors.ChainB.SequencerEngine.EthClient())
-// 	require.NoError(t, err)
-//
-// 	// Create the ExecuteMessage tx for chain B
-// 	status := actors.ChainB.Sequencer.SyncStatus()
-// 	identifier := inbox.Identifier{
-// 		Origin:      emitAddr,
-// 		BlockNumber: big.NewInt(2), // TODO: Get actual block number
-// 		LogIndex:    big.NewInt(0),
-// 		Timestamp:   big.NewInt(int64(status.UnsafeL2.Time)),
-// 		ChainId:     actors.ChainA.ChainCfg.ChainID,
-// 	}
-//
-// 	tx, err = inboxContract.ExecuteMessage(userAuthB, identifier, emitAddr, testData)
-// 	require.NoError(t, err)
-//
-// 	// Include the ExecuteMessage tx on Cha
-// 	actors.ChainB.Sequencer.ActL2StartBlock(t)
-// 	err = actors.ChainB.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(userSecret.PublicKey))
-// 	require.NoError(t, err)
-// 	actors.ChainB.Sequencer.ActL2EndBlock(t)
-//
-// 	// Sync Chain B and verify message execution
-// 	actors.Supervisor.SyncEvents(t, actors.ChainB.ChainID)
-// 	actors.Supervisor.SyncCrossUnsafe(t, actors.ChainB.ChainID)
-// 	actors.Supervisor.SyncCrossSafe(t, actors.ChainB.ChainID)
-// }
+// TODO:
+//   - Setup dependencies
+//   - Check that executing a message that doesn't exist fails
+//     - Make sure it doesn't become cross-unsafe
+// - Later
+//   - Reorg tests
 
-// func TestInteropMessageExecution(gt *testing.T) {
-// 	t := helpers.NewDefaultTesting(gt)
-// 	is := SetupInterop(t)
-// 	actors := is.CreateActors()
-//
-// 	// Get both sequencers ready
-// 	actors.ChainA.Sequencer.ActL2PipelineFull(t)
-// 	actors.ChainB.Sequencer.ActL2PipelineFull(t)
-//
-// 	// Set up our user keys
-// 	chainAUserKeys := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)
-// 	chainBUserKeys := devkeys.ChainUserKeys(actors.ChainB.ChainCfg.ChainID)
-// 	userAChainAKey := chainAUserKeys(0)
-// 	userAChainBKey := chainBUserKeys(0)
-//
-// 	// Deploy Emit contract on Chain A
-// 	emitContract, emitAddr := deployEmitContract(t, is, actors.ChainA, userAChainAKey)
-//
-// 	// Set up auth for emitting message
-// 	userSecret, err := is.Keys.Secret(userAChainAKey)
-// 	require.NoError(t, err)
-// 	userAuthA, err := bind.NewKeyedTransactorWithChainID(userSecret, actors.ChainA.ChainCfg.ChainID)
-// 	require.NoError(t, err)
-//
-// 	// Emit test message
-// 	testData := []byte("hello chain B!")
-// 	tx, err := emitContract.EmitData(userAuthA, testData)
-// 	require.NoError(t, err)
-//
-// 	// Process the emit transaction
-// 	actors.ChainA.Sequencer.ActL2StartBlock(t)
-// 	err = actors.ChainA.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(userSecret.PublicKey))
-// 	require.NoError(t, err)
-// 	actors.ChainA.Sequencer.ActL2EndBlock(t)
-//
-// 	// Submit batch and progress L1
-// 	actors.ChainA.Batcher.ActSubmitAll(t)
-// 	actors.L1Miner.ActL1StartBlock(12)(t)
-// 	actors.L1Miner.ActL1IncludeTx(actors.ChainA.BatcherAddr)(t)
-// 	actors.L1Miner.ActL1EndBlock(t)
-//
-// 	// Sync Chain A through the supervisor
-// 	actors.Supervisor.SyncEvents(t, actors.ChainA.ChainID)
-// 	actors.ChainA.Sequencer.ActL2PipelineFull(t)
-// 	actors.Supervisor.SyncCrossUnsafe(t, actors.ChainA.ChainID)
-// 	actors.Supervisor.SyncCrossSafe(t, actors.ChainA.ChainID)
-//
-// 	// Execute message on Chain B
-// 	execMessageOnChainB(t, is, actors, emitAddr, testData, userAChainBKey)
-// }
+func TestInteropMessageExecutionSuccess(gt *testing.T) {
+	t := helpers.NewDefaultTesting(gt)
+	is := SetupInterop(t)
+	actors := is.CreateActors()
+
+	actors.ChainA.Sequencer.ActL2PipelineFull(t)
+	actors.ChainB.Sequencer.ActL2PipelineFull(t)
+
+	// Setup chain B to accept messages from chain A
+	setupChainDependency(t, is, actors, actors.ChainA.ChainID)
+
+	// Setup keys and deploy contract
+	userKeyA := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)(0)
+	userKeyB := devkeys.ChainUserKeys(actors.ChainB.ChainCfg.ChainID)(0)
+	secretA, err := is.Keys.Secret(userKeyA)
+	require.NoError(t, err)
+	secretB, err := is.Keys.Secret(userKeyB)
+	require.NoError(t, err)
+
+	_, emitAddr := deployEmitContract(t, is, actors.ChainA, userKeyA)
+
+	// Test successful message passing
+	emitResult, execResult := emitAndExecuteMessage(
+		t, actors,
+		actors.ChainA, actors.ChainB,
+		emitAddr, []byte("hello chain B!"),
+		secretA, secretB,
+	)
+
+	t.Logf("Message emitted in tx %s and executed in tx %s",
+		emitResult.Tx.Hash().Hex(), execResult.Tx.Hash().Hex())
+}
+
+// TestInteropMessageExecutionFailureNoInitLog tests that attempting to execute a message that doesn't exist fails.
+func TestInteropMessageExecutionFailureNoInitLog(gt *testing.T) {
+	t := helpers.NewDefaultTesting(gt)
+	is := SetupInterop(t)
+	actors := is.CreateActors()
+
+	actors.ChainA.Sequencer.ActL2PipelineFull(t)
+	actors.ChainB.Sequencer.ActL2PipelineFull(t)
+
+	// Setup chain B to accept messages from chain A
+	setupChainDependency(t, is, actors, actors.ChainA.ChainID)
+
+	// Deploy the Emit contract on Chain A to use as a message source
+	chainAUserKeys := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)
+	chainBUserKeys := devkeys.ChainUserKeys(actors.ChainB.ChainCfg.ChainID)
+	userAChainAKey := chainAUserKeys(0)
+	userAChainBKey := chainBUserKeys(0)
+
+	_, emitAddr := deployEmitContract(t, is, actors.ChainA, userAChainAKey)
+
+	// Get the user's key for Chain B where we'll attempt the execution
+	userAChainBSecret, err := is.Keys.Secret(userAChainBKey)
+	require.NoError(t, err)
+
+	// Attempt to execute a non-existent message
+	userAuth, err := bind.NewKeyedTransactorWithChainID(userAChainBSecret, actors.ChainB.ChainCfg.ChainID)
+	require.NoError(t, err)
+	userAuth.GasLimit = 3000000
+
+	// Create message parameters that point to a non-existent event
+	fakeIdentifier := inbox.Identifier{
+		Origin:      emitAddr,
+		BlockNumber: big.NewInt(1),
+		LogIndex:    big.NewInt(9999),
+		Timestamp:   big.NewInt(1000),
+		ChainId:     actors.ChainA.ChainCfg.ChainID,
+	}
+
+	// Attempt to execute the non-existent message
+	inboxContract, err := inbox.NewInbox(predeploys.CrossL2InboxAddr, actors.ChainB.SequencerEngine.EthClient())
+	require.NoError(t, err)
+
+	fakeMessage := []byte("this message was never emitted")
+	tx, err := inboxContract.ExecuteMessage(userAuth, fakeIdentifier, emitAddr, fakeMessage)
+	require.NoError(t, err)
+
+	// Submit the transaction
+	actors.ChainB.Sequencer.ActL2StartBlock(t)
+	err = actors.ChainB.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(userAChainBSecret.PublicKey))
+	require.NoError(t, err)
+	actors.ChainB.Sequencer.ActL2EndBlock(t)
+
+	// The transaction should be included but should fail
+	receipt, err := actors.ChainB.SequencerEngine.EthClient().TransactionReceipt(context.Background(), tx.Hash())
+	require.NoError(t, err)
+	require.Equal(t, types.ReceiptStatusFailed, receipt.Status, "execution of non-existent message should fail")
+}
+
+// setupChainDependency ensures that the destination chain recognizes the source chain as a dependency
+func setupChainDependency(t helpers.Testing, is *InteropSetup, actors *InteropActors, chainID stypes.ChainID) {
+	l1ChainID := actors.L1Miner.L1Chain().Config().ChainID
+
+	// Get the system config owner key for the destination chain
+	configUserKey := devkeys.ChainOperatorKey{
+		ChainID: l1ChainID,
+		Role:    devkeys.SystemConfigOwner,
+	}
+	configUserSecret, err := is.Keys.Secret(configUserKey)
+	require.NoError(t, err)
+
+	// Get the system config contract
+	id, err := chainID.ToUInt32()
+	require.NoError(t, err)
+	idStr := fmt.Sprintf("%d", id)
+	configContractAddr := is.Deployment.L2s[idStr].SystemConfigProxy
+	t.Logf("Setting up dependency for chain %s using SystemConfig at %s",
+		idStr, configContractAddr.Hex())
+
+	contract, err := systemconfig.NewSystemconfig(configContractAddr, actors.L1Miner.EthClient())
+	require.NoError(t, err)
+
+	// Add the dependency
+	auth, err := bind.NewKeyedTransactorWithChainID(configUserSecret, l1ChainID)
+	require.NoError(t, err)
+	auth.GasLimit = 3000000
+	auth.GasTipCap = big.NewInt(2 * params.GWei)
+
+	tx, err := contract.AddDependency(auth, chainID.ToBig())
+	require.NoError(t, err)
+
+	// Include the transaction
+	actors.L1Miner.ActL1StartBlock(12)(t)
+	actors.L1Miner.ActL1IncludeTx(crypto.PubkeyToAddress(configUserSecret.PublicKey))(t)
+	actors.L1Miner.ActL1EndBlock(t)
+
+	receipt, err := actors.L1Miner.EthClient().TransactionReceipt(context.Background(), tx.Hash())
+	require.NoError(t, err)
+	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status,
+		"failed to add chain dependency")
+}
 
 // deployEmitContract deploys the Emit contract on the specified chain using the provided key.
 func deployEmitContract(t helpers.Testing, is *InteropSetup, chain *Chain, key devkeys.ChainUserKey) (*emit.Emit, common.Address) {
@@ -204,151 +189,98 @@ func deployEmitContract(t helpers.Testing, is *InteropSetup, chain *Chain, key d
 	return emitContract, emitAddr
 }
 
-func TestInteropMessageExecution(gt *testing.T) {
-	t := helpers.NewDefaultTesting(gt)
-	is := SetupInterop(t)
-	actors := is.CreateActors()
-
-	actors.ChainA.Sequencer.ActL2PipelineFull(t)
-	actors.ChainB.Sequencer.ActL2PipelineFull(t)
-
-	chainAUserKeys := devkeys.ChainUserKeys(actors.ChainA.ChainCfg.ChainID)
-	chainBUserKeys := devkeys.ChainUserKeys(actors.ChainB.ChainCfg.ChainID)
-	userAChainAKey := chainAUserKeys(0)
-	userAChainBKey := chainBUserKeys(0)
-
-	userSecret, err := is.Keys.Secret(userAChainAKey)
-	require.NoError(t, err)
-	userAuthA, err := bind.NewKeyedTransactorWithChainID(userSecret, actors.ChainA.ChainCfg.ChainID)
-	require.NoError(t, err)
-
-	// Deploy emitter contract and emit a message
-	emitContract, emitAddr := deployEmitContract(t, is, actors.ChainA, userAChainAKey)
-	testData := []byte("hello chain B!")
-	tx, err := emitContract.EmitData(userAuthA, testData)
-	require.NoError(t, err)
-	t.Logf("Emit transaction hash: %s", tx.Hash().Hex())
-
-	actors.ChainA.Sequencer.ActL2StartBlock(t)
-	err = actors.ChainA.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(userSecret.PublicKey))
-	require.NoError(t, err)
-	actors.ChainA.Sequencer.ActL2EndBlock(t)
-
-	receipt, err := actors.ChainA.SequencerEngine.EthClient().TransactionReceipt(context.Background(), tx.Hash())
-	require.NoError(t, err)
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "emit transaction failed")
-
-	t.Logf("Emit transaction included in block %d at index %d", receipt.BlockNumber.Uint64(), receipt.TransactionIndex)
-
-	var emitEvent *emit.EmitDataEmitted
-	for _, log := range receipt.Logs {
-		t.Logf("Log: address=%s topics=%v data=%x", log.Address.Hex(), log.Topics, log.Data)
-		if log.Address == emitAddr {
-			event, err := emitContract.ParseDataEmitted(*log)
-			require.NoError(t, err)
-			emitEvent = event
-			t.Logf("Found DataEmitted event: data=%x", event.Data)
-			break
-		}
+func serializeLog(log *types.Log) []byte {
+	msgPayload := make([]byte, 0)
+	for _, topic := range log.Topics {
+		msgPayload = append(msgPayload, topic.Bytes()...)
 	}
-	require.NotNil(t, emitEvent, "DataEmitted event not found")
+	msgPayload = append(msgPayload, log.Data...)
+	return msgPayload
+}
 
-	actors.ChainA.Batcher.ActSubmitAll(t)
+type txResult struct {
+	Tx      *types.Transaction
+	Receipt *types.Receipt
+	Logs    []*types.Log
+}
+
+func submitL2Transaction(
+	t helpers.Testing,
+	chain *Chain,
+	supervisor *SupervisorActor,
+	sender *ecdsa.PrivateKey,
+	createTx func(auth *bind.TransactOpts) (*types.Transaction, error),
+) *txResult {
+	auth, err := bind.NewKeyedTransactorWithChainID(sender, chain.ChainCfg.ChainID)
+	require.NoError(t, err)
+	auth.GasLimit = 3000000
+	auth.GasTipCap = big.NewInt(2 * params.GWei)
+
+	tx, err := createTx(auth)
+	require.NoError(t, err)
+	t.Logf("Transaction created with hash: %s", tx.Hash().Hex())
+
+	chain.Sequencer.ActL2StartBlock(t)
+	err = chain.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(sender.PublicKey))
+	require.NoError(t, err)
+	chain.Sequencer.ActL2EndBlock(t)
+
+	receipt, err := chain.SequencerEngine.EthClient().TransactionReceipt(context.Background(), tx.Hash())
+	require.NoError(t, err)
+	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "transaction failed")
+
+	return &txResult{
+		Tx:      tx,
+		Receipt: receipt,
+		Logs:    receipt.Logs,
+	}
+}
+
+func emitAndExecuteMessage(
+	t helpers.Testing,
+	actors *InteropActors,
+	srcChain *Chain,
+	destChain *Chain,
+	emitAddr common.Address,
+	msgData []byte,
+	sender *ecdsa.PrivateKey,
+	executor *ecdsa.PrivateKey,
+) (*txResult, *txResult) {
+	// Emit message on source chain
+	emitResult := submitL2Transaction(t, srcChain, actors.Supervisor, sender, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		emitter, err := emit.NewEmit(emitAddr, srcChain.SequencerEngine.EthClient())
+		require.NoError(t, err)
+		return emitter.EmitData(auth, msgData)
+	})
+
+	// Submit batch and progress L1
+	srcChain.Batcher.ActSubmitAll(t)
 	actors.L1Miner.ActL1StartBlock(12)(t)
-	actors.L1Miner.ActL1IncludeTx(actors.ChainA.BatcherAddr)(t)
+	actors.L1Miner.ActL1IncludeTx(srcChain.BatcherAddr)(t)
 	actors.L1Miner.ActL1EndBlock(t)
 
-	actors.Supervisor.SyncEvents(t, actors.ChainA.ChainID)
-	actors.ChainA.Sequencer.ActL2PipelineFull(t)
-	actors.Supervisor.SyncCrossUnsafe(t, actors.ChainA.ChainID)
-	actors.Supervisor.SyncCrossSafe(t, actors.ChainA.ChainID)
+	// Sync through supervisor
+	actors.Supervisor.SyncEvents(t, srcChain.ChainID)
+	srcChain.Sequencer.ActL2PipelineFull(t)
+	actors.Supervisor.SyncCrossUnsafe(t, srcChain.ChainID)
+	actors.Supervisor.SyncCrossSafe(t, srcChain.ChainID)
 
-	// Log the chain status before execution
-	statusA := actors.ChainA.Sequencer.SyncStatus()
-	statusB := actors.ChainB.Sequencer.SyncStatus()
-	t.Logf("Chain A status - Head: %d Safe: %d Finalized: %d",
-		statusA.UnsafeL2.Number, statusA.SafeL2.Number, statusA.FinalizedL2.Number)
-	t.Logf("Chain B status - Head: %d Safe: %d Finalized: %d",
-		statusB.UnsafeL2.Number, statusB.SafeL2.Number, statusB.FinalizedL2.Number)
+	// Execute on destination chain
+	execResult := submitL2Transaction(t, destChain, actors.Supervisor, executor, func(auth *bind.TransactOpts) (*types.Transaction, error) {
+		inboxContract, err := inbox.NewInbox(predeploys.CrossL2InboxAddr, destChain.SequencerEngine.EthClient())
+		require.NoError(t, err)
 
-	// Setup dependencies
-	id, err := actors.ChainA.ChainID.ToUInt32()
-	require.NoError(t, err)
-	idStr := fmt.Sprintf("%d", id)
-	t.Logf("System config proxy address: %s", is.Deployment.L2s[idStr].SystemConfigProxy.Hex())
-	contract, err := systemconfig.NewSystemconfig(is.Deployment.L2s[idStr].SystemConfigProxy, actors.ChainB.SequencerEngine.EthClient())
-	require.NoError(t, err)
-	tx, err = contract.AddDependency(userAuthA, actors.ChainA.ChainCfg.ChainID)
-	require.NoError(t, err)
+		status := srcChain.Sequencer.SyncStatus()
+		identifier := inbox.Identifier{
+			Origin:      emitAddr,
+			BlockNumber: new(big.Int).SetUint64(emitResult.Receipt.BlockNumber.Uint64()),
+			LogIndex:    new(big.Int).SetUint64(uint64(emitResult.Receipt.TransactionIndex)),
+			Timestamp:   big.NewInt(int64(status.UnsafeL2.Time)),
+			ChainId:     srcChain.ChainCfg.ChainID,
+		}
 
-	actors.ChainB.Sequencer.ActL2StartBlock(t)
-	err = actors.ChainB.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(userSecret.PublicKey))
-	require.NoError(t, err)
-	actors.ChainB.Sequencer.ActL2EndBlock(t)
+		return inboxContract.ExecuteMessage(auth, identifier, emitAddr, serializeLog(emitResult.Logs[0]))
+	})
 
-	receipt, err = actors.ChainB.SequencerEngine.EthClient().TransactionReceipt(context.Background(), tx.Hash())
-	require.NoError(t, err)
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "add dependency transaction failed")
-
-	// Execute the message on Chain B
-	execTx := execMessageOnChainB(t, is, actors, emitAddr, receipt.BlockNumber.Uint64(), uint32(receipt.TransactionIndex), testData, userAChainBKey)
-
-	execReceipt, err := actors.ChainB.SequencerEngine.EthClient().TransactionReceipt(context.Background(), execTx.Hash())
-	require.NoError(t, err)
-
-	// Log transaction details and any error messages that might be present
-	for _, log := range execReceipt.Logs {
-		t.Logf("Execution Log: address=%s topics=%v data=%x", log.Address.Hex(), log.Topics, log.Data)
-	}
-
-	require.Equal(t, types.ReceiptStatusSuccessful, execReceipt.Status, "execution transaction failed")
+	return emitResult, execResult
 }
-
-func execMessageOnChainB(t helpers.Testing, is *InteropSetup, actors *InteropActors,
-	emitAddr common.Address, blockNum uint64, logIdx uint32, testData []byte, userKey devkeys.ChainUserKey) *types.Transaction {
-
-	userSecret, err := is.Keys.Secret(userKey)
-	require.NoError(t, err)
-	userAuth, err := bind.NewKeyedTransactorWithChainID(
-		userSecret,
-		actors.ChainB.ChainCfg.ChainID,
-	)
-	require.NoError(t, err)
-	userAuth.GasLimit = 3000000
-	userAuth.GasTipCap = big.NewInt(2 * params.GWei)
-
-	inboxContract, err := inbox.NewInbox(predeploys.CrossL2InboxAddr, actors.ChainB.SequencerEngine.EthClient())
-	require.NoError(t, err)
-
-	status := actors.ChainB.Sequencer.SyncStatus()
-	identifier := inbox.Identifier{
-		Origin:      emitAddr,
-		BlockNumber: new(big.Int).SetUint64(blockNum),
-		LogIndex:    new(big.Int).SetUint64(uint64(logIdx)),
-		Timestamp:   big.NewInt(int64(status.UnsafeL2.Time)),
-		ChainId:     actors.ChainA.ChainCfg.ChainID,
-	}
-
-	tx, err := inboxContract.ExecuteMessage(userAuth, identifier, emitAddr, testData)
-	require.NoError(t, err)
-
-	actors.ChainB.Sequencer.ActL2StartBlock(t)
-	err = actors.ChainB.SequencerEngine.EngineApi.IncludeTx(tx, crypto.PubkeyToAddress(userSecret.PublicKey))
-	require.NoError(t, err)
-	actors.ChainB.Sequencer.ActL2EndBlock(t)
-
-	actors.Supervisor.SyncEvents(t, actors.ChainB.ChainID)
-	actors.Supervisor.SyncCrossUnsafe(t, actors.ChainB.ChainID)
-	actors.Supervisor.SyncCrossSafe(t, actors.ChainB.ChainID)
-
-	return tx
-}
-
-// - Setup dependecies
-// - Fix execution payload
-
-// - Check that executing a message that doesn't exist fails
-// - Make sure it doesn't become cross-unsafe
-
-// - Later on reorg
-// -
