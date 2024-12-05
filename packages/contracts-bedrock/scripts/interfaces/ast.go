@@ -97,12 +97,11 @@ func ExtractContractASTData(node solc.AstNode, inherited bool) ContractData {
 			if inherited && innerNode.Kind == "constructor" {
 				continue
 			}
-			if (innerNode.Visibility == "public" || innerNode.Visibility == "external") && innerNode.Kind != "receive" {
+			if innerNode.Visibility == "public" || innerNode.Visibility == "external" {
 				data.Functions = append(data.Functions, innerNode)
 			}
 		case "VariableDeclaration":
 			if innerNode.Visibility == "public" {
-				//innerNode.TypeDescriptions.TypeString
 				data.Functions = append(data.Functions, innerNode)
 			}
 
@@ -117,16 +116,7 @@ func ExtractContractASTData(node solc.AstNode, inherited bool) ContractData {
 
 			for _, member := range innerNode.Members {
 				memberType := member.TypeDescriptions.TypeString
-				/*
-					if strings.HasPrefix(memberType, fmt.Sprintf("%s.", node.CanonicalName)) {
 
-						idx := strings.Index(memberType, ".")
-						if idx != -1 {
-
-							memberType = memberType[idx+1:]
-						}
-					}
-				*/
 				idx := strings.Index(memberType, ".")
 				if idx != -1 {
 

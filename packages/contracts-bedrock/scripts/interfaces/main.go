@@ -83,9 +83,9 @@ func GenerateSolidityInterface(contractName string, astData ContractData, abi ab
 }
 
 func main() {
-	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/WETH98.sol/WETH98.json")
+	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/DataAvailabilityChallenge.sol/DataAvailabilityChallenge.json")
 	astData := ExtractASTData(artifact.Ast, false)
 
-	interfaceCode := GenerateSolidityInterface("AddressManager", astData, artifact.Abi)
+	interfaceCode := GenerateSolidityInterface("ProtocolVersions", astData, artifact.Abi)
 	fmt.Println(interfaceCode)
 }
