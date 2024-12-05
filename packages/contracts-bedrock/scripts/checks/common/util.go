@@ -110,7 +110,6 @@ func FindFiles(includes, excludes []string) (map[string]string, error) {
 }
 
 func ReadForgeArtifact(path string) (*solc.ForgeArtifact, error) {
-	println(path)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read artifact: %w", err)
