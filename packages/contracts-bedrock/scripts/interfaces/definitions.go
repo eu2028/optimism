@@ -19,8 +19,9 @@ func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
 
 		if fn.TypeDescriptions != nil {
 			var returnType = fn.TypeDescriptions.TypeString
-			if fn.StorageLocation == "memory" || fn.StorageLocation == "calldata" {
-				returnType += " " + fn.StorageLocation
+
+			if !isTrivialType(returnType) {
+				returnType += " memory"
 			}
 
 			signature += " returns (" + returnType + ")"
@@ -28,6 +29,15 @@ func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
 
 		signature += ";"
 		return signature
+	}
+	// Handle receive function
+	if fn.Kind == "receive" {
+		fn.Name = "receive"
+	}
+
+	// Handle fallback function
+	if fn.Kind == "fallback" {
+		fn.Name = "fallback"
 	}
 
 	if fn.Kind == "constructor" {
@@ -54,7 +64,7 @@ func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
 	}
 
 	signature += ") external"
-	if fn.StateMutability == "view" || fn.StateMutability == "pure" {
+	if fn.StateMutability == "view" || fn.StateMutability == "pure" || fn.StateMutability == "payable" {
 		signature += " " + fn.StateMutability
 	}
 
