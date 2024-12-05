@@ -2,69 +2,90 @@ package main
 
 import (
 	"fmt"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
 )
 
-func GenerateSolidityInterface(
-	contractName string,
-	publicFunctions []solc.AstNode,
-	events []solc.AstNode,
-	structs []StructDefinition,
-) string {
+func GenerateSolidityInterface(contractName string, astData ContractData, abi abi.ABI) string {
+	seenTypes := make(map[string]bool)
+	seenStructs := make(map[string]bool)
+	seenEnums := make(map[string]bool)
+	seenErrors := make(map[string]bool)
+	seenEvents := make(map[string]bool)
+	seenFunctions := make(map[string]bool)
+
 	var builder strings.Builder
 
-	//TODO: PEP What version here?
-	builder.WriteString(fmt.Sprintf("pragma solidity ^0.8.0;\n\n"))
-	builder.WriteString(fmt.Sprintf("interface I%s {\n", contractName))
+	builder.WriteString("// SPDX-License-Identifier: MIT\n")
+	builder.WriteString("pragma solidity ^0.8.0;\n\n")
 
-	for _, structDef := range structs {
+	// Add user-defined types
+	for _, typeDef := range astData.Types {
+		typeDefinition := GenerateTypeDefinition(typeDef)
+		if !seenTypes[typeDefinition] {
+			builder.WriteString(fmt.Sprintf("\n%s", typeDefinition))
+			seenTypes[typeDefinition] = true
+		}
+	}
+
+	builder.WriteString(fmt.Sprintf("\n\ninterface I%s {\n", contractName))
+
+	// Add structs
+	for _, structDef := range astData.Structs {
 		structDefinition := GenerateStructDefinition(structDef)
-		builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
+		if !seenStructs[structDefinition] {
+			builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
+			seenStructs[structDefinition] = true
+		}
 	}
 
-	for _, event := range events {
+	// Add enums
+	for _, enumDef := range astData.Enums {
+		enumSignature := GenerateEnumSignature(enumDef)
+		if !seenEnums[enumSignature] {
+			builder.WriteString(fmt.Sprintf("\n    %s", enumSignature))
+			seenEnums[enumSignature] = true
+		}
+	}
+
+	// Add errors
+	for _, errDef := range astData.Errors {
+		errorDefinition := GenerateErrorDefinition(errDef)
+		if !seenErrors[errorDefinition] {
+			builder.WriteString(fmt.Sprintf("\n    %s", errorDefinition))
+			seenErrors[errorDefinition] = true
+		}
+	}
+
+	// Add events
+	for _, event := range astData.Events {
 		eventDefinition := GenerateEventDefinition(event)
-		builder.WriteString(fmt.Sprintf("\n    %s", eventDefinition))
+		if !seenEvents[eventDefinition] {
+			builder.WriteString(fmt.Sprintf("\n    %s", eventDefinition))
+			seenEvents[eventDefinition] = true
+		}
 	}
 
-	for _, fn := range publicFunctions {
-		functionSignature := GenerateFunctionSignature(fn)
-		builder.WriteString(fmt.Sprintf("\n    %s;", functionSignature))
+	// Add public function signatures (including public variable getters)
+	for _, fn := range astData.Functions {
+		functionSignature := GenerateFunctionSignature(fn, abi)
+		if !seenFunctions[functionSignature] {
+			builder.WriteString(fmt.Sprintf("\n    %s", functionSignature))
+			seenFunctions[functionSignature] = true
+		}
 	}
 
+	// Close the interface definition
 	builder.WriteString("\n}\n")
 
 	return builder.String()
 }
 
 func main() {
-	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/scripts/interfaces/mockcontracts/forge-artifacts/A.sol/A.json")
+	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/WETH98.sol/WETH98.json")
+	astData := ExtractASTData(artifact.Ast, false)
 
-	astData := ExtractASTData(artifact.Ast)
-
-	for i := 0; i < len(astData.Types); i++ {
-		println(GenerateTypeDefinition(astData.Types[i]))
-	}
-
-	for i := 0; i < len(astData.Structs); i++ {
-		println(GenerateStructDefinition(astData.Structs[i]))
-	}
-
-	for i := 0; i < len(astData.Errors); i++ {
-		println(GenerateErrorDefinition(astData.Errors[i]))
-	}
-
-	for i := 0; i < len(astData.Events); i++ {
-		println(GenerateEventDefinition(astData.Events[i]))
-	}
-
-	for i := 0; i < len(astData.Functions); i++ {
-		println(GenerateFunctionSignature(astData.Functions[i]))
-	}
-
-	for i := 0; i < len(astData.Enums); i++ {
-		println(GenerateEnumSignature(astData.Enums[i]))
-	}
+	interfaceCode := GenerateSolidityInterface("AddressManager", astData, artifact.Abi)
+	fmt.Println(interfaceCode)
 }
