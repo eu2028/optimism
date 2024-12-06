@@ -155,14 +155,14 @@ contract Setup {
 
         console.log("Setup: completed L1 deployment, registering addresses now");
 
-        // NOTE: Something in this block is causing an infinite loop. If I uncomment it, the revert statement below is
-        // not triggered, and the node just prints eth_getStorageAt.
-        // optimismPortal = IOptimismPortal(deploy.mustGetAddress("OptimismPortalProxy"));
+        optimismPortal = IOptimismPortal(deploy.mustGetAddress("OptimismPortalProxy"));
+        // NOTE: For some reason this is causing an infinite loop!? If I uncomment it the node just prints
+        // eth_getStorageAt for 10 minutes straight until I kill the process.
         // optimismPortal2 = IOptimismPortal2(deploy.mustGetAddress("OptimismPortalProxy"));
-        // disputeGameFactory = IDisputeGameFactory(deploy.mustGetAddress("DisputeGameFactoryProxy"));
-        // delayedWeth = IDelayedWETH(deploy.mustGetAddress("DelayedWETHProxy"));
-        // systemConfig = ISystemConfig(deploy.mustGetAddress("SystemConfigProxy"));
-        // l1StandardBridge = IL1StandardBridge(deploy.mustGetAddress("L1StandardBridgeProxy"));
+        disputeGameFactory = IDisputeGameFactory(deploy.mustGetAddress("DisputeGameFactoryProxy"));
+        delayedWeth = IDelayedWETH(deploy.mustGetAddress("DelayedWETHProxy"));
+        systemConfig = ISystemConfig(deploy.mustGetAddress("SystemConfigProxy"));
+        l1StandardBridge = IL1StandardBridge(deploy.mustGetAddress("L1StandardBridgeProxy"));
         l1CrossDomainMessenger = IL1CrossDomainMessenger(deploy.mustGetAddress("L1CrossDomainMessengerProxy"));
         addressManager = IAddressManager(deploy.mustGetAddress("AddressManager"));
         l1ERC721Bridge = IL1ERC721Bridge(deploy.mustGetAddress("L1ERC721BridgeProxy"));
@@ -172,7 +172,6 @@ contract Setup {
         superchainConfig = ISuperchainConfig(deploy.mustGetAddress("SuperchainConfigProxy"));
         anchorStateRegistry = IAnchorStateRegistry(deploy.mustGetAddress("AnchorStateRegistryProxy"));
 
-        revert("before labelling");
         vm.label(address(optimismPortal), "OptimismPortal");
         vm.label(deploy.mustGetAddress("OptimismPortalProxy"), "OptimismPortalProxy");
         vm.label(address(disputeGameFactory), "DisputeGameFactory");
