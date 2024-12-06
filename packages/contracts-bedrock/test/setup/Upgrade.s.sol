@@ -21,13 +21,8 @@ contract Upgrade is Deployer {
     string internal _stateJson;
     string internal _stdVersionsToml;
 
-    /// @notice Deploy all of the L1 contracts necessary for a full Superchain with a single Op Chain.
-
-    function run() public {
-        // Note: For now we are using a fork of mainnet, so we don't need to deploy the Superchain Shared contracts.
-        //       This will change after the next release when we have all implementations in a single release.
-
-        // ----- Deploy the OPCM along with implementations contracts it requires -----
+    /// @notice Executes the op-deployer bootstrap command
+    function opDeployerBootstrap() internal returns (bytes memory) {
         string[] memory cmds = new string[](9);
         cmds[0] = "scripts/op-deployer";
         cmds[1] = "bootstrap";
@@ -41,21 +36,34 @@ contract Upgrade is Deployer {
         cmds[8] = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
         bytes memory result = Process.run(cmds);
-        console.log(string(result));
+        return result;
+    }
 
-        string[] memory cmds2 = new string[](8);
-        cmds2[0] = "scripts/op-deployer";
-        cmds2[1] = "apply";
-        cmds2[2] = "--l1-rpc-url";
-        cmds2[3] = "http://localhost:8545";
-        cmds2[4] = "--private-key";
+    /// @notice Executes the op-deployer apply command
+    function opDeployerApply() internal returns (bytes memory) {
+        string[] memory cmds = new string[](8);
+        cmds[0] = "scripts/op-deployer";
+        cmds[1] = "apply";
+        cmds[2] = "--l1-rpc-url";
+        cmds[3] = "http://localhost:8545";
+        cmds[4] = "--private-key";
         // Private key for first default hardhat account
-        cmds2[5] = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-        cmds2[6] = "--workdir";
-        cmds2[7] = "test/fixtures";
+        cmds[5] = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+        cmds[6] = "--workdir";
+        cmds[7] = "test/fixtures";
 
-        bytes memory result2 = Process.run(cmds2);
-        console.log(string(result2));
+        bytes memory result = Process.run(cmds);
+        return result;
+    }
+
+    /// @notice Deploy all of the L1 contracts necessary for a full Superchain with a single Op Chain.
+    function run() public {
+        // Note: For now we are using a fork of mainnet, so we don't need to deploy the Superchain Shared contracts.
+        //       This will change after the next release when we have all implementations in a single release.
+
+        // ----- Deploy the OPCM along with implementations contracts it requires -----
+        opDeployerBootstrap();
+        opDeployerApply();
 
         console.log("Upgrade: reading file state.json");
         try vm.readFile("test/fixtures/state.json") returns (string memory data_) {
