@@ -157,6 +157,7 @@ contract Upgrade is Deployer {
             vm.parseTomlAddress(_stdVersionsToml, string.concat(".releases[\"op-contracts/v1.6.0\"].mips.address"))
         );
 
+        // need to get this from bootstrap output
         // save("OPContractsManager", _json.readAddress("$.opChainDeployments[0].opContractsManager"));
 
         save("ProxyAdmin", _stateJson.readAddress("$.opChainDeployments[0].proxyAdminAddress"));
