@@ -18,8 +18,12 @@ import { PermissionedDisputeGame } from "src/dispute/PermissionedDisputeGame.sol
 import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
 import { IPreimageOracle } from "src/cannon/interfaces/IPreimageOracle.sol";
 import { MIPS } from "src/cannon/MIPS.sol";
+import { IBigStepper } from "src/dispute/interfaces/IBigStepper.sol";
+import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
 import { ISuperchainConfig } from "src/L1/interfaces/ISuperchainConfig.sol";
 import { Blueprint } from "src/libraries/Blueprint.sol";
+import { GameTypes } from "src/dispute/lib/Types.sol";
+import { Duration } from "src/dispute/lib/LibUDT.sol";
 
 // Libraries
 import { GameTypes, OutputRoot, Hash } from "src/dispute/lib/Types.sol";
@@ -77,7 +81,6 @@ contract DeployUpgrade is Deploy, StdAssertions {
         prankDeployment("DisputeGameFactory", _disputeGameFactoryImpl);
         prankDeployment("DelayedWETH", _delayedWethImpl);
         prankDeployment("PreimageOracle", _preimageOracleImpl);
-        prankDeployment("Mips", _mipsImpl);
         prankDeployment("OptimismPortal2", _optimismPortal2Impl);
 
         // Deploy proxy contracts.
@@ -89,6 +92,7 @@ contract DeployUpgrade is Deploy, StdAssertions {
         // We can't use a pre-created implementation because the ASR implementation holds an
         // immutable variable that points at the DisputeGameFactoryProxy.
         deployAnchorStateRegistry(_anchorStateRegistryBlueprint);
+        deployMips();
 
         // Initialize proxy contracts.
         initializeDisputeGameFactoryProxy();
@@ -98,7 +102,7 @@ contract DeployUpgrade is Deploy, StdAssertions {
         // ONLY deploy and set up the PermissionedDisputeGame.
         // We can't use a pre-created implementation because the PermissionedDisputeGame holds an
         // immutable variable that refers to the L2 chain ID.
-        setPermissionedCannonFaultGameImplementation({ _allowUpgrade: false });
+        setPermissionedCannonFaultGameImplementation();
 
         // Transfer contract ownership to ProxyAdmin.
         transferPermissionedWETHOwnershipFinal();
@@ -117,11 +121,37 @@ contract DeployUpgrade is Deploy, StdAssertions {
 
     /// @notice Deploys teh AnchorStateRegistry implementation
     function deployAnchorStateRegistry(address _anchorStateRegistryBlueprint) internal broadcast {
-        bytes32 salt = keccak256(abi.encode(_anchorStateRegistryBlueprint, mustGetAddress("DisputeGameFactoryProxy")));
         address impl = Blueprint.deployFrom(
-            _anchorStateRegistryBlueprint, salt, abi.encode(mustGetAddress("DisputeGameFactoryProxy"))
+            _anchorStateRegistryBlueprint, _implSalt(), abi.encode(mustGetAddress("DisputeGameFactoryProxy"))
         );
         save("AnchorStateRegistry", impl);
+    }
+
+
+    /// @notice Sets the implementation for the `PERMISSIONED_CANNON` game type in the `DisputeGameFactory`
+    function setPermissionedCannonFaultGameImplementation() public broadcast {
+        console.log("Setting Cannon PermissionedDisputeGame implementation");
+        IDisputeGameFactory factory = IDisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
+        IDelayedWETH weth = IDelayedWETH(mustGetAddress("PermissionedDelayedWETHProxy"));
+
+        PermissionedDisputeGame impl = new PermissionedDisputeGame(
+            GameTypes.PERMISSIONED_CANNON,
+            loadMipsAbsolutePrestate(),
+            cfg.faultGameMaxDepth(),
+            cfg.faultGameSplitDepth(),
+            Duration.wrap(uint64(cfg.faultGameClockExtension())),
+            Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
+            IBigStepper(mustGetAddress("Mips")),
+            weth,
+            IAnchorStateRegistry(mustGetAddress("AnchorStateRegistryProxy")),
+            cfg.l2ChainID(),
+            cfg.l2OutputOracleProposer(),
+            cfg.l2OutputOracleChallenger()
+        );
+        factory.setImplementation(GameTypes.PERMISSIONED_CANNON, IDisputeGame(address(impl)));
+        console.log(
+            "DisputeGameFactoryProxy: set `FaultDisputeGame` implementation (Backend: Cannon | GameType: PERMISSIONED_CANNON)"
+        );
     }
 
     /// @notice Initializes the DisputeGameFactory proxy.

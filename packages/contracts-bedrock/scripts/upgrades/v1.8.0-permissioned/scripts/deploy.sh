@@ -26,9 +26,20 @@ DELAYED_WETH_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "delayed_weth")
 PREIMAGE_ORACLE_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "preimage_oracle")
 MIPS_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "mips")
 OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "optimism_portal")
-#ANCHOR_STATE_REGISTRY_BLUEPRINT=$(fetch_standard_address $NETWORK "1.6.0" "anchor_state_registry")
-#TODO: Set this correctly for each chain
-ANCHOR_STATE_REGISTRY_BLUEPRINT="0xE51eBbc8a8B9c9bc710b99B3033945569c39C36C"
+
+case "${NETWORK}" in
+  mainnet)
+    ANCHOR_STATE_REGISTRY_BLUEPRINT="0xbA7Be2bEE016568274a4D1E6c852Bb9a99FaAB8B"
+    ;;
+  sepolia)
+    ANCHOR_STATE_REGISTRY_BLUEPRINT="0xB98095199437883b7661E0D58256060f3bc730a4"
+    ;;
+  *)
+    echo "No AnchorStateRegistry blueprint for $NETWORK"
+    exit 1
+    ;;
+esac
+
 # Fetch the SuperchainConfigProxy address
 SUPERCHAIN_CONFIG_PROXY=$(fetch_superchain_config_address $NETWORK)
 
