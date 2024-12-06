@@ -131,15 +131,11 @@ contract Setup {
             vm.etch(address(upgrade), vm.getDeployedCode("Upgrade.s.sol:Upgrade"));
             vm.allowCheatcodes(address(upgrade));
             upgrade.setUp();
+        } else {
+            vm.etch(address(deploy), vm.getDeployedCode("Deploy.s.sol:Deploy"));
+            vm.allowCheatcodes(address(deploy));
+            deploy.setUp();
         }
-
-        // TODO: for now we deploy this anyways as there are
-        // calls to it in CommonTest.sol.
-        // Maybe we should just keep the deploy address, but deploy a different
-        // impl for the upgrade path
-        vm.etch(address(deploy), vm.getDeployedCode("Deploy.s.sol:Deploy"));
-        vm.allowCheatcodes(address(deploy));
-        deploy.setUp();
 
         console.log("L1 setup done!");
 

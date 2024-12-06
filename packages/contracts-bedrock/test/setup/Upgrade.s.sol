@@ -7,7 +7,7 @@ import { console2 as console } from "forge-std/console2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
 // Scripts
-import { Deploy } from "scripts/deploy/Deploy.s.sol";
+import { Deployer } from "scripts/deploy/Deployer.sol";
 import { DeploySuperchainInput, DeploySuperchain, DeploySuperchainOutput } from "scripts/deploy/DeploySuperchain.s.sol";
 
 // Libraries
@@ -15,7 +15,7 @@ import { Types } from "scripts/libraries/Types.sol";
 import { Process } from "scripts/libraries/Process.sol";
 
 /// @title Upgrade
-contract Upgrade is Deploy {
+contract Upgrade is Deployer {
     using stdJson for string;
 
     string internal _stateJson;
@@ -23,7 +23,7 @@ contract Upgrade is Deploy {
 
     /// @notice Deploy all of the L1 contracts necessary for a full Superchain with a single Op Chain.
 
-    function run() public override {
+    function run() public {
         // Note: For now we are using a fork of mainnet, so we don't need to deploy the Superchain Shared contracts.
         //       This will change after the next release when we have all implementations in a single release.
 
