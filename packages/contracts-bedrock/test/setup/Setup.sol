@@ -127,7 +127,9 @@ contract Setup {
     function setUp() public virtual {
         console.log("L1 setup start!");
         if (vm.envOr("UPGRADE_TEST", false)) {
-            vm.createSelectFork("http://127.0.0.1:8545");
+            string memory forkUrl = vm.envOr("FORK_RPC_URL", string("http://127.0.0.1:8545"));
+            vm.createSelectFork(forkUrl);
+
             vm.etch(address(upgrade), vm.getDeployedCode("Upgrade.s.sol:Upgrade"));
             vm.allowCheatcodes(address(upgrade));
             upgrade.setUp();
