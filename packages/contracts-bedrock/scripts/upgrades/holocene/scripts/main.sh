@@ -32,7 +32,7 @@ echo "
 "
 
 # Set variables from environment or error.
-export RELEASE="1.8.0"
+export RELEASE=${OP_CONTRACTS_RELEASE:?OP_CONTRACTS_RELEASE must be set}
 export NETWORK="${NETWORK:?NETWORK must be set}"
 export ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY:?ETHERSCAN_API_KEY must be set}
 export ETH_RPC_URL=${ETH_RPC_URL:?ETH_RPC_URL must be set}
