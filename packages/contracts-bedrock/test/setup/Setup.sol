@@ -130,14 +130,13 @@ contract Setup {
             string memory forkUrl = vm.envOr("FORK_RPC_URL", string("http://127.0.0.1:8545"));
             vm.createSelectFork(forkUrl);
 
-            vm.etch(address(upgrade), vm.getDeployedCode("Upgrade.s.sol:Upgrade"));
-            vm.allowCheatcodes(address(upgrade));
-            upgrade.setUp();
+            vm.etch(address(deploy), vm.getDeployedCode("Upgrade.s.sol:Upgrade"));
         } else {
             vm.etch(address(deploy), vm.getDeployedCode("Deploy.s.sol:Deploy"));
-            vm.allowCheatcodes(address(deploy));
-            deploy.setUp();
         }
+
+        vm.allowCheatcodes(address(deploy));
+        deploy.setUp();
 
         console.log("L1 setup done!");
 
@@ -160,7 +159,7 @@ contract Setup {
         Artifacts artifacts;
         if (vm.envOr("UPGRADE_TEST", false)) {
             console.log("UPGRADE_TEST");
-            upgrade.run();
+            deploy.run();
             artifacts = Artifacts(address(upgrade));
         } else {
             deploy.run();
