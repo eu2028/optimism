@@ -185,11 +185,11 @@ type AstNode struct {
 	UnderlyingType *AstTypeName `json:"underlyingType,omitempty"`
 
 	// Import specifics
-	File          string       `json:"file,omitempty"`
-	AbsolutePath  string       `json:"absolutePath,omitempty"`
-	SourceUnit    int          `json:"sourceUnit,omitempty"`
-	SymbolAliases []Expression `json:"symbolAliases,omitempty"`
-	UnitAlias     string       `json:"unitAlias,omitempty"`
+	File          string           `json:"file,omitempty"`
+	AbsolutePath  string           `json:"absolutePath,omitempty"`
+	SourceUnit    int              `json:"sourceUnit,omitempty"`
+	SymbolAliases []AstSymbolAlias `json:"symbolAliases,omitempty"`
+	UnitAlias     string           `json:"unitAlias,omitempty"`
 
 	// Pragma specific
 	Literals []string `json:"literals,omitempty"`

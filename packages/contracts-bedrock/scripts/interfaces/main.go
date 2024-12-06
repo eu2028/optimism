@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
 )
 
-func GenerateSolidityInterface(contractName string, astData ContractData, abi abi.ABI) string {
+func GenerateSolidityInterface(contractName string, astData ContractData) string {
+	seenImports := make(map[string]bool) // Track imports already added
 	seenTypes := make(map[string]bool)
 	seenStructs := make(map[string]bool)
 	seenEnums := make(map[string]bool)
@@ -15,10 +15,73 @@ func GenerateSolidityInterface(contractName string, astData ContractData, abi ab
 	seenEvents := make(map[string]bool)
 	seenFunctions := make(map[string]bool)
 
-	var builder strings.Builder
+	usedTypes := map[string]bool{}
 
+	// Collect used types from all components
+	collectUsedTypes := func(typeString string) {
+		if typeString == "" {
+			return
+		}
+		parts := strings.Fields(typeString)
+		if len(parts) > 1 {
+			usedTypes[parts[1]] = true
+		}
+	}
+
+	// Analyze Functions
+	for _, fn := range astData.Functions {
+		if fn.Parameters != nil {
+			for _, param := range fn.Parameters.Parameters {
+				collectUsedTypes(param.TypeDescriptions.TypeString)
+			}
+		}
+		if fn.ReturnParameters != nil {
+			for _, ret := range fn.ReturnParameters.Parameters {
+				collectUsedTypes(ret.TypeDescriptions.TypeString)
+			}
+		}
+	}
+
+	// Analyze Structs
+	for _, structDef := range astData.Structs {
+		for _, member := range structDef.Members {
+			collectUsedTypes(member.Type)
+		}
+	}
+
+	// Analyze Events
+	for _, event := range astData.Events {
+		if event.Parameters != nil {
+			for _, param := range event.Parameters.Parameters {
+				collectUsedTypes(param.TypeDescriptions.TypeString)
+			}
+		}
+	}
+
+	// Analyze Errors
+	for _, errDef := range astData.Errors {
+		if errDef.Parameters != nil {
+			for _, param := range errDef.Parameters.Parameters {
+				collectUsedTypes(param.TypeDescriptions.TypeString)
+			}
+		}
+	}
+
+	// Add SPDX license and pragma version
+	var builder strings.Builder
 	builder.WriteString("// SPDX-License-Identifier: MIT\n")
 	builder.WriteString("pragma solidity ^0.8.0;\n\n")
+
+	// Add imports
+	for _, importNode := range astData.Imports {
+		if importNode.NodeType == "ImportDirective" && isImportUsed(importNode, usedTypes) {
+			importDefinition := GenerateImportDefinition(importNode)
+			if importDefinition != "" && !seenImports[importDefinition] {
+				builder.WriteString(fmt.Sprintf("%s\n", importDefinition))
+				seenImports[importDefinition] = true
+			}
+		}
+	}
 
 	// Add user-defined types
 	for _, typeDef := range astData.Types {
@@ -29,7 +92,8 @@ func GenerateSolidityInterface(contractName string, astData ContractData, abi ab
 		}
 	}
 
-	builder.WriteString(fmt.Sprintf("\n\ninterface I%s {\n", contractName))
+	// Start the interface declaration
+	builder.WriteString(fmt.Sprintf("\ninterface I%s {\n", contractName))
 
 	// Add structs
 	for _, structDef := range astData.Structs {
@@ -69,7 +133,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData, abi ab
 
 	// Add public function signatures (including public variable getters)
 	for _, fn := range astData.Functions {
-		functionSignature := GenerateFunctionSignature(fn, abi)
+		functionSignature := GenerateFunctionSignature(fn)
 		if !seenFunctions[functionSignature] {
 			builder.WriteString(fmt.Sprintf("\n    %s", functionSignature))
 			seenFunctions[functionSignature] = true
@@ -83,9 +147,9 @@ func GenerateSolidityInterface(contractName string, astData ContractData, abi ab
 }
 
 func main() {
-	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/ProtocolVersions.sol/ProtocolVersions.json")
+	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/DelayedWETH.sol/DelayedWETH.json")
 	astData := ExtractASTData(artifact.Ast, false)
 
-	interfaceCode := GenerateSolidityInterface("ProtocolVersions", astData, artifact.Abi)
+	interfaceCode := GenerateSolidityInterface("DelayedWETH", astData)
 	fmt.Println(interfaceCode)
 }
