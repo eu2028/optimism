@@ -43,6 +43,18 @@ func GenerateTypeDefinition(udtype solc.AstNode) string {
 func GenerateFunctionSignature(fn solc.AstNode) string {
 	signature := "function "
 
+	// Handle receive function
+	if fn.Kind == "receive" {
+		signature = "receive() external payable;"
+		return signature
+	}
+
+	// Handle fallback function
+	if fn.Kind == "fallback" {
+		signature = "fallback() external payable;"
+		return signature
+	}
+
 	// Handle public variables
 	if fn.NodeType == "VariableDeclaration" {
 		signature += fn.Name + "() external view"
@@ -59,16 +71,6 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 
 		signature += ";"
 		return signature
-	}
-
-	// Handle receive function
-	if fn.Kind == "receive" {
-		fn.Name = "receive"
-	}
-
-	// Handle fallback function
-	if fn.Kind == "fallback" {
-		fn.Name = "fallback"
 	}
 
 	// Handle constructor
