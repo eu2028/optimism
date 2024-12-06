@@ -260,8 +260,9 @@ func (l *BatchSubmitter) loadBlocksIntoState(syncStatus eth.SyncStatus, ctx cont
 		return errors.New("start number is >= end number")
 	}
 
-	if start.Number+1 <= end.Number {
-		l.Log.Info("Loading blocks into state (start and end both incl.)", "start", start.Number+1, "end", end.Number)
+	// we don't want to print it in the 1-block case as `loadBlockIntoState` already does
+	if end.Number > start.Number+1 {
+		l.Log.Info("Loading range of multiple blocks into state", "start", start.Number+1, "end", end.Number)
 	}
 
 	var latestBlock *types.Block
