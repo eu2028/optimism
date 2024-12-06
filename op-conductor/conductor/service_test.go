@@ -3,6 +3,7 @@ package conductor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -157,7 +158,9 @@ func (s *OpConductorTestSuite) enableSynchronization() {
 	s.conductor.loopActionFn = func() {
 		<-s.next
 		s.conductor.loopAction()
+		fmt.Println("loop action done")
 		s.wg.Done()
+		fmt.Println("wg done")
 	}
 	s.startConductor()
 	s.executeAction()
@@ -170,6 +173,7 @@ func (s *OpConductorTestSuite) disableSynchronization() {
 
 func (s *OpConductorTestSuite) execute(fn func()) {
 	s.wg.Add(1)
+	fmt.Println("added wg")
 	if fn != nil {
 		fn()
 	}
