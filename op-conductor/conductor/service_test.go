@@ -158,7 +158,7 @@ func (s *OpConductorTestSuite) enableSynchronization() {
 	s.conductor.loopActionFn = func() {
 		<-s.next
 		s.conductor.loopAction()
-		fmt.Println("loop action done")
+		fmt.Println("loop action done.")
 		s.wg.Done()
 		fmt.Println("wg done")
 	}
