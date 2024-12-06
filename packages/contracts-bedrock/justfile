@@ -48,8 +48,18 @@ test *ARGS: build-go-ffi
 # Runs upgrade path variant of contract tests.
 # TODO: enforce that the op-deployer binary exists
 test-upgrade *ARGS: build-go-ffi
+  #!/bin/bash
+  if [ ! -f "../../op-deployer/bin/op-deployer" ]; then
+    echo "Error: op-deployer binary not found at ../../op-deployer/bin/op-deployer, you need to build it first"
+    exit 1
+  fi
   cp ../../op-deployer/bin/op-deployer scripts/op-deployer
-  UPGRADE_TEST=true DEPLOY_CONFIG_PATH=deploy-config/hardhat.json DEPLOYMENT_OUTFILE=deployments/fork-deploy.json forge test {{ARGS}}
+  echo "Initializing intent.toml and state.json files in test/fixtures"
+  ./scripts/op-deployer init --l1-chain-id 1 --l2-chain-ids 271828 --workdir test/fixtures
+  UPGRADE_TEST=true \
+    DEPLOY_CONFIG_PATH=deploy-config/hardhat.json \
+    DEPLOYMENT_OUTFILE=deployments/upgrade-test-fork.json \
+    forge test {{ARGS}}
 
 # Runs standard contract tests with rerun flag.
 test-rerun: build-go-ffi

@@ -34,7 +34,7 @@ deployments/kontrol.json
 deployments/kontrol.jsonReversed
 deployments/kontrol-fp.json
 deployments/kontrol-fp.jsonReversed
-deployments/fork-deploy.json
+deployments/upgrade-test-fork.json
 
 # Devnet config which changes with each 'make devnet-up'
 deploy-config/devnetL1.json
@@ -44,3 +44,7 @@ deploy-config/getting-started.json
 
 # Op-deployer binary
 scripts/op-deployer
+
+# Temporary test fixtures
+test/fixtures/intent.toml
+test/fixtures/state.json
