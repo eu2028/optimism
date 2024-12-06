@@ -10,6 +10,7 @@ import (
 )
 
 type ContractData struct {
+	Imports   []solc.AstNode
 	Functions []solc.AstNode
 	Events    []solc.AstNode
 	Errors    []solc.AstNode
@@ -45,6 +46,8 @@ func ExtractASTData(ast solc.Ast, inherited bool) ContractData {
 		switch node.NodeType {
 		case "PragmaDirective":
 			version = fmt.Sprint(node.Literals[1], node.Literals[2])
+		case "ImportDirective":
+			contractData.Imports = append(contractData.Imports, node)
 		case "ContractDefinition":
 			extractedData := ExtractContractASTData(node, inherited)
 			contractData.Functions = append(contractData.Functions, extractedData.Functions...)
@@ -53,6 +56,7 @@ func ExtractASTData(ast solc.Ast, inherited bool) ContractData {
 			contractData.Types = append(contractData.Types, extractedData.Types...)
 			contractData.Structs = append(contractData.Structs, extractedData.Structs...)
 			contractData.Enums = append(contractData.Enums, extractedData.Enums...)
+			contractData.Imports = append(contractData.Imports, extractedData.Imports...)
 			for i := 0; i < len(node.BaseContracts); i++ {
 				var artifact *solc.ForgeArtifact
 
@@ -78,6 +82,7 @@ func ExtractASTData(ast solc.Ast, inherited bool) ContractData {
 				contractData.Types = append(contractData.Types, data.Types...)
 				contractData.Structs = append(contractData.Structs, data.Structs...)
 				contractData.Enums = append(contractData.Enums, data.Enums...)
+				//contractData.Imports = append(contractData.Imports, data.Imports...)
 			}
 		case "ErrorDefinition":
 			contractData.Errors = append(contractData.Errors, node)

@@ -3,22 +3,52 @@ package main
 import (
 	"fmt"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
 )
+
+func GenerateImportDefinition(importNode solc.AstNode) string {
+	filePath := importNode.AbsolutePath
+	if filePath == "" {
+		return ""
+	}
+
+	// Handle simple and aliased imports
+	if len(importNode.SymbolAliases) > 0 {
+		var aliasDefinitions []string
+		for _, alias := range importNode.SymbolAliases {
+			if alias.Local != "" {
+				// Aliased symbol: `x as y`
+				aliasDefinitions = append(aliasDefinitions, fmt.Sprintf("%s as %s", alias.Foreign.Name, alias.Local))
+			} else {
+				// Simple symbol: `x`
+				aliasDefinitions = append(aliasDefinitions, alias.Foreign.Name)
+			}
+		}
+		return fmt.Sprintf("import { %s } from \"%s\";", strings.Join(aliasDefinitions, ", "), filePath)
+	}
+
+	// Handle unit alias (e.g., `import * as x from "..."`)
+	if importNode.UnitAlias != "" {
+		return fmt.Sprintf("import * as %s from \"%s\";", importNode.UnitAlias, filePath)
+	}
+
+	// Default case: entire file import
+	return fmt.Sprintf("import \"%s\";", filePath)
+}
 
 func GenerateTypeDefinition(udtype solc.AstNode) string {
 	return fmt.Sprintf("type %s is %s;", udtype.Name, udtype.UnderlyingType.Name)
 }
 
-func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
+func GenerateFunctionSignature(fn solc.AstNode) string {
 	signature := "function "
 
+	// Handle public variables
 	if fn.NodeType == "VariableDeclaration" {
 		signature += fn.Name + "() external view"
 
 		if fn.TypeDescriptions != nil {
-			var returnType = fn.TypeDescriptions.TypeString
+			var returnType = stripContractPrefix(fn.TypeDescriptions.TypeString)
 
 			if !isTrivialType(returnType) {
 				returnType += " memory"
@@ -30,6 +60,7 @@ func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
 		signature += ";"
 		return signature
 	}
+
 	// Handle receive function
 	if fn.Kind == "receive" {
 		fn.Name = "receive"
@@ -40,20 +71,24 @@ func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
 		fn.Name = "fallback"
 	}
 
+	// Handle constructor
 	if fn.Kind == "constructor" {
 		fn.Name = "__constructor__"
 	}
+
 	signature += fn.Name + "("
 
+	// Add function parameters
 	if fn.Parameters != nil {
 		params := []string{}
 		for _, param := range fn.Parameters.Parameters {
-			paramType := param.TypeDescriptions.TypeString
+			paramType := stripContractPrefix(param.TypeDescriptions.TypeString)
 			paramName := param.Name
 			if paramName == "" {
 				paramName = "_"
 			}
 
+			// Add memory or calldata if applicable
 			if param.StorageLocation == "memory" || param.StorageLocation == "calldata" {
 				paramType += " " + param.StorageLocation
 			}
@@ -64,15 +99,19 @@ func GenerateFunctionSignature(fn solc.AstNode, abi abi.ABI) string {
 	}
 
 	signature += ") external"
+
+	// Add state mutability (view/pure/payable)
 	if fn.StateMutability == "view" || fn.StateMutability == "pure" || fn.StateMutability == "payable" {
 		signature += " " + fn.StateMutability
 	}
 
+	// Add return parameters
 	if fn.ReturnParameters != nil && len(fn.ReturnParameters.Parameters) > 0 {
 		var returns []string
 		for _, ret := range fn.ReturnParameters.Parameters {
-			returnType := ret.TypeDescriptions.TypeString
+			returnType := stripContractPrefix(ret.TypeDescriptions.TypeString)
 
+			// Add memory or calldata if applicable
 			if ret.StorageLocation == "memory" || ret.StorageLocation == "calldata" {
 				returnType += " " + ret.StorageLocation
 			}
