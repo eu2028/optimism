@@ -49,7 +49,7 @@ test *ARGS: build-go-ffi
 # TODO: enforce that the op-deployer binary exists
 test-upgrade *ARGS: build-go-ffi
   cp ../../op-deployer/bin/op-deployer scripts/op-deployer
-  UPGRADE_TEST=true DEPLOY_CONFIG_PATH=deploy-config/hardhat.json DEPLOYMENT_OUTFILE=deployments/1-deploy.json forge test {{ARGS}}
+  UPGRADE_TEST=true DEPLOY_CONFIG_PATH=deploy-config/hardhat.json DEPLOYMENT_OUTFILE=deployments/fork-deploy.json forge test {{ARGS}}
 
 # Runs standard contract tests with rerun flag.
 test-rerun: build-go-ffi
