@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -99,6 +100,7 @@ type OpConductorTestSuite struct {
 	syncEnabled bool           // syncEnabled controls whether synchronization is enabled for test actions.
 	next        chan struct{}  // next is used to signal when the next action in the test can proceed.
 	wg          sync.WaitGroup // wg ensures that test actions are completed before moving on.
+	counter     int32
 }
 
 func (s *OpConductorTestSuite) SetupSuite() {
@@ -131,6 +133,7 @@ func (s *OpConductorTestSuite) SetupTest() {
 
 	s.err = errors.New("error")
 	s.syncEnabled = false // default to no sync, turn it on by calling s.enableSynchronization()
+	s.counter = 0
 }
 
 func (s *OpConductorTestSuite) TearDownTest() {
@@ -156,14 +159,20 @@ func (s *OpConductorTestSuite) startConductor() {
 func (s *OpConductorTestSuite) enableSynchronization() {
 	s.syncEnabled = true
 	s.conductor.loopActionFn = func() {
+		fmt.Println("waiting for next")
 		<-s.next
+		fmt.Println("after next")
 		s.conductor.loopAction()
 		fmt.Println("loop action done..")
 		s.wg.Done()
+		atomic.AddInt32(&s.counter, -1)
+		fmt.Println("counter", atomic.LoadInt32(&s.counter))
 		fmt.Println("wg done")
 	}
 	s.startConductor()
+	fmt.Println("after start conductor")
 	s.executeAction()
+	fmt.Println("after execute action")
 }
 
 func (s *OpConductorTestSuite) disableSynchronization() {
@@ -173,12 +182,18 @@ func (s *OpConductorTestSuite) disableSynchronization() {
 
 func (s *OpConductorTestSuite) execute(fn func()) {
 	s.wg.Add(1)
+	atomic.AddInt32(&s.counter, 1)
+	fmt.Println("counter", atomic.LoadInt32(&s.counter))
 	fmt.Println("added wg")
 	if fn != nil {
 		fn()
 	}
+	fmt.Println("before execute next")
 	s.next <- struct{}{}
+	fmt.Println("after execute next")
+	fmt.Println("counter", atomic.LoadInt32(&s.counter))
 	s.wg.Wait()
+	fmt.Println("wg wait done")
 }
 
 func updateStatusAndExecuteAction[T any](s *OpConductorTestSuite, ch chan T, status T) {
@@ -366,6 +381,7 @@ func (s *OpConductorTestSuite) TestScenario1Err() {
 // [follower, not healthy, not sequencing] -- become healthy --> [follower, healthy, not sequencing]
 func (s *OpConductorTestSuite) TestScenario2() {
 	s.enableSynchronization()
+	fmt.Println("finished enable synchronization")
 
 	// set initial state
 	s.conductor.leader.Store(false)
@@ -373,6 +389,7 @@ func (s *OpConductorTestSuite) TestScenario2() {
 	s.conductor.seqActive.Store(false)
 
 	// become healthy
+	fmt.Println("before update health status")
 	s.updateHealthStatusAndExecuteAction(nil)
 
 	// expect to stay as follower, go to [follower, healthy, not sequencing]
