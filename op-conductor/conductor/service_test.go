@@ -165,9 +165,9 @@ func (s *OpConductorTestSuite) enableSynchronization() {
 		s.conductor.loopAction()
 		fmt.Println("loop action done...............................")
 		s.wg.Done()
+		fmt.Println("wg done")
 		atomic.AddInt32(&s.counter, -1)
 		fmt.Println("counter", atomic.LoadInt32(&s.counter))
-		fmt.Println("wg done")
 	}
 	s.startConductor()
 	fmt.Println("after start conductor")
@@ -191,7 +191,10 @@ func (s *OpConductorTestSuite) execute(fn func()) {
 	fmt.Println("before execute next")
 	s.next <- struct{}{}
 	fmt.Println("after execute next")
-	fmt.Println("counter", atomic.LoadInt32(&s.counter))
+	for atomic.LoadInt32(&s.counter) > 0 {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println("counter", atomic.LoadInt32(&s.counter))
+	}
 	s.wg.Wait()
 	fmt.Println("wg wait done")
 }
