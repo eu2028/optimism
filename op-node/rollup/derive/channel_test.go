@@ -145,11 +145,15 @@ func TestFrameValidity(t *testing.T) {
 
 func TestBatchReader(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x543331))
-	singularBatch := RandomSingularBatch(rng, 20, big.NewInt(333))
-	batchDataInput := NewBatchData(singularBatch)
+	singularBatch1 := RandomSingularBatch(rng, 20, big.NewInt(333))
+	batchDataInput1 := NewBatchData(singularBatch1)
+	singularBatch2 := RandomSingularBatch(rng, 20, big.NewInt(333))
+	batchDataInput2 := NewBatchData(singularBatch2)
 
 	encodedBatch := new(bytes.Buffer)
-	err := batchDataInput.EncodeRLP(encodedBatch)
+	err := batchDataInput1.EncodeRLP(encodedBatch)
+	require.NoError(t, err)
+	err = batchDataInput2.EncodeRLP(encodedBatch)
 	require.NoError(t, err)
 
 	const Zstd CompressionAlgo = "zstd" // invalid algo
@@ -253,17 +257,29 @@ func TestBatchReader(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// read the batch data
+			// read the 1st batch data
 			batchData, err := reader()
 			require.NoError(t, err)
 			require.NotNil(t, batchData)
 			if tc.algo.IsBrotli() {
 				// special case because reader doesn't decode level
-				batchDataInput.ComprAlgo = Brotli
+				batchDataInput1.ComprAlgo = Brotli
 			} else {
-				batchDataInput.ComprAlgo = tc.algo
+				batchDataInput1.ComprAlgo = tc.algo
 			}
-			require.Equal(t, batchDataInput, batchData)
+			require.Equal(t, batchDataInput1, batchData)
+
+			// read the 2nd batch data
+			batchData, err = reader()
+			require.NoError(t, err)
+			require.NotNil(t, batchData)
+			if tc.algo.IsBrotli() {
+				// special case because reader doesn't decode level
+				batchDataInput2.ComprAlgo = Brotli
+			} else {
+				batchDataInput2.ComprAlgo = tc.algo
+			}
+			require.Equal(t, batchDataInput2, batchData)
 		})
 	}
 }
