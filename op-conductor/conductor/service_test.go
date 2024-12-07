@@ -110,6 +110,7 @@ func (s *OpConductorTestSuite) SetupSuite() {
 	s.cfg = mockConfig(s.T())
 	s.version = "v0.0.1"
 	s.next = make(chan struct{}, 1)
+	s.counter = 0
 }
 
 func (s *OpConductorTestSuite) SetupTest() {
@@ -133,7 +134,6 @@ func (s *OpConductorTestSuite) SetupTest() {
 
 	s.err = errors.New("error")
 	s.syncEnabled = false // default to no sync, turn it on by calling s.enableSynchronization()
-	s.counter = 0
 }
 
 func (s *OpConductorTestSuite) TearDownTest() {
@@ -142,6 +142,9 @@ func (s *OpConductorTestSuite) TearDownTest() {
 
 	if s.syncEnabled {
 		s.wg.Add(1)
+		fmt.Println("added wg")
+		atomic.AddInt32(&s.counter, 1)
+		fmt.Println("counter", atomic.LoadInt32(&s.counter))
 		s.next <- struct{}{}
 	}
 	s.NoError(s.conductor.Stop(s.ctx))
