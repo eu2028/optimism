@@ -182,9 +182,9 @@ func (s *OpConductorTestSuite) disableSynchronization() {
 
 func (s *OpConductorTestSuite) execute(fn func()) {
 	s.wg.Add(1)
+	fmt.Println("added wg")
 	atomic.AddInt32(&s.counter, 1)
 	fmt.Println("counter", atomic.LoadInt32(&s.counter))
-	fmt.Println("added wg")
 	if fn != nil {
 		fn()
 	}
