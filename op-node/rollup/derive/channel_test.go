@@ -280,6 +280,10 @@ func TestBatchReader(t *testing.T) {
 				batchDataInput2.ComprAlgo = tc.algo
 			}
 			require.Equal(t, batchDataInput2, batchData)
+
+			// further read should error out
+			_, err = reader()
+			require.Error(t, err)
 		})
 	}
 }
