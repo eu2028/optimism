@@ -431,6 +431,25 @@ func (l *L2OutputSubmitter) sendTransaction(ctx context.Context, output *eth.Out
 	return nil
 }
 
+func (l *L2OutputSubmitter) isBatcherLagging(ctx context.Context) (bool, error) {
+	rollupClient, err := l.RollupProvider.RollupClient(ctx)
+	if err != nil {
+		return false, fmt.Errorf("getting rollup client: %w", err)
+	}
+	syncStatus, err := rollupClient.SyncStatus(ctx)
+	if err != nil {
+		return false, fmt.Errorf("getting sync status: %w", err)
+	}
+	rollupConfig, err := rollupClient.RollupConfig(ctx)
+	if err != nil {
+		return false, fmt.Errorf("getting rollup config: %w", err)
+	}
+	if syncStatus.UnsafeL2.L1Origin.Number >= syncStatus.SafeL2.L1Origin.Number+rollupConfig.SeqWindowSize {
+		return true, nil
+	}
+	return false, nil
+}
+
 // loop is responsible for creating & submitting the next outputs
 // The loop regularly polls the L2 chain to infer whether to make the next proposal.
 func (l *L2OutputSubmitter) loop() {
@@ -449,12 +468,21 @@ func (l *L2OutputSubmitter) loop() {
 			default:
 			}
 
+			batcherLagging, err := l.isBatcherLagging(ctx)
+			if err != nil {
+				l.Log.Warn("Error calling isBatcherLagging", "err", err)
+				continue
+			}
+			if batcherLagging {
+				l.Log.Warn("Propose skipped because op-batcher is lagging behind sequencing window")
+				continue
+			}
+
 			// A note on retrying: the outer ticker already runs on a short
 			// poll interval, which has a default value of 6 seconds. So no
 			// retry logic is needed around output fetching here.
 			var output *eth.OutputResponse
 			var shouldPropose bool
-			var err error
 			if l.dgfContract == nil {
 				output, shouldPropose, err = l.FetchL2OOOutput(ctx)
 			} else {
