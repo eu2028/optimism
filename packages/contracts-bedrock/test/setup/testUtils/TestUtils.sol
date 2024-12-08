@@ -11,7 +11,7 @@ import {
     IsNotPrecompileCondition,
     IsNotForgeAddressCondition
 } from "test/setup/testUtils/conditions/AddressConditions.sol";
-import { ForbiddenAddresses, ForbiddenUint256 } from "test/setup/testUtils/Forbiddens.sol";
+import { ForbiddenAddresses, ForbiddenUints, ForbiddenInts } from "test/setup/testUtils/Forbiddens.sol";
 
 abstract contract TestUtils is Test {
     // This function returns _addr if it satisfies all given conditions and is not forbidden,
@@ -20,7 +20,7 @@ abstract contract TestUtils is Test {
     // forbidden.
     // NOTE: This function will resort to vm.assume() if it does not find a valid address within
     // the given number of _attempts.
-    function _randomAddress(
+    function __randomAddress(
         address _addr,
         AddressConditionChainer _conditions,
         ForbiddenAddresses _forbiddenAddresses,
@@ -53,7 +53,7 @@ abstract contract TestUtils is Test {
     // will generate a new random address that is not forbidden.
     // NOTE: This function will resort to vm.assume() if it does not find a valid address within
     // the given number of _attempts.
-    function _randomAddress(
+    function __randomAddress(
         address _addr,
         ForbiddenAddresses _forbiddenAddresses,
         uint256 _attempts
@@ -81,7 +81,7 @@ abstract contract TestUtils is Test {
     // a new random address that satisfies the conditions.
     // NOTE: This function will resort to vm.assume() if it does not find a valid address within
     // the given number of _attempts.
-    function _randomAddress(
+    function __randomAddress(
         address _addr,
         AddressConditionChainer _conditions,
         uint256 _attempts
@@ -113,11 +113,11 @@ abstract contract TestUtils is Test {
     // is not forbidden in the _forbiddenUint256 contract.
     // NOTE: This function will resort to vm.assume() if it does not find a valid uint256 within
     // the given number of _attempts.
-    function _boundExcept(
+    function __boundExcept(
         uint256 _value,
         uint256 _min,
         uint256 _max,
-        ForbiddenUint256 _forbiddenUint256,
+        ForbiddenUints _forbiddenUints,
         uint256 _attempts
     )
         internal
@@ -126,9 +126,40 @@ abstract contract TestUtils is Test {
         uint256 value_ = _bound(_value, _min, _max);
         bool pass = false;
         for (uint256 i; i < _attempts; i++) {
-            if (_forbiddenUint256.forbiddenUint256(value_)) {
+            if (_forbiddenUints.forbiddenUints(value_)) {
                 pass = false;
                 value_ = vm.randomUint(_min, _max);
+            } else {
+                pass = true;
+            }
+            if (pass) break;
+        }
+        vm.assume(pass);
+        return value_;
+    }
+
+    // This function returns _bound(_value, _min, _max) unless _bound(_value, _min, _max) is
+    // forbidden by _forbiddenUint256, in which case it will generate a new random uint256 that
+    // is not forbidden in the _forbiddenUint256 contract.
+    // NOTE: This function will resort to vm.assume() if it does not find a valid uint256 within
+    // the given number of _attempts.
+    function __boundExcept(
+        int256 _value,
+        int256 _min,
+        int256 _max,
+        ForbiddenInts _forbiddenInts,
+        uint256 _attempts
+    )
+        internal
+        view
+        returns (int256)
+    {
+        int256 value_ = _bound(_value, _min, _max);
+        bool pass = false;
+        for (uint256 i; i < _attempts; i++) {
+            if (_forbiddenInts.forbiddenInts(value_)) {
+                pass = false;
+                value_ = _bound(vm.randomInt(), _min, _max); // no support for `vm.randomInt(_min, _max)` yet
             } else {
                 pass = true;
             }
@@ -203,9 +234,17 @@ abstract contract TestUtils is Test {
 
     uint256 private forbiddenUint256Counter;
 
-    function newForbiddenUint256() internal returns (ForbiddenUint256) {
-        ForbiddenUint256 forbiddenUint256 = new ForbiddenUint256();
-        vm.label(address(forbiddenUint256), string.concat("ForbiddenUint256:", vm.toString(forbiddenUint256Counter++)));
-        return forbiddenUint256;
+    function newForbiddenUints() internal returns (ForbiddenUints) {
+        ForbiddenUints forbiddenUints = new ForbiddenUints();
+        vm.label(address(forbiddenUints), string.concat("ForbiddenUints:", vm.toString(forbiddenUint256Counter++)));
+        return forbiddenUints;
+    }
+
+    uint256 private forbiddenIntsCounter;
+
+    function newForbiddenInts() internal returns (ForbiddenInts) {
+        ForbiddenInts forbiddenInts = new ForbiddenInts();
+        vm.label(address(forbiddenInts), string.concat("ForbiddenInts:", vm.toString(forbiddenIntsCounter++)));
+        return forbiddenInts;
     }
 }
