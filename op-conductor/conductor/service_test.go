@@ -166,7 +166,7 @@ func (s *OpConductorTestSuite) enableSynchronization() {
 		<-s.next
 		fmt.Println("after next")
 		s.conductor.loopAction()
-		fmt.Println("loop action done.................................")
+		fmt.Println("loop action done..................................")
 		s.wg.Done()
 		fmt.Println("wg done")
 		atomic.AddInt32(&s.counter, -1)
