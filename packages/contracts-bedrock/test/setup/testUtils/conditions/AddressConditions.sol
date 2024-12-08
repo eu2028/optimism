@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import { Vm } from "forge-std/Vm.sol";
 
-contract AddressConditions {
+abstract contract AddressConditions {
     Vm private constant vm = Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
 
     // This function checks whether an address, `addr`, is payable. It works by sending 1 wei to
