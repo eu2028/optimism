@@ -15,7 +15,6 @@ import { ForbiddenAddresses, ForbiddenUints, ForbiddenInts } from "test/setup/te
 
 abstract contract TestUtils is Test {
     // This function returns _addr if it satisfies all given conditions and is not forbidden,
-    // This function returns _addr if it satisfies all given conditions and is not forbidden,
     // otherwise it will generate a new random address that satisfies the conditions and is not
     // forbidden.
     // NOTE: This function will resort to vm.assume() if it does not find a valid address within
@@ -29,12 +28,17 @@ abstract contract TestUtils is Test {
         internal
         returns (address)
     {
-        bool pass = false;
         IAddressCondition[] memory conditions = _conditions.conditions();
 
+        // if _attempts is 0, vm.assume below will fail
+        bool pass = false;
         for (uint256 i; i < _attempts; i++) {
+            if (_forbiddenAddresses.forbiddenAddresses(_addr)) {
+                _addr = vm.randomAddress();
+                continue;
+            }
+
             pass = true;
-            if (_forbiddenAddresses.forbiddenAddresses(_addr)) continue;
             for (uint256 j; j < conditions.length; j++) {
                 if (!conditions[j].check(_addr)) {
                     pass = false;
@@ -61,16 +65,16 @@ abstract contract TestUtils is Test {
         internal
         returns (address)
     {
+        // if _attempts is 0, vm.assume below will fail
         bool pass = false;
-
         for (uint256 i; i < _attempts; i++) {
             if (_forbiddenAddresses.forbiddenAddresses(_addr)) {
-                pass = false;
                 _addr = vm.randomAddress();
+                continue;
             } else {
                 pass = true;
+                break;
             }
-            if (pass) break;
         }
         vm.assume(pass);
 
@@ -89,9 +93,10 @@ abstract contract TestUtils is Test {
         internal
         returns (address)
     {
-        bool pass = false;
         IAddressCondition[] memory conditions = _conditions.conditions();
 
+        // if _attempts is 0, vm.assume below will fail
+        bool pass = false;
         for (uint256 i; i < _attempts; i++) {
             pass = true;
             for (uint256 j; j < conditions.length; j++) {
@@ -124,15 +129,17 @@ abstract contract TestUtils is Test {
         returns (uint256)
     {
         uint256 value_ = _bound(_value, _min, _max);
+
+        // if _attempts is 0, vm.assume below will fail
         bool pass = false;
         for (uint256 i; i < _attempts; i++) {
             if (_forbiddenUints.forbiddenUints(value_)) {
-                pass = false;
                 value_ = vm.randomUint(_min, _max);
+                continue;
             } else {
                 pass = true;
+                break;
             }
-            if (pass) break;
         }
         vm.assume(pass);
         return value_;
@@ -158,12 +165,12 @@ abstract contract TestUtils is Test {
         bool pass = false;
         for (uint256 i; i < _attempts; i++) {
             if (_forbiddenInts.forbiddenInts(value_)) {
-                pass = false;
                 value_ = _bound(vm.randomInt(), _min, _max); // no support for `vm.randomInt(_min, _max)` yet
+                continue;
             } else {
                 pass = true;
+                break;
             }
-            if (pass) break;
         }
         vm.assume(pass);
         return value_;
