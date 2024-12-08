@@ -194,10 +194,10 @@ func (s *OpConductorTestSuite) execute(fn func()) {
 	fmt.Println("before execute next")
 	s.next <- struct{}{}
 	fmt.Println("after execute next")
-	for atomic.LoadInt32(&s.counter) > 0 {
-		time.Sleep(100 * time.Millisecond)
-		fmt.Println("counter", atomic.LoadInt32(&s.counter))
-	}
+	// for atomic.LoadInt32(&s.counter) > 0 {
+	// 	time.Sleep(100 * time.Millisecond)
+	// 	fmt.Println("counter", atomic.LoadInt32(&s.counter))
+	// }
 	s.wg.Wait()
 	fmt.Println("wg wait done")
 }
