@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { TestPlus } from "lib/solady/test/utils/TestPlus.sol";
 import { Vm } from "forge-std/Vm.sol";
 import {
     IAddressCondition,
@@ -14,7 +13,7 @@ import {
 } from "test/setup/testUtils/conditions/AddressConditions.sol";
 import { ForbiddenAddresses, ForbiddenUint256 } from "test/setup/testUtils/Forbiddens.sol";
 
-contract TestUtils is TestPlus {
+contract TestUtils {
     Vm private constant vm = Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
 
     // This function returns addr if it satisfies all given conditions and is not forbidden,
@@ -110,6 +109,10 @@ contract TestUtils is TestPlus {
         return addr;
     }
 
+    function _randomAddress() internal returns (address) {
+        return address(uint160(vm.randomUint()));
+    }
+
     // This function returns _bound(_value, _min, _max) unless _bound(_value, _min, _max) is
     // forbidden by _forbiddenUint256, in which case it will generate a new random uint256 that
     // is not forbidden in the _forbiddenUint256 contract.
@@ -130,7 +133,7 @@ contract TestUtils is TestPlus {
         for (uint256 i; i < _attempts; i++) {
             if (_forbiddenUint256.forbiddenUint256(value_)) {
                 pass = false;
-                value_ = __bound(_random(), _min, _max);
+                value_ = __bound(vm.randomUint(), _min, _max);
             } else {
                 pass = true;
             }
@@ -144,11 +147,11 @@ contract TestUtils is TestPlus {
         value_ = (_value % (_max - _min)) + _min;
     }
 
-    function __randomBytes(uint256 _minLength, uint256 _maxLength) private returns (bytes memory bytes_) {
-        uint256 length = __bound(_random(), _minLength, _maxLength);
+    function __randomBytes(uint256 _minLength, uint256 _maxLength) internal returns (bytes memory bytes_) {
+        uint256 length = __bound(vm.randomUint(), _minLength, _maxLength);
         bytes_ = new bytes(length);
         for (uint256 i; i < length; i++) {
-            bytes_[i] = bytes1(uint8(_random()));
+            bytes_[i] = bytes1(uint8(vm.randomUint()));
         }
     }
 
