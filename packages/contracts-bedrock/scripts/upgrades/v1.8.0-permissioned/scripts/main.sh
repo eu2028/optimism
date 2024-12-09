@@ -111,6 +111,7 @@ L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERS
 L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_standard_bridge")
 L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_erc721_bridge")
 OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_mintable_erc20_factory")
+MIPS_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "mips")
 
 # Generate standard-addresses.json
 cat << EOF > "standard-addresses.json"
@@ -120,7 +121,8 @@ cat << EOF > "standard-addresses.json"
   "L1CrossDomainMessengerImpl": "$L1_CROSS_DOMAIN_MESSENGER_IMPL",
   "L1StandardBridgeImpl": "$L1_STANDARD_BRIDGE_IMPL",
   "L1ERC721BridgeImpl": "$L1_ERC721_BRIDGE_IMPL",
-  "OptimismMintableERC20FactoryImpl": "$OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL"
+  "OptimismMintableERC20FactoryImpl": "$OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL",
+  "MIPS": "$MIPS_IMPL"
 }
 EOF
 
