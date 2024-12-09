@@ -7,6 +7,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/providers"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/sigma/go-test-trace/pkg/trace_testing"
 )
 
 type SystemTest[S interfaces.SystemBase] struct {
@@ -14,8 +18,10 @@ type SystemTest[S interfaces.SystemBase] struct {
 	Logic interfaces.TestLogic[S]
 }
 
-func recoverPhase(t testing.TB, phase string) func() {
-	return func() {
+func recoverPhase(t trace_testing.T, tracer trace.Tracer, phase string) (trace_testing.T, func()) {
+	ctx, span := tracer.Start(t.Context(), phase)
+	return t.WithContext(ctx), func() {
+		defer span.End()
 		if r := recover(); r != nil {
 			if r, ok := r.(*interfaces.RecoverableError); ok {
 				msg := fmt.Sprintf("%s phase failed", phase)
@@ -26,39 +32,69 @@ func recoverPhase(t testing.TB, phase string) func() {
 }
 
 func (t SystemTest[S]) Run() {
-	t.Helper()
+	tt := trace_testing.WithTracing(t.T)
+	tracer := otel.Tracer("system test")
+
+	ctx, span := tracer.Start(tt.Context(), t.Name())
+	defer span.End()
+	tt = tt.WithContext(ctx)
+
+	tt.Helper()
 
 	spec := t.Logic.Spec()
 	var system S
 
-	{
-		defer recoverPhase(t, "system provisioning")()
-		s, err := providers.Provide[S](interfaces.RecoverT(t.T), spec)
-		if err != nil {
-			t.Fatalf("provider failed: %s", err)
-		}
-		system = s
+	phases := []struct {
+		name string
+		fn   func(t trace_testing.T)
+	}{
+		{
+			name: "system provisioning",
+			fn: func(tt trace_testing.T) {
+				s, err := providers.Provide[S](interfaces.RecoverT(tt), spec)
+				if err != nil {
+					tt.Fatalf("provider failed: %s", err)
+				}
+				system = s
+			},
+		},
+		{
+			name: "spec conformance",
+			fn: func(tt trace_testing.T) {
+				if !spec.Conform(system) {
+					tt.Fatalf("system does not conform to spec")
+				}
+			},
+		},
+		{
+			name: "SUT setup",
+			fn: func(tt trace_testing.T) {
+				if logic, ok := t.Logic.(interfaces.TestLogicSetup[S]); ok {
+					logic.Setup(interfaces.RecoverT(tt), system)
+				}
+			},
+		},
+		{
+			name: "test execution",
+			fn: func(tt trace_testing.T) {
+				t.Logic.Check(tt, system)
+			},
+		},
+		{
+			name: "SUT cleanup",
+			fn: func(tt trace_testing.T) {
+				if logic, ok := t.Logic.(interfaces.TestLogicCleanup[S]); ok {
+					logic.Cleanup(interfaces.RecoverT(tt), system)
+				}
+			},
+		},
 	}
 
-	{
-		defer recoverPhase(t, "spec conformance")()
-		if !spec.Conform(system) {
-			t.Fatalf("system does not conform to spec")
-		}
-	}
-
-	if logic, ok := t.Logic.(interfaces.TestLogicSetup[S]); ok {
-		defer recoverPhase(t, "SUT setup")()
-		logic.Setup(interfaces.RecoverT(t.T), system)
-	}
-
-	{
-		defer recoverPhase(t, "test execution")()
-		t.Logic.Check(interfaces.WrapT(t.T), system)
-	}
-
-	if logic, ok := t.Logic.(interfaces.TestLogicCleanup[S]); ok {
-		defer recoverPhase(t, "SUT cleanup")()
-		logic.Cleanup(interfaces.RecoverT(t.T), system)
+	for _, phase := range phases {
+		func() {
+			tt, recover := recoverPhase(tt, tracer, phase.name)
+			defer recover()
+			phase.fn(tt)
+		}()
 	}
 }

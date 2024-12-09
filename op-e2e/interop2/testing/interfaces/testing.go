@@ -3,35 +3,14 @@ package interfaces
 import (
 	"errors"
 	"fmt"
-	"testing"
-	"time"
+
+	"github.com/sigma/go-test-trace/pkg/trace_testing"
 )
 
-type Test interface {
-	testing.TB
-
-	Deadline() (deadline time.Time, ok bool)
-	Parallel()
-	Run(name string, f func(t Test)) bool
-}
-
-type WrappedT struct {
-	*testing.T
-}
-
-func (t *WrappedT) Run(name string, f func(t Test)) bool {
-	return t.T.Run(name, func(t *testing.T) {
-		t.Helper()
-		f(&WrappedT{T: t})
-	})
-}
-
-func WrapT(t *testing.T) *WrappedT {
-	return &WrappedT{T: t}
-}
+type Test = trace_testing.T
 
 type RecoverableT struct {
-	*testing.T
+	trace_testing.T
 }
 
 type RecoverableError struct {
@@ -62,14 +41,7 @@ func (t *RecoverableT) SkipNow() {
 	})
 }
 
-func (t *RecoverableT) Run(name string, f func(t Test)) bool {
-	return t.T.Run(name, func(t *testing.T) {
-		t.Helper()
-		f(&RecoverableT{T: t})
-	})
-}
-
-func RecoverT(t *testing.T) *RecoverableT {
+func RecoverT(t Test) *RecoverableT {
 	return &RecoverableT{T: t}
 }
 
