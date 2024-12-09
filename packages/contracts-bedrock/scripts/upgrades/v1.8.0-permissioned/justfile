@@ -22,9 +22,9 @@ run deploy-config-path deployment-path output-folder-path="$(pwd)/output/" *args
     op-v1.8.0-permissioned:local /deploy_config.json /deployment.json {{args}}
 
 # Build the image locally.
-build-image:
+build-image contracts-version="1.8.0":
   docker build \
   -t op-v1.8.0-permissioned:local \
   -f Dockerfile \
-  --build-arg REV=op-contracts/v1.8.0-rc.3 \
+  --build-arg REV={{contracts-version}} \
   .

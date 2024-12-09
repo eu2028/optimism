@@ -2,6 +2,7 @@
 FROM ubuntu:20.04
 
 ARG REV
+ARG RELEASE=op-contracts/v$REV
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
@@ -27,7 +28,7 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 WORKDIR /app
 
 # Clone the repository at the target branch
-RUN git clone -b $REV https://github.com/ethereum-optimism/optimism.git .
+RUN git clone -b $RELEASE https://github.com/ethereum-optimism/optimism.git .
 
 # Set the working directory to the root of the monorepo
 WORKDIR /app
@@ -51,6 +52,8 @@ RUN forge script ./scripts/upgrades/v1.8.0-permissioned/DeployUpgrade.s.sol || t
 
 # Set the working directory to where upgrade.sh is located
 WORKDIR /app/packages/contracts-bedrock/scripts/upgrades/v1.8.0-permissioned
+
+ENV CONTRACTS_VERSION $REV
 
 # Set the entrypoint to the main.sh script
 ENTRYPOINT ["./scripts/main.sh"]

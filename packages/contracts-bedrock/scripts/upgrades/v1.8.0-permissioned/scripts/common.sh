@@ -5,8 +5,6 @@ set -euo pipefail
 # Used by fetch_standard_address and fetch_superchain_config_address
 declare -A CACHED_TOML_CONTENT
 
-export CONTRACTS_VERSION=${CONTRACTS_VERSION:-1.8.0-rc.3}
-
 # error_handler
 #
 # Basic error handler

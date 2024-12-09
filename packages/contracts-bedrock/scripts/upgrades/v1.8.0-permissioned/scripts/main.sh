@@ -8,6 +8,9 @@ SCRIPT_DIR=$(dirname "$0")
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/common.sh"
 
+reqenv CONTRACTS_VERSION
+echo "Using contracts version ${CONTRACTS_VERSION}"
+
 # Check if both input files are provided
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <deploy_config_path> <deployments_json_path>"
