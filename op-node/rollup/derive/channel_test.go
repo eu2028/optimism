@@ -146,16 +146,16 @@ func TestFrameValidity(t *testing.T) {
 func TestBatchReader(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x543331))
 
-	batchCount := 2
-	batchSlice := make([]*BatchData, batchCount)
+	batchCount := 3
+	batches := make([]*BatchData, batchCount)
 	for i := 0; i < batchCount; i++ {
 		singularBatch := RandomSingularBatch(rng, 20, big.NewInt(333))
 		batchDataInput := NewBatchData(singularBatch)
-		batchSlice[i] = batchDataInput
+		batches[i] = batchDataInput
 	}
 
 	encodedBatch := new(bytes.Buffer)
-	for _, batchData := range batchSlice {
+	for _, batchData := range batches {
 		err := batchData.EncodeRLP(encodedBatch)
 		require.NoError(t, err)
 	}
@@ -268,11 +268,11 @@ func TestBatchReader(t *testing.T) {
 				require.NotNil(t, batchData)
 				if tc.algo.IsBrotli() {
 					// special case because reader doesn't decode level
-					batchSlice[i].ComprAlgo = Brotli
+					batches[i].ComprAlgo = Brotli
 				} else {
-					batchSlice[i].ComprAlgo = tc.algo
+					batches[i].ComprAlgo = tc.algo
 				}
-				require.Equal(t, batchSlice[i], batchData)
+				require.Equal(t, batches[i], batchData)
 			}
 
 			// further read should error out
