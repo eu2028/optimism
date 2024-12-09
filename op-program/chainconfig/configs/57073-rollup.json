@@ -13,14 +13,14 @@
       "batcherAddr": "0x500d7ea63cf2e501dadaa5feec1fc19fe2aa72ac",
       "overhead": "0x0000000000000000000000000000000000000000000000000000000000000000",
       "scalar": "0x010000000000000000000000000000000000000000000000000c5fc500000558",
-      "gasLimit": 30000000,
-      "eip1559Params": "0x0000000000000000"
+      "gasLimit": 30000000
     }
   },
   "block_time": 1,
   "max_sequencer_drift": 600,
   "seq_window_size": 3600,
   "channel_timeout": 300,
+  "channel_timeout_granite": 50,
   "l1_chain_id": 1,
   "l2_chain_id": 57073,
   "regolith_time": 0,
@@ -34,4 +34,3 @@
   "l1_system_config_address": "0x62c0a111929fa32cec2f76adba54c16afb6e8364",
   "protocol_versions_address": "0x8062abc286f5e7d9428a0ccb9abd71e50d93b935"
 }
-
