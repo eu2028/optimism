@@ -122,7 +122,7 @@ fetch_standard_address() {
     # Use the cached content for the current URL
     local toml_content="${CACHED_TOML_CONTENT[$toml_url]}"
 
-    # Find the section for v1.6.0 release
+    # Find the section for required contracts release
     local section_content=$(echo "$toml_content" | awk -v version="$release_version" '
         $0 ~ "^\\[releases.\"op-contracts/v" version "\"\\]" {
             flag=1;

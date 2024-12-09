@@ -23,12 +23,12 @@ L1_ERC721_BRIDGE_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "L1ERC721Brid
 OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "OptimismMintableERC20FactoryProxy")
 
 # Fetch addresses from standard address toml
-SYSTEM_CONFIG_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "system_config")
-OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "optimism_portal")
-L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "l1_cross_domain_messenger")
-L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "l1_standard_bridge")
-L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "l1_erc721_bridge")
-OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "optimism_mintable_erc20_factory")
+SYSTEM_CONFIG_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "system_config")
+OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_portal")
+L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address $NETWORK CONTRACTS_VERSION "l1_cross_domain_messenger")
+L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_standard_bridge")
+L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_erc721_bridge")
+OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_mintable_erc20_factory")
 
 # Fetch SuperchainConfigProxy address
 SUPERCHAIN_CONFIG_PROXY=$(fetch_superchain_config_address $NETWORK)

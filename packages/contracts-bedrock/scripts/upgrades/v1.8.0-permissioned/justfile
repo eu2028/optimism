@@ -15,9 +15,9 @@ run deploy-config-path deployment-path output-folder-path="$(pwd)/output/" *args
   # Run the deployment.
   docker run -it \
     --rm \
-    -v {{output-folder-path}}:/outputs \
-    -v {{deploy-config-path}}:/deploy_config.json \
-    -v {{deployment-path}}:/deployment.json \
+    -v $(realpath {{output-folder-path}}):/outputs \
+    -v $(realpath {{deploy-config-path}}):/deploy_config.json \
+    -v $(realpath {{deployment-path}}):/deployment.json \
     --env-file=.env \
     op-v1.8.0-permissioned:local /deploy_config.json /deployment.json {{args}}
 

@@ -30,7 +30,7 @@ import { GameTypes, OutputRoot, Hash } from "src/dispute/lib/Types.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 /// @title DeployUpgrade
-/// @notice Script for deploying contracts required to upgrade from v1.3.0 to v1.6.0 in a
+/// @notice Script for deploying contracts required to upgrade from v1.8.0 L2OO to v1.8.0 in a
 ///         PERMISSIONED configuration.
 contract DeployUpgrade is Deploy, StdAssertions {
     /// @notice Address of the ProxyAdmin contract.
@@ -42,7 +42,8 @@ contract DeployUpgrade is Deploy, StdAssertions {
     /// @notice Address of the SuperchainConfigProxy contract.
     address public superchainConfigProxy;
 
-    /// @notice Deploys the contracts required to upgrade from v1.3.0 to v1.6.0.
+    /// @notice Deploys the contracts required to upgrade from v1.8.0 L2OO to v1.8.0 in a
+    ///         PERMISSIONED configuration.
     /// @param _proxyAdmin Address of the ProxyAdmin contract.
     /// @param _systemOwnerSafe Address of the SystemOwnerSafe contract.
     /// @param _superchainConfigProxy Address of the SuperchainConfigProxy contract.
@@ -64,7 +65,7 @@ contract DeployUpgrade is Deploy, StdAssertions {
     )
         public
     {
-        console.log("Deploying contracts required to upgrade from v1.3.0 to v1.6.0");
+        console.log("Deploying contracts required to upgrade from v1.8.0 L2OO to v1.8.0 permissioned");
         console.log("Using PERMISSIONED proof system");
 
         // Set address variables.

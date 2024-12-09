@@ -21,11 +21,11 @@ reqenv "SYSTEM_OWNER_SAFE"
 PROXY_ADMIN=$(load_local_address $DEPLOYMENTS_JSON_PATH "ProxyAdmin")
 
 # Fetch addresses from standard address toml
-DISPUTE_GAME_FACTORY_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "dispute_game_factory")
-DELAYED_WETH_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "delayed_weth")
-PREIMAGE_ORACLE_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "preimage_oracle")
+DISPUTE_GAME_FACTORY_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "dispute_game_factory")
+DELAYED_WETH_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "delayed_weth")
+PREIMAGE_ORACLE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "preimage_oracle")
 MIPS_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "mips")
-OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK "1.6.0" "optimism_portal")
+OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_portal")
 
 case "${NETWORK}" in
   mainnet)
