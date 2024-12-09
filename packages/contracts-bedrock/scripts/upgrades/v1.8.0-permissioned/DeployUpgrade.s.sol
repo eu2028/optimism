@@ -52,6 +52,7 @@ contract DeployUpgrade is Deploy, StdAssertions {
     /// @param _preimageOracleImpl Address of the PreimageOracle implementation contract.
     /// @param _mipsImpl Address of the MIPS implementation contract.
     /// @param _optimismPortal2Impl Address of the OptimismPortal2 implementation contract.
+    /// @param _anchorStateRegistryBlueprint Address of the AnchorStateRegistry implementation blueprint.
     function deploy(
         address _proxyAdmin,
         address _systemOwnerSafe,
@@ -93,7 +94,9 @@ contract DeployUpgrade is Deploy, StdAssertions {
         // We can't use a pre-created implementation because the ASR implementation holds an
         // immutable variable that points at the DisputeGameFactoryProxy.
         deployAnchorStateRegistry(_anchorStateRegistryBlueprint);
-        deployMips();
+
+        // Re-use the existing MIPS implementation, but ensure its address is available
+        save("Mips", _mipsImpl);
 
         // Initialize proxy contracts.
         initializeDisputeGameFactoryProxy();
