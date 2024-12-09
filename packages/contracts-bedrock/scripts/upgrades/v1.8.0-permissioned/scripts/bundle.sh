@@ -44,7 +44,7 @@ SYSTEM_CONFIG_GAS_LIMIT=$(cast call "$SYSTEM_CONFIG_PROXY" "gasLimit()")
 SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER=$(cast call "$SYSTEM_CONFIG_PROXY" "unsafeBlockSigner()")
 SYSTEM_CONFIG_RESOURCE_CONFIG=$(cast call "$SYSTEM_CONFIG_PROXY" "resourceConfig()")
 SYSTEM_CONFIG_BATCH_INBOX=$(cast call "$SYSTEM_CONFIG_PROXY" "batchInbox()")
-SYSTEM_CONFIG_GAS_PAYING_TOKEN=$(cast call "$SYSTEM_CONFIG_PROXY", "gasPayingToken()(address)")
+SYSTEM_CONFIG_GAS_PAYING_TOKEN=$(cast call "$SYSTEM_CONFIG_PROXY" "gasPayingToken()(address)")
 
 # Now we generate the initialization calldata
 SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
