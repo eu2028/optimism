@@ -14,47 +14,47 @@ reqenv "DISPUTE_GAME_FACTORY_PROXY"
 reqenv "DEPLOYMENTS_JSON_PATH"
 
 # Load addresses from deployments json
-PROXY_ADMIN=$(load_local_address $DEPLOYMENTS_JSON_PATH "ProxyAdmin")
-OPTIMISM_PORTAL_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "OptimismPortalProxy")
-SYSTEM_CONFIG_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "SystemConfigProxy")
-L1_CROSS_DOMAIN_MESSENGER_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "L1CrossDomainMessengerProxy" "Proxy__OVM_L1CrossDomainMessenger")
-L1_STANDARD_BRIDGE_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "L1StandardBridgeProxy" "Proxy__OVM_L1StandardBridge")
-L1_ERC721_BRIDGE_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "L1ERC721BridgeProxy")
-OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY=$(load_local_address $DEPLOYMENTS_JSON_PATH "OptimismMintableERC20FactoryProxy")
+PROXY_ADMIN=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "ProxyAdmin")
+OPTIMISM_PORTAL_PROXY=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "OptimismPortalProxy")
+SYSTEM_CONFIG_PROXY=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "SystemConfigProxy")
+L1_CROSS_DOMAIN_MESSENGER_PROXY=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "L1CrossDomainMessengerProxy" "Proxy__OVM_L1CrossDomainMessenger")
+L1_STANDARD_BRIDGE_PROXY=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "L1StandardBridgeProxy" "Proxy__OVM_L1StandardBridge")
+L1_ERC721_BRIDGE_PROXY=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "L1ERC721BridgeProxy")
+OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "OptimismMintableERC20FactoryProxy")
 
 # Fetch addresses from standard address toml
-SYSTEM_CONFIG_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "system_config")
-OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_portal")
-L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address $NETWORK CONTRACTS_VERSION "l1_cross_domain_messenger")
-L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_standard_bridge")
-L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_erc721_bridge")
-OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_mintable_erc20_factory")
+SYSTEM_CONFIG_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "system_config")
+OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "optimism_portal")
+L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address "$NETWORK" "CONTRACTS_VERSION" "l1_cross_domain_messenger")
+L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_standard_bridge")
+L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_erc721_bridge")
+OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "optimism_mintable_erc20_factory")
 
 # Fetch SuperchainConfigProxy address
-SUPERCHAIN_CONFIG_PROXY=$(fetch_superchain_config_address $NETWORK)
+SUPERCHAIN_CONFIG_PROXY=$(fetch_superchain_config_address "$NETWORK")
 
 # We need to re-generate the SystemConfig initialization call
 # We want to use the exact same values that the SystemConfig is already using
-SYSTEM_CONFIG_OWNER=$(cast call $SYSTEM_CONFIG_PROXY "owner()")
-SYSTEM_CONFIG_OVERHEAD=$(cast call $SYSTEM_CONFIG_PROXY "overhead()")
-SYSTEM_CONFIG_SCALAR=$(cast call $SYSTEM_CONFIG_PROXY "scalar()")
-SYSTEM_CONFIG_BATCHER_HASH=$(cast call $SYSTEM_CONFIG_PROXY "batcherHash()")
-SYSTEM_CONFIG_GAS_LIMIT=$(cast call $SYSTEM_CONFIG_PROXY "gasLimit()")
-SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER=$(cast call $SYSTEM_CONFIG_PROXY "unsafeBlockSigner()")
-SYSTEM_CONFIG_RESOURCE_CONFIG=$(cast call $SYSTEM_CONFIG_PROXY "resourceConfig()")
-SYSTEM_CONFIG_BATCH_INBOX=$(cast call $SYSTEM_CONFIG_PROXY "batchInbox()")
+SYSTEM_CONFIG_OWNER=$(cast call "$SYSTEM_CONFIG_PROXY" "owner()")
+SYSTEM_CONFIG_OVERHEAD=$(cast call "$SYSTEM_CONFIG_PROXY" "overhead()")
+SYSTEM_CONFIG_SCALAR=$(cast call "$SYSTEM_CONFIG_PROXY" "scalar()")
+SYSTEM_CONFIG_BATCHER_HASH=$(cast call "$SYSTEM_CONFIG_PROXY" "batcherHash()")
+SYSTEM_CONFIG_GAS_LIMIT=$(cast call "$SYSTEM_CONFIG_PROXY" "gasLimit()")
+SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER=$(cast call "$SYSTEM_CONFIG_PROXY" "unsafeBlockSigner()")
+SYSTEM_CONFIG_RESOURCE_CONFIG=$(cast call "$SYSTEM_CONFIG_PROXY" "resourceConfig()")
+SYSTEM_CONFIG_BATCH_INBOX=$(cast call "$SYSTEM_CONFIG_PROXY" "batchInbox()")
 
 # Now we generate the initialization calldata
 SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
   "initialize(address,uint256,uint256,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address))" \
-  $(cast parse-bytes32-address $SYSTEM_CONFIG_OWNER) \
-  $SYSTEM_CONFIG_OVERHEAD \
-  $SYSTEM_CONFIG_SCALAR \
-  $SYSTEM_CONFIG_BATCHER_HASH \
-  $SYSTEM_CONFIG_GAS_LIMIT \
-  $(cast parse-bytes32-address $SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER) \
-  "("$(cast abi-decode "null()(uint32,uint8,uint8,uint32,uint32,uint128)" $SYSTEM_CONFIG_RESOURCE_CONFIG --json | jq -r 'join(",")')")" \
-  $(cast parse-bytes32-address $SYSTEM_CONFIG_BATCH_INBOX) \
+  "$(cast parse-bytes32-address "$SYSTEM_CONFIG_OWNER")" \
+  "$SYSTEM_CONFIG_OVERHEAD" \
+  "$SYSTEM_CONFIG_SCALAR" \
+  "$SYSTEM_CONFIG_BATCHER_HASH" \
+  "$SYSTEM_CONFIG_GAS_LIMIT" \
+  "$(cast parse-bytes32-address "$SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER")" \
+  "($(cast abi-decode "null()(uint32,uint8,uint8,uint32,uint32,uint128)" "$SYSTEM_CONFIG_RESOURCE_CONFIG" --json | jq -r 'join(",")'))" \
+  "$(cast parse-bytes32-address "$SYSTEM_CONFIG_BATCH_INBOX")" \
   "($L1_CROSS_DOMAIN_MESSENGER_PROXY,$L1_ERC721_BRIDGE_PROXY,$L1_STANDARD_BRIDGE_PROXY,$DISPUTE_GAME_FACTORY_PROXY,$OPTIMISM_PORTAL_PROXY,$OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY)"
 )
 

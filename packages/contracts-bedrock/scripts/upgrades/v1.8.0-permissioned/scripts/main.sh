@@ -20,7 +20,8 @@ export ETH_RPC_URL=${ETH_RPC_URL:?ETH_RPC_URL must be set}
 export PRIVATE_KEY=${PRIVATE_KEY:?PRIVATE_KEY must be set}
 
 # Set IMPL_SALT to a random value
-export IMPL_SALT=$(openssl rand -hex 16)
+IMPL_SALT=$(openssl rand -hex 16)
+export IMPL_SALT
 
 # Check that network is either "mainnet" or "sepolia"
 if [ "$NETWORK" != "mainnet" ] && [ "$NETWORK" != "sepolia" ]; then
@@ -45,15 +46,17 @@ export DEPLOY_CONFIG_PATH="$CONTRACTS_BEDROCK_DIR/deploy-config/deploy-config.js
 export DEPLOYMENTS_JSON_PATH="$CONTRACTS_BEDROCK_DIR/deployments/deployments.json"
 
 # Copy the files into the paths so that the script can actually access it
-cp $1 $DEPLOY_CONFIG_PATH
-cp $2 $DEPLOYMENTS_JSON_PATH
+cp "$1" "$DEPLOY_CONFIG_PATH"
+cp "$2" "$DEPLOYMENTS_JSON_PATH"
 
 # Set the StorageSetter address
 export STORAGE_SETTER=0xd81f43edbcacb4c29a9ba38a13ee5d79278270cc
 
 # Get the SystemOwnerSafe address from the ProxyAdmin
-export PROXY_ADMIN=$(load_local_address $DEPLOYMENTS_JSON_PATH "ProxyAdmin")
-export SYSTEM_OWNER_SAFE=$(cast call $PROXY_ADMIN "owner()" | cast parse-bytes32-address)
+PROXY_ADMIN=$(load_local_address "$DEPLOYMENTS_JSON_PATH" "ProxyAdmin")
+SYSTEM_OWNER_SAFE=$(cast call "$PROXY_ADMIN" "owner()" | cast parse-bytes32-address)
+export PROXY_ADMIN
+export SYSTEM_OWNER_SAFE
 
 # Run deploy.sh
 if ! "$SCRIPT_DIR/deploy.sh" | tee deploy.log; then
@@ -62,11 +65,16 @@ if ! "$SCRIPT_DIR/deploy.sh" | tee deploy.log; then
 fi
 
 # Extract the address of the DisputeGameFactoryProxy from the deploy.log
-export DISPUTE_GAME_FACTORY_PROXY=$(grep "0. DisputeGameFactoryProxy:" deploy.log | awk '{print $3}')
-export ANCHOR_STATE_REGISTRY_PROXY=$(grep "1. AnchorStateRegistryProxy:" deploy.log | awk '{print $3}')
-export ANCHOR_STATE_REGISTRY_IMPL=$(grep "2. AnchorStateRegistryImpl:" deploy.log | awk '{print $3}')
-export PERMISSIONED_DELAYED_WETH_PROXY=$(grep "3. PermissionedDelayedWETHProxy:" deploy.log | awk '{print $3}')
-export PERMISSIONED_DISPUTE_GAME=$(grep "4. PermissionedDisputeGame:" deploy.log | awk '{print $3}')
+DISPUTE_GAME_FACTORY_PROXY=$(grep "0. DisputeGameFactoryProxy:" deploy.log | awk '{print $3}')
+export DISPUTE_GAME_FACTORY_PROXY
+ANCHOR_STATE_REGISTRY_PROXY=$(grep "1. AnchorStateRegistryProxy:" deploy.log | awk '{print $3}')
+export ANCHOR_STATE_REGISTRY_PROXY
+ANCHOR_STATE_REGISTRY_IMPL=$(grep "2. AnchorStateRegistryImpl:" deploy.log | awk '{print $3}')
+export ANCHOR_STATE_REGISTRY_IMPL
+PERMISSIONED_DELAYED_WETH_PROXY=$(grep "3. PermissionedDelayedWETHProxy:" deploy.log | awk '{print $3}')
+export PERMISSIONED_DELAYED_WETH_PROXY
+PERMISSIONED_DISPUTE_GAME=$(grep "4. PermissionedDisputeGame:" deploy.log | awk '{print $3}')
+export PERMISSIONED_DISPUTE_GAME
 
 # Make sure everything was extracted properly
 reqenv "DISPUTE_GAME_FACTORY_PROXY"
@@ -87,7 +95,8 @@ cat << EOF > "deployments.json"
 EOF
 
 # Extract the path to the transactions json file
-export TRANSACTIONS_JSON_PATH=$(grep "Transactions saved to:" deploy.log | awk -F': ' '{print $2}')
+TRANSACTIONS_JSON_PATH=$(grep "Transactions saved to:" deploy.log | awk -F': ' '{print $2}')
+export TRANSACTIONS_JSON_PATH
 
 # Verify that the path was extracted successfully
 reqenv "TRANSACTIONS_JSON_PATH"
@@ -105,13 +114,13 @@ if ! "$SCRIPT_DIR/verify.sh" > validation.txt; then
 fi
 
 # Grab the various standard implementation addresses
-SYSTEM_CONFIG_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "system_config")
-OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_portal")
-L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_cross_domain_messenger")
-L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_standard_bridge")
-L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "l1_erc721_bridge")
-OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "optimism_mintable_erc20_factory")
-MIPS_IMPL=$(fetch_standard_address $NETWORK $CONTRACTS_VERSION "mips")
+SYSTEM_CONFIG_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "system_config")
+OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "optimism_portal")
+L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_cross_domain_messenger")
+L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_standard_bridge")
+L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_erc721_bridge")
+OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "optimism_mintable_erc20_factory")
+MIPS_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "mips")
 
 # Generate standard-addresses.json
 cat << EOF > "standard-addresses.json"
@@ -132,4 +141,4 @@ cp bundle.json /outputs/bundle.json
 cp validation.txt /outputs/validation.txt
 cp deployments.json /outputs/deployments.json
 cp standard-addresses.json /outputs/standard-addresses.json
-cp $TRANSACTIONS_JSON_PATH /outputs/transactions.json
+cp "$TRANSACTIONS_JSON_PATH" /outputs/transactions.json

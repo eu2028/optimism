@@ -60,7 +60,8 @@ load_local_address() {
         exit 1
     fi
 
-    local address=$(jq -r ".$address_name" "$deployments_json_path")
+    local address
+    address=$(jq -r ".$address_name" "$deployments_json_path")
 
     if [ -z "$address" ] || [ "$address" == "null" ]; then
         if [ -n "$alt_name" ]; then
@@ -113,6 +114,7 @@ fetch_standard_address() {
     # Fetch the TOML file content from the URL if not already cached for this URL
     if [ -z "${CACHED_TOML_CONTENT[$toml_url]:-}" ]; then
         CACHED_TOML_CONTENT[$toml_url]=$(curl -s "$toml_url")
+        # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
             echo "Error: Failed to fetch TOML file from $toml_url"
             exit 1
@@ -120,10 +122,12 @@ fetch_standard_address() {
     fi
 
     # Use the cached content for the current URL
-    local toml_content="${CACHED_TOML_CONTENT[$toml_url]}"
+    local toml_content
+    toml_content="${CACHED_TOML_CONTENT[$toml_url]}"
 
     # Find the section for required contracts release
-    local section_content=$(echo "$toml_content" | awk -v version="$release_version" '
+    local section_content
+    section_content=$(echo "$toml_content" | awk -v version="$release_version" '
         $0 ~ "^\\[releases.\"op-contracts/v" version "\"\\]" {
             flag=1;
             next
@@ -141,7 +145,8 @@ fetch_standard_address() {
     fi
 
     # Extract the implementation address for the specified contract
-    local address=$(echo "$section_content" | grep -oP "${contract_name} *= *\{.*(address|implementation_address) *= *\"\K[^\"]+") || true
+    local address
+    address=$(echo "$section_content" | grep -oP "${contract_name} *= *\{.*(address|implementation_address) *= *\"\K[^\"]+") || true
 
     # Error if not found
     if [ -z "$address" ]; then
@@ -177,6 +182,7 @@ fetch_superchain_config_address() {
     # Fetch the TOML file content from the URL if not already cached for this URL
     if [ -z "${CACHED_TOML_CONTENT[$toml_url]:-}" ]; then
         CACHED_TOML_CONTENT[$toml_url]=$(curl -s "$toml_url")
+        # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
             echo "Error: Failed to fetch TOML file from $toml_url"
             exit 1
@@ -184,7 +190,8 @@ fetch_superchain_config_address() {
     fi
 
     # Extract the superchain_config_addr from the TOML content
-    local superchain_config_addr=$(echo "${CACHED_TOML_CONTENT[$toml_url]}" | grep "superchain_config_addr" | awk -F '"' '{print $2}')
+    local superchain_config_addr
+    superchain_config_addr=$(echo "${CACHED_TOML_CONTENT[$toml_url]}" | grep "superchain_config_addr" | awk -F '"' '{print $2}')
 
     # Error if not found
     if [ -z "$superchain_config_addr" ]; then
@@ -219,7 +226,8 @@ pad_to_n_bytes() {
     local total_length=$((num_bytes * 2))
 
     # Left-pad the input string with zeros to the specified length
-    local padded_string=$(printf "%0${total_length}s" "$input_string" | tr ' ' '0')
+    local padded_string
+    padded_string=$(printf "%0${total_length}s" "$input_string" | tr ' ' '0')
 
     # Add '0x' prefix to the padded string
     echo "0x$padded_string"
