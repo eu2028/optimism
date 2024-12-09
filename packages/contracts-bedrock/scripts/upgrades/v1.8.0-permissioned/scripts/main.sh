@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR=$(dirname "$0")
 
 # Load common.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/common.sh"
 
 # Check if both input files are provided
