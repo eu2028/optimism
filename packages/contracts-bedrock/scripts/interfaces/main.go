@@ -70,7 +70,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 	// Add SPDX license and pragma version
 	var builder strings.Builder
 	builder.WriteString("// SPDX-License-Identifier: MIT\n")
-	builder.WriteString("pragma solidity ^0.8.0;\n\n")
+	builder.WriteString(fmt.Sprintf("pragma solidity %s;\n\n", astData.Version))
 
 	// Add imports
 	for _, importNode := range astData.Imports {
@@ -147,8 +147,8 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 }
 
 func main() {
-	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/DelayedWETH.sol/DelayedWETH.json")
-	astData := ExtractASTData(artifact.Ast, false)
+	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/AddressManager.sol/AddressManager.json")
+	astData := ExtractASTData(artifact.Ast, false, "")
 
 	interfaceCode := GenerateSolidityInterface("DelayedWETH", astData)
 	fmt.Println(interfaceCode)

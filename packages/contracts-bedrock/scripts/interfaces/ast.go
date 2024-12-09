@@ -17,6 +17,7 @@ type ContractData struct {
 	Types     []solc.AstNode
 	Structs   []StructDefinition
 	Enums     []EnumDefinition
+	Version   string
 }
 
 type StructDefinition struct {
@@ -38,14 +39,16 @@ type EnumMember struct {
 	Name string
 }
 
-func ExtractASTData(ast solc.Ast, inherited bool) ContractData {
+func ExtractASTData(ast solc.Ast, inherited bool, version string) ContractData {
 	var contractData ContractData
-	var version string
 
 	for _, node := range ast.Nodes {
 		switch node.NodeType {
 		case "PragmaDirective":
-			version = fmt.Sprint(node.Literals[1], node.Literals[2])
+			if !inherited {
+				version = fmt.Sprint(node.Literals[1], node.Literals[2])
+				contractData.Version = fmt.Sprint(node.Literals[1], node.Literals[2])
+			}
 		case "ImportDirective":
 			contractData.Imports = append(contractData.Imports, node)
 		case "ContractDefinition":
@@ -75,7 +78,7 @@ func ExtractASTData(ast solc.Ast, inherited bool) ContractData {
 
 				}
 
-				data := ExtractASTData(artifact.Ast, true)
+				data := ExtractASTData(artifact.Ast, true, version)
 				contractData.Functions = append(contractData.Functions, data.Functions...)
 				contractData.Events = append(contractData.Events, data.Events...)
 				contractData.Errors = append(contractData.Errors, data.Errors...)
