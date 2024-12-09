@@ -48,8 +48,11 @@ func (m *InstrumentedState) InitDebug() error {
 		return err
 	}
 	m.stackTracker = stackTracker
-	m.statsTracker = NewStatsTracker()
 	return nil
+}
+
+func (m *InstrumentedState) EnableStats() {
+	m.statsTracker = NewStatsTracker()
 }
 
 func (m *InstrumentedState) Step(proof bool) (wit *mipsevm.StepWitness, err error) {

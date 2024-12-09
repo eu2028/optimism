@@ -18,7 +18,7 @@ type StatsTracker interface {
 	populateDebugInfo(debugInfo *mipsevm.DebugInfo)
 }
 
-// Noop implementation for when debug is disabled
+// Noop implementation for when tracking is disabled
 type noopStatsTracker struct{}
 
 func NoopStatsTracker() StatsTracker {

@@ -54,6 +54,10 @@ func (m *InstrumentedState) InitDebug() error {
 	return nil
 }
 
+func (m *InstrumentedState) EnableStats() {
+	//noop
+}
+
 func (m *InstrumentedState) Step(proof bool) (wit *mipsevm.StepWitness, err error) {
 	m.preimageOracle.Reset()
 	m.memoryTracker.Reset(proof)
