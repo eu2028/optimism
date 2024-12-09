@@ -44,10 +44,11 @@ SYSTEM_CONFIG_GAS_LIMIT=$(cast call "$SYSTEM_CONFIG_PROXY" "gasLimit()")
 SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER=$(cast call "$SYSTEM_CONFIG_PROXY" "unsafeBlockSigner()")
 SYSTEM_CONFIG_RESOURCE_CONFIG=$(cast call "$SYSTEM_CONFIG_PROXY" "resourceConfig()")
 SYSTEM_CONFIG_BATCH_INBOX=$(cast call "$SYSTEM_CONFIG_PROXY" "batchInbox()")
+SYSTEM_CONFIG_GAS_PAYING_TOKEN=$(cast call "$SYSTEM_CONFIG_PROXY", "gasPayingToken()(address)")
 
 # Now we generate the initialization calldata
 SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
-  "initialize(address,uint256,uint256,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address))" \
+  "initialize(address,uint256,uint256,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address,address))" \
   "$(cast parse-bytes32-address "$SYSTEM_CONFIG_OWNER")" \
   "$SYSTEM_CONFIG_OVERHEAD" \
   "$SYSTEM_CONFIG_SCALAR" \
@@ -56,7 +57,7 @@ SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
   "$(cast parse-bytes32-address "$SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER")" \
   "($(cast abi-decode "null()(uint32,uint8,uint8,uint32,uint32,uint128)" "$SYSTEM_CONFIG_RESOURCE_CONFIG" --json | jq -r 'join(",")'))" \
   "$(cast parse-bytes32-address "$SYSTEM_CONFIG_BATCH_INBOX")" \
-  "($L1_CROSS_DOMAIN_MESSENGER_PROXY,$L1_ERC721_BRIDGE_PROXY,$L1_STANDARD_BRIDGE_PROXY,$DISPUTE_GAME_FACTORY_PROXY,$OPTIMISM_PORTAL_PROXY,$OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY)"
+  "($L1_CROSS_DOMAIN_MESSENGER_PROXY,$L1_ERC721_BRIDGE_PROXY,$L1_STANDARD_BRIDGE_PROXY,$DISPUTE_GAME_FACTORY_PROXY,$OPTIMISM_PORTAL_PROXY,$OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY,$SYSTEM_CONFIG_GAS_PAYING_TOKEN)"
 )
 
 # Generate JSON
