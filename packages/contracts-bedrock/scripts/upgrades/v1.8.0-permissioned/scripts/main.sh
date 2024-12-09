@@ -104,13 +104,13 @@ reqenv "TRANSACTIONS_JSON_PATH"
 
 # Run bundle.sh
 if ! "$SCRIPT_DIR/bundle.sh" > bundle.json; then
-    echo "Error: bundle.sh failed"
+    echo "Error: bundle.sh failed" 1>&2
     exit 1
 fi
 
 # Run verify.sh
 if ! "$SCRIPT_DIR/verify.sh" > validation.txt; then
-    echo "Error: verify.sh failed"
+    echo "Error: verify.sh failed" 1>&2
     exit 1
 fi
 

@@ -11,8 +11,8 @@ export CONTRACTS_VERSION=${CONTRACTS_VERSION:-1.8.0-rc.3}
 #
 # Basic error handler
 error_handler() {
-  echo "Error occurred in ${BASH_SOURCE[1]} at line: ${BASH_LINENO[0]}"
-  echo "Error message: $BASH_COMMAND"
+  echo "Error occurred in ${BASH_SOURCE[1]} at line: ${BASH_LINENO[0]}" 1>&2
+  echo "Error message: $BASH_COMMAND" 1>&2
   exit 1
 }
 
@@ -30,7 +30,7 @@ trap error_handler ERR
 #   - The specified environment variable is not set
 reqenv() {
     if [ -z "${!1}" ]; then
-        echo "Error: $1 is not set"
+        echo "Error: $1 is not set" 1>&2
         exit 1
     fi
 }
@@ -56,7 +56,7 @@ load_local_address() {
     local alt_name="${3:-}"
 
     if [ ! -f "$deployments_json_path" ]; then
-        echo "Error: Deployments JSON file not found: $deployments_json_path"
+        echo "Error: Deployments JSON file not found: $deployments_json_path" 1>&2
         exit 1
     fi
 
@@ -69,7 +69,7 @@ load_local_address() {
         fi
 
         if [ -z "$address" ] || [ "$address" == "null" ]; then
-            echo "Error: $address_name not found in deployments JSON"
+            echo "Error: $address_name not found in deployments JSON" 1>&2
             exit 1
         fi
     fi
@@ -107,7 +107,7 @@ fetch_standard_address() {
     elif [ "$network_name" = "sepolia" ]; then
         toml_url="$toml_url-sepolia.toml"
     else
-        echo "Error: NETWORK must be set to 'mainnet' or 'sepolia'"
+        echo "Error: NETWORK must be set to 'mainnet' or 'sepolia'" 1>&2
         exit 1
     fi
 
@@ -116,7 +116,7 @@ fetch_standard_address() {
         CACHED_TOML_CONTENT[$toml_url]=$(curl -s "$toml_url")
         # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
-            echo "Error: Failed to fetch TOML file from $toml_url"
+            echo "Error: Failed to fetch TOML file from $toml_url" 1>&2
             exit 1
         fi
     fi
@@ -140,7 +140,7 @@ fetch_standard_address() {
         }
     ')
     if [ -z "$section_content" ]; then
-        echo "Error: v$release_version release section not found in addresses TOML"
+        echo "Error: v$release_version release section not found in addresses TOML" 1>&2
         exit 1
     fi
 
@@ -150,7 +150,7 @@ fetch_standard_address() {
 
     # Error if not found
     if [ -z "$address" ]; then
-        echo "Error: Implementation address for $contract_name not found in v$release_version release"
+        echo "Error: Implementation address for $contract_name not found in v$release_version release" 1>&2
         exit 1
     fi
 
@@ -184,7 +184,7 @@ fetch_superchain_config_address() {
         CACHED_TOML_CONTENT[$toml_url]=$(curl -s "$toml_url")
         # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
-            echo "Error: Failed to fetch TOML file from $toml_url"
+            echo "Error: Failed to fetch TOML file from $toml_url" 1>&2
             exit 1
         fi
     fi
@@ -195,7 +195,7 @@ fetch_superchain_config_address() {
 
     # Error if not found
     if [ -z "$superchain_config_addr" ]; then
-        echo "Error: superchain_config_addr not found in the TOML file"
+        echo "Error: superchain_config_addr not found in the TOML file" 1>&2
         exit 1
     fi
 

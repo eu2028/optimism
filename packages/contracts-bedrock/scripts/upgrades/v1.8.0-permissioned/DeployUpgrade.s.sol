@@ -131,7 +131,6 @@ contract DeployUpgrade is Deploy, StdAssertions {
         save("AnchorStateRegistry", impl);
     }
 
-
     /// @notice Sets the implementation for the `PERMISSIONED_CANNON` game type in the `DisputeGameFactory`
     function setPermissionedCannonFaultGameImplementation() public broadcast {
         console.log("Setting Cannon PermissionedDisputeGame implementation");
