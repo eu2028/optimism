@@ -37,8 +37,8 @@ SUPERCHAIN_CONFIG_PROXY=$(fetch_superchain_config_address "$NETWORK")
 # We need to re-generate the SystemConfig initialization call
 # We want to use the exact same values that the SystemConfig is already using
 SYSTEM_CONFIG_OWNER=$(cast call "$SYSTEM_CONFIG_PROXY" "owner()")
-SYSTEM_CONFIG_OVERHEAD=$(cast call "$SYSTEM_CONFIG_PROXY" "overhead()")
-SYSTEM_CONFIG_SCALAR=$(cast call "$SYSTEM_CONFIG_PROXY" "scalar()")
+SYSTEM_CONFIG_BASE_FEE_SCALAR=$(cast call "$SYSTEM_CONFIG_PROXY" "basefeeScalar()")
+SYSTEM_CONFIG_BLOB_BASE_FEE_SCALAR=$(cast call "$SYSTEM_CONFIG_PROXY" "blobbasefeeScalar()")
 SYSTEM_CONFIG_BATCHER_HASH=$(cast call "$SYSTEM_CONFIG_PROXY" "batcherHash()")
 SYSTEM_CONFIG_GAS_LIMIT=$(cast call "$SYSTEM_CONFIG_PROXY" "gasLimit()")
 SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER=$(cast call "$SYSTEM_CONFIG_PROXY" "unsafeBlockSigner()")
@@ -50,8 +50,8 @@ SYSTEM_CONFIG_GAS_PAYING_TOKEN=$(cast call "$SYSTEM_CONFIG_PROXY" "gasPayingToke
 SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
   "initialize(address,uint32,uint32,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address,address))" \
   "$(cast parse-bytes32-address "$SYSTEM_CONFIG_OWNER")" \
-  "$SYSTEM_CONFIG_OVERHEAD" \
-  "$SYSTEM_CONFIG_SCALAR" \
+  "$SYSTEM_CONFIG_BASE_FEE_SCALAR" \
+  "$SYSTEM_CONFIG_BLOB_BASE_FEE_SCALAR" \
   "$SYSTEM_CONFIG_BATCHER_HASH" \
   "$SYSTEM_CONFIG_GAS_LIMIT" \
   "$(cast parse-bytes32-address "$SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER")" \

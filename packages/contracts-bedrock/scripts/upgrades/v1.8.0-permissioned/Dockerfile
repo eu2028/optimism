@@ -42,10 +42,10 @@ WORKDIR /app/packages/contracts-bedrock
 # Install dependencies
 RUN just install
 
-COPY . ./scripts/upgrades/v1.8.0-permissioned
-
 # Build the contracts package
 RUN just prebuild forge-build
+
+COPY . ./scripts/upgrades/v1.8.0-permissioned
 
 # Deliberately run the upgrade script with invalid args to trigger a build
 RUN forge script ./scripts/upgrades/v1.8.0-permissioned/DeployUpgrade.s.sol || true
@@ -53,7 +53,7 @@ RUN forge script ./scripts/upgrades/v1.8.0-permissioned/DeployUpgrade.s.sol || t
 # Set the working directory to where upgrade.sh is located
 WORKDIR /app/packages/contracts-bedrock/scripts/upgrades/v1.8.0-permissioned
 
-ENV CONTRACTS_VERSION $REV
+ENV CONTRACTS_VERSION=$REV
 
 # Set the entrypoint to the main.sh script
 ENTRYPOINT ["./scripts/main.sh"]
