@@ -48,7 +48,7 @@ SYSTEM_CONFIG_GAS_PAYING_TOKEN=$(cast call "$SYSTEM_CONFIG_PROXY" "gasPayingToke
 
 # Now we generate the initialization calldata
 SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
-  "initialize(address,uint256,uint256,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address,address))" \
+  "initialize(address,uint32,uint32,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address,address))" \
   "$(cast parse-bytes32-address "$SYSTEM_CONFIG_OWNER")" \
   "$SYSTEM_CONFIG_OVERHEAD" \
   "$SYSTEM_CONFIG_SCALAR" \
