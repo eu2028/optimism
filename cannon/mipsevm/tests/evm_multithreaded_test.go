@@ -328,7 +328,7 @@ func TestEVM_SysClone_Successful(t *testing.T) {
 			expectedNewThread.PC = state.GetCpu().NextPC
 			expectedNewThread.NextPC = state.GetCpu().NextPC + 4
 			expectedNewThread.ThreadId = 1
-			expectedNewThread.Registers[register.RegSyscallNum] = 0
+			expectedNewThread.Registers[register.RegSyscallRet1] = 0
 			expectedNewThread.Registers[register.RegSyscallErrno] = 0
 			expectedNewThread.Registers[register.RegSP] = stackPtr
 

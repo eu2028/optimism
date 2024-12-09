@@ -430,7 +430,7 @@ contract MIPS2 is ISemver {
                 }
                 newThread.registers[sys.REG_SP] = a1; // set stack pointer
                 // the child will perceive a 0 value as returned value instead, and no error
-                newThread.registers[sys.REG_SYSCALL_NUM] = 0;
+                newThread.registers[sys.REG_SYSCALL_RET1] = 0;
                 newThread.registers[sys.REG_SYSCALL_ERRNO] = 0;
                 state.nextThreadID++;
 
