@@ -145,16 +145,20 @@ func TestFrameValidity(t *testing.T) {
 
 func TestBatchReader(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x543331))
-	singularBatch1 := RandomSingularBatch(rng, 20, big.NewInt(333))
-	batchDataInput1 := NewBatchData(singularBatch1)
-	singularBatch2 := RandomSingularBatch(rng, 20, big.NewInt(333))
-	batchDataInput2 := NewBatchData(singularBatch2)
+
+	batchCount := 2
+	batchSlice := make([]*BatchData, batchCount)
+	for i := 0; i < batchCount; i++ {
+		singularBatch := RandomSingularBatch(rng, 20, big.NewInt(333))
+		batchDataInput := NewBatchData(singularBatch)
+		batchSlice[i] = batchDataInput
+	}
 
 	encodedBatch := new(bytes.Buffer)
-	err := batchDataInput1.EncodeRLP(encodedBatch)
-	require.NoError(t, err)
-	err = batchDataInput2.EncodeRLP(encodedBatch)
-	require.NoError(t, err)
+	for _, batchData := range batchSlice {
+		err := batchData.EncodeRLP(encodedBatch)
+		require.NoError(t, err)
+	}
 
 	const Zstd CompressionAlgo = "zstd" // invalid algo
 	compressor := func(ca CompressionAlgo) func(buf *bytes.Buffer, t *testing.T) {
@@ -257,29 +261,19 @@ func TestBatchReader(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// read the 1st batch data
-			batchData, err := reader()
-			require.NoError(t, err)
-			require.NotNil(t, batchData)
-			if tc.algo.IsBrotli() {
-				// special case because reader doesn't decode level
-				batchDataInput1.ComprAlgo = Brotli
-			} else {
-				batchDataInput1.ComprAlgo = tc.algo
+			for i := 0; i < batchCount; i++ {
+				// read the 1st batch data
+				batchData, err := reader()
+				require.NoError(t, err)
+				require.NotNil(t, batchData)
+				if tc.algo.IsBrotli() {
+					// special case because reader doesn't decode level
+					batchSlice[i].ComprAlgo = Brotli
+				} else {
+					batchSlice[i].ComprAlgo = tc.algo
+				}
+				require.Equal(t, batchSlice[i], batchData)
 			}
-			require.Equal(t, batchDataInput1, batchData)
-
-			// read the 2nd batch data
-			batchData, err = reader()
-			require.NoError(t, err)
-			require.NotNil(t, batchData)
-			if tc.algo.IsBrotli() {
-				// special case because reader doesn't decode level
-				batchDataInput2.ComprAlgo = Brotli
-			} else {
-				batchDataInput2.ComprAlgo = tc.algo
-			}
-			require.Equal(t, batchDataInput2, batchData)
 
 			// further read should error out
 			_, err = reader()
