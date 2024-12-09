@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
 	"strings"
+
+	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
 )
 
 func GenerateSolidityInterface(contractName string, astData ContractData) string {

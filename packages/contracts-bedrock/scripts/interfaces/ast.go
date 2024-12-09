@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
-	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
 	"os"
 	"strings"
+
+	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
+	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
 )
 
 type ContractData struct {

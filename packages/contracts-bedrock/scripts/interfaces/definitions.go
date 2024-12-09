@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 	"strings"
+
+	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 )
 
 func GenerateImportDefinition(importNode solc.AstNode) string {

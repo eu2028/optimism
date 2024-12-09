@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 	"strings"
+
+	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 )
 
 func isTrivialType(typeString string) bool {
