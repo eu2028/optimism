@@ -57,6 +57,7 @@ contract CommonTest is Test, Setup, Events {
         }
 
         vm.etch(address(ffi), vm.getDeployedCode("FFIInterface.sol:FFIInterface"));
+        vm.allowCheatcodes(address(ffi));
         vm.label(address(ffi), "FFIInterface");
 
         // Exclude contracts for the invariant tests
