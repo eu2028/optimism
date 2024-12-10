@@ -76,7 +76,6 @@ func ExtractASTData(ast solc.Ast, inherited bool, version string) ContractData {
 						node.BaseContracts[i].BaseName.Name,
 						node.BaseContracts[i].BaseName.Name,
 					))
-
 				}
 
 				data := ExtractASTData(artifact.Ast, true, version)

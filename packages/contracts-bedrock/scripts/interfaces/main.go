@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func GenerateSolidityInterface(contractName string, astData ContractData) string {
@@ -147,10 +148,70 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 	return builder.String()
 }
 
-func main() {
-	artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/AddressManager.sol/AddressManager.json")
-	astData := ExtractASTData(artifact.Ast, false, "")
+func writeStderr(msg string, args ...any) {
+	_, _ = fmt.Fprintf(os.Stderr, msg+"\n", args...)
+}
 
-	interfaceCode := GenerateSolidityInterface("DelayedWETH", astData)
-	fmt.Println(interfaceCode)
+func main() {
+	/*
+		artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/AddressManager.sol/AddressManager.json")
+		astData := ExtractASTData(artifact.Ast, false, "")
+
+		interfaceCode := GenerateSolidityInterface("DelayedWETH", astData)
+		fmt.Println(interfaceCode)
+	*/
+	err := run()
+	if err != nil {
+		return
+	}
+}
+
+func run() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	artifactsDir := filepath.Join(cwd, "packages/contracts-bedrock/forge-artifacts")
+
+	artifactFiles, err := glob(artifactsDir, ".json")
+	if err != nil {
+		return fmt.Errorf("failed to get artifact files: %w", err)
+	}
+
+	// Remove duplicates from artifactFiles
+	uniqueArtifacts := make(map[string]string)
+	for contractName, artifactPath := range artifactFiles {
+		baseName := strings.Split(contractName, ".")[0]
+		uniqueArtifacts[baseName] = artifactPath
+	}
+
+	fail := func(msg string, args ...any) {
+		writeStderr("❌  "+msg, args...)
+	}
+
+	for contractName, artifactPath := range uniqueArtifacts {
+		contractName := contractName
+		artifactPath := artifactPath
+
+		if err := processArtifact(contractName, artifactPath, artifactsDir, fail); err != nil {
+			fail("%s: %v", contractName, err)
+		}
+	}
+
+	return nil
+}
+
+func processArtifact(contractName, artifactPath, artifactsDir string, fail func(string, ...any)) error {
+	if strings.Contains(artifactPath, ".s.") || strings.Contains(artifactPath, ".t.") || strings.HasPrefix(contractName, "I") {
+		return nil
+	}
+	artifact, _ := common.ReadForgeArtifact(artifactPath)
+
+	print(fmt.Sprintf("Creating: %s\n", contractName))
+
+	astData := ExtractASTData(artifact.Ast, false, "")
+	GenerateSolidityInterface(contractName, astData)
+
+	return nil
 }

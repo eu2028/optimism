@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
@@ -44,4 +47,18 @@ func stripContractPrefix(typeString string) string {
 		}
 	}
 	return typeString
+}
+
+func glob(dir string, ext string) (map[string]string, error) {
+	out := make(map[string]string)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() && filepath.Ext(path) == ext {
+			out[strings.TrimSuffix(filepath.Base(path), ext)] = path
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk directory: %w", err)
+	}
+	return out, nil
 }
