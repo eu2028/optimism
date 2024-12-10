@@ -34,32 +34,6 @@ OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address "$NETWORK" "$CONTR
 # Fetch SuperchainConfigProxy address
 SUPERCHAIN_CONFIG_PROXY=$(fetch_superchain_config_address "$NETWORK")
 
-# We need to re-generate the SystemConfig initialization call
-# We want to use the exact same values that the SystemConfig is already using
-SYSTEM_CONFIG_OWNER=$(cast call "$SYSTEM_CONFIG_PROXY" "owner()")
-SYSTEM_CONFIG_BASE_FEE_SCALAR=$(cast call "$SYSTEM_CONFIG_PROXY" "basefeeScalar()")
-SYSTEM_CONFIG_BLOB_BASE_FEE_SCALAR=$(cast call "$SYSTEM_CONFIG_PROXY" "blobbasefeeScalar()")
-SYSTEM_CONFIG_BATCHER_HASH=$(cast call "$SYSTEM_CONFIG_PROXY" "batcherHash()")
-SYSTEM_CONFIG_GAS_LIMIT=$(cast call "$SYSTEM_CONFIG_PROXY" "gasLimit()")
-SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER=$(cast call "$SYSTEM_CONFIG_PROXY" "unsafeBlockSigner()")
-SYSTEM_CONFIG_RESOURCE_CONFIG=$(cast call "$SYSTEM_CONFIG_PROXY" "resourceConfig()")
-SYSTEM_CONFIG_BATCH_INBOX=$(cast call "$SYSTEM_CONFIG_PROXY" "batchInbox()")
-SYSTEM_CONFIG_GAS_PAYING_TOKEN=$(cast call "$SYSTEM_CONFIG_PROXY" "gasPayingToken()(address)")
-
-# Now we generate the initialization calldata
-SYSTEM_CONFIG_INITIALIZE_CALLDATA=$(cast calldata \
-  "initialize(address,uint32,uint32,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address,address))" \
-  "$(cast parse-bytes32-address "$SYSTEM_CONFIG_OWNER")" \
-  "$SYSTEM_CONFIG_BASE_FEE_SCALAR" \
-  "$SYSTEM_CONFIG_BLOB_BASE_FEE_SCALAR" \
-  "$SYSTEM_CONFIG_BATCHER_HASH" \
-  "$SYSTEM_CONFIG_GAS_LIMIT" \
-  "$(cast parse-bytes32-address "$SYSTEM_CONFIG_UNSAFE_BLOCK_SIGNER")" \
-  "($(cast abi-decode "null()(uint32,uint8,uint8,uint32,uint32,uint128)" "$SYSTEM_CONFIG_RESOURCE_CONFIG" --json | jq -r 'join(",")'))" \
-  "$(cast parse-bytes32-address "$SYSTEM_CONFIG_BATCH_INBOX")" \
-  "($L1_CROSS_DOMAIN_MESSENGER_PROXY,$L1_ERC721_BRIDGE_PROXY,$L1_STANDARD_BRIDGE_PROXY,$DISPUTE_GAME_FACTORY_PROXY,$OPTIMISM_PORTAL_PROXY,$OPTIMISM_MINTABLE_ERC20_FACTORY_PROXY,$SYSTEM_CONFIG_GAS_PAYING_TOKEN)"
-)
-
 # Generate JSON
 cat << EOF
 {
@@ -287,31 +261,6 @@ cat << EOF
       }
     },
     {
-      "to": "$SYSTEM_CONFIG_PROXY",
-      "value": "0",
-      "data": null,
-      "contractMethod": {
-        "inputs": [
-          {
-            "name": "_slot",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "_value",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ],
-        "name": "setBytes32",
-        "payable": false
-      },
-      "contractInputsValues": {
-        "_slot": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "_value": "0x0000000000000000000000000000000000000000000000000000000000000000"
-      }
-    },
-    {
       "to": "$PROXY_ADMIN",
       "value": "0",
       "data": null,
@@ -326,18 +275,12 @@ cat << EOF
             "name": "_implementation",
             "type": "address",
             "internalType": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "_data",
-            "type": "bytes"
           }
         ],
-        "name": "upgradeAndCall",
+        "name": "upgrade",
         "payable": false
       },
       "contractInputsValues": {
-        "_data": "$SYSTEM_CONFIG_INITIALIZE_CALLDATA",
         "_proxy": "$SYSTEM_CONFIG_PROXY",
         "_implementation": "$SYSTEM_CONFIG_IMPL"
       }
