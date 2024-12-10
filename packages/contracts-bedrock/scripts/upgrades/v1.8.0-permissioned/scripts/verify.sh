@@ -29,7 +29,6 @@ L1_STANDARD_BRIDGE_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION"
 L1_CROSS_DOMAIN_MESSENGER_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_cross_domain_messenger")
 L1_ERC721_BRIDGE_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "l1_erc721_bridge")
 OPTIMISM_PORTAL_2_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "optimism_portal")
-SYSTEM_CONFIG_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "system_config")
 OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL=$(fetch_standard_address "$NETWORK" "$CONTRACTS_VERSION" "optimism_mintable_erc20_factory")
 
 # Fetch SuperchainConfigProxy address
