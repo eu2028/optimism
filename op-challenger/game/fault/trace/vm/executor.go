@@ -156,7 +156,7 @@ func (e *Executor) DoGenerateProof(ctx context.Context, dir string, begin uint64
 
 type debugInfo struct {
 	MemoryUsed                   hexutil.Uint64 `json:"memory_used"`
-	Steps                        uint64         `json:"steps"`
+	Steps                        uint64         `json:"total_steps"`
 	RmwSuccessCount              uint64         `json:"rmw_success_count"`
 	RmwFailCount                 uint64         `json:"rmw_fail_count"`
 	MaxStepsBetweenLLAndSC       uint64         `json:"max_steps_between_ll_and_sc"`
