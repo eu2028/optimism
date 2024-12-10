@@ -75,10 +75,6 @@ cat << EOF
 
 **SystemConfigProxy ($SYSTEM_CONFIG_PROXY)**
 
-- Key: 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
-    - Value: $(pad_to_n_bytes "$SYSTEM_CONFIG_IMPL" 32)
-    - Description: Implementation address changed to $SYSTEM_CONFIG_IMPL
-    - WARNING: ⚠️ You MAY not see this change if you are already using the correct address
 - Key: 0x52322a25d9f59ea17656545543306b7aef62bc0cc53a0e65ccfa0c75b97aa906
     - Value: $(pad_to_n_bytes "$DISPUTE_GAME_FACTORY_PROXY" 32)
     - Description: Slot at keccak(systemconfig.disputegamefactory)-1 set to address of DisputeGameFactoryProxy deployed via upgrade script
