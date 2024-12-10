@@ -152,6 +152,7 @@ contract DeployUpgrade is Deploy, StdAssertions {
             cfg.l2OutputOracleChallenger()
         );
         factory.setImplementation(GameTypes.PERMISSIONED_CANNON, IDisputeGame(address(impl)));
+        save("PermissionedDisputeGame", address(impl));
         console.log(
             "DisputeGameFactoryProxy: set `FaultDisputeGame` implementation (Backend: Cannon | GameType: PERMISSIONED_CANNON)"
         );
@@ -310,7 +311,12 @@ contract DeployUpgrade is Deploy, StdAssertions {
         assertEq(
             address(dgf.gameImpls(GameTypes.CANNON)),
             address(0),
-            "DeployUpgrade: DisputeGameFactory gameImpls is not set correctly"
+            "DeployUpgrade: DisputeGameFactory gameImpls CANNON is not set correctly"
+        );
+        assertEq(
+            address(dgf.gameImpls(GameTypes.PERMISSIONED_CANNON)),
+            mustGetAddress("PermissionedDisputeGame"),
+            "DeployUpgrade: DisputeGameFactory gameImpls PERMISSIONED_CANNON is not set correctly"
         );
 
         // Verify security override yoke configuration.
