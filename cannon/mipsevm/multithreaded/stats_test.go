@@ -31,7 +31,7 @@ func TestStatsTracker(t *testing.T) {
 		},
 		{
 			name:       "Failed isolated sc op preceded by successful sc op",
-			operations: []Operation{ll(1, 1), scSuccess(1, 10), scFail(2, 23)},
+			operations: []Operation{ll(1, 1), scSuccess(1, 10), scFail(1, 23)},
 			expected:   &mipsevm.DebugInfo{RmwSuccessCount: 1, RmwFailCount: 1, MaxStepsBetweenLLAndSC: 9},
 		},
 		{
