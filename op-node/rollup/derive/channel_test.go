@@ -262,7 +262,6 @@ func TestBatchReader(t *testing.T) {
 			require.NoError(t, err)
 
 			for i := 0; i < batchCount; i++ {
-				// read the 1st batch data
 				batchData, err := reader()
 				require.NoError(t, err)
 				require.NotNil(t, batchData)
