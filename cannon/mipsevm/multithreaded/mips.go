@@ -388,7 +388,7 @@ func (m *InstrumentedState) handleRMWOps(insn, opcode uint32) error {
 		m.state.LLAddress = addr
 		m.state.LLOwnerThread = threadId
 
-		m.statsTracker.trackLL(m.GetState().GetStep())
+		m.statsTracker.trackLL(threadId, m.GetState().GetStep())
 	case exec.OpStoreConditional, exec.OpStoreConditional64:
 		if m.state.LLReservationStatus == targetStatus && m.state.LLOwnerThread == threadId && m.state.LLAddress == addr {
 			// Complete atomic update: set memory and return 1 for success
@@ -399,12 +399,12 @@ func (m *InstrumentedState) handleRMWOps(insn, opcode uint32) error {
 
 			retVal = 1
 
-			m.statsTracker.trackSCSuccess(m.GetState().GetStep())
+			m.statsTracker.trackSCSuccess(threadId, m.GetState().GetStep())
 		} else {
 			// Atomic update failed, return 0 for failure
 			retVal = 0
 
-			m.statsTracker.trackSCFailure(m.GetState().GetStep())
+			m.statsTracker.trackSCFailure(threadId, m.GetState().GetStep())
 		}
 	default:
 		panic(fmt.Sprintf("Invalid instruction passed to handleRMWOps (opcode %08x)", opcode))

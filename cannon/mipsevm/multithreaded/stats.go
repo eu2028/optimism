@@ -1,14 +1,16 @@
 package multithreaded
 
 import (
+	lru "github.com/hashicorp/golang-lru/v2"
+
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 )
 
 // Define stats interface
 type StatsTracker interface {
-	trackLL(step uint64)
-	trackSCSuccess(step uint64)
-	trackSCFailure(step uint64)
+	trackLL(threadId Word, step uint64)
+	trackSCSuccess(threadId Word, step uint64)
+	trackSCFailure(threadId Word, step uint64)
 	trackReservationInvalidation()
 	trackForcedPreemption()
 	trackWakeupTraversalStart()
@@ -25,9 +27,9 @@ func NoopStatsTracker() StatsTracker {
 	return &noopStatsTracker{}
 }
 
-func (s *noopStatsTracker) trackLL(step uint64)                            {}
-func (s *noopStatsTracker) trackSCSuccess(step uint64)                     {}
-func (s *noopStatsTracker) trackSCFailure(step uint64)                     {}
+func (s *noopStatsTracker) trackLL(threadId Word, step uint64)             {}
+func (s *noopStatsTracker) trackSCSuccess(threadId Word, step uint64)      {}
+func (s *noopStatsTracker) trackSCFailure(threadId Word, step uint64)      {}
 func (s *noopStatsTracker) trackReservationInvalidation()                  {}
 func (s *noopStatsTracker) trackForcedPreemption()                         {}
 func (s *noopStatsTracker) trackWakeupTraversalStart()                     {}
@@ -41,15 +43,13 @@ var _ StatsTracker = (*noopStatsTracker)(nil)
 // Actual implementation
 type statsTrackerImpl struct {
 	// State
-	lastLLOpStep          uint64
+	lastLLStepByThread    *lru.Cache[Word, uint64]
 	isWakeupTraversal     bool
 	activeThreadId        Word
 	lastActiveStepThread0 uint64
 	// Stats
-	rmwSuccessCount uint64
-	rmwFailCount    uint64
-	// Note: Once a new LL operation is executed, we reset lastLLOpStep, losing track of previous RMW operations.
-	// So, maxStepsBetweenLLAndSC is not complete and may miss longer ranges for failed rmw sequences.
+	rmwSuccessCount        uint64
+	rmwFailCount           uint64
 	maxStepsBetweenLLAndSC uint64
 	// Tracks RMW reservation invalidation due to reserved memory being accessed outside of the RMW sequence
 	reservationInvalidationCount uint64
@@ -68,26 +68,29 @@ func (s *statsTrackerImpl) populateDebugInfo(debugInfo *mipsevm.DebugInfo) {
 	debugInfo.IdleStepCountThread0 = s.idleStepCountThread0
 }
 
-func (s *statsTrackerImpl) trackLL(step uint64) {
-	s.lastLLOpStep = step
+func (s *statsTrackerImpl) trackLL(threadId Word, step uint64) {
+	s.lastLLStepByThread.Add(threadId, step)
 }
 
-func (s *statsTrackerImpl) trackSCSuccess(step uint64) {
+func (s *statsTrackerImpl) trackSCSuccess(threadId Word, step uint64) {
 	s.rmwSuccessCount += 1
-	diff := step - s.lastLLOpStep
-	if diff > s.maxStepsBetweenLLAndSC {
-		s.maxStepsBetweenLLAndSC = diff
-	}
-	// Reset ll op state
-	s.lastLLOpStep = 0
+	s.recordStepsBetweenLLAndSC(threadId, step)
 }
 
-func (s *statsTrackerImpl) trackSCFailure(step uint64) {
+func (s *statsTrackerImpl) trackSCFailure(threadId Word, step uint64) {
 	s.rmwFailCount += 1
+	s.recordStepsBetweenLLAndSC(threadId, step)
+}
 
-	diff := step - s.lastLLOpStep
-	if s.lastLLOpStep > 0 && diff > s.maxStepsBetweenLLAndSC {
-		s.maxStepsBetweenLLAndSC = diff
+func (s *statsTrackerImpl) recordStepsBetweenLLAndSC(threadId Word, scStep uint64) {
+	// Track rmw steps if we have the last ll step in our cache
+	if llStep, ok := s.lastLLStepByThread.Get(threadId); ok {
+		diff := scStep - llStep
+		if diff > s.maxStepsBetweenLLAndSC {
+			s.maxStepsBetweenLLAndSC = diff
+		}
+		// Purge ll step since the RMW seq is now complete
+		s.lastLLStepByThread.Remove(threadId)
 	}
 }
 
@@ -127,7 +130,18 @@ func (s *statsTrackerImpl) trackThreadActivated(tid Word, step uint64) {
 }
 
 func NewStatsTracker() StatsTracker {
-	return &statsTrackerImpl{}
+	return newStatsTracker(5)
+}
+
+func newStatsTracker(cacheSize int) StatsTracker {
+	llStepCache, err := lru.New[Word, uint64](cacheSize)
+	if err != nil {
+		panic(err) // negative size parameter may produce an error
+	}
+
+	return &statsTrackerImpl{
+		lastLLStepByThread: llStepCache,
+	}
 }
 
 var _ StatsTracker = (*statsTrackerImpl)(nil)
