@@ -2,7 +2,6 @@ package interop2
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,6 +12,9 @@ import (
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+
+	"github.com/sigma/go-test-trace/pkg/trace_testing"
 )
 
 // high-level requirements for the tests in here.
@@ -97,11 +99,23 @@ func (ti *testInteropBlockBuilding) Check(t Test, s SuperSystem) {
 }
 
 func TestInteropBlockBuilding(t *testing.T) {
+	tt := trace_testing.WithTracing(t)
+	tracer := otel.Tracer(tt.Name())
+
+	ctx, span := tracer.Start(tt.Context(), tt.Name())
+	defer span.End()
+	tt = tt.WithContext(ctx)
+
 	for _, useFiltering := range []bool{
 		false,
 		true,
 	} {
-		t.Run(fmt.Sprintf("mempoolFiltering=%t", useFiltering), func(t *testing.T) {
+		tNamePrefix := "without"
+		if useFiltering {
+			tNamePrefix = "with"
+		}
+		tName := tNamePrefix + "_mempool_filtering"
+		tt.Run(tName, func(t trace_testing.T) {
 			spec := &interfaces.SuperSystemSpec{
 				Config: interfaces.NewSuperSystemConfig(
 					interfaces.WithMempoolFiltering(useFiltering),

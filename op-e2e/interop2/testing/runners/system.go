@@ -2,7 +2,6 @@ package runners
 
 import (
 	"fmt"
-	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/interfaces"
 	"github.com/ethereum-optimism/optimism/op-e2e/interop2/testing/providers"
@@ -14,7 +13,7 @@ import (
 )
 
 type SystemTest[S interfaces.SystemBase] struct {
-	*testing.T
+	trace_testing.T
 	Logic interfaces.TestLogic[S]
 }
 
@@ -32,14 +31,9 @@ func recoverPhase(t trace_testing.T, tracer trace.Tracer, phase string) (trace_t
 }
 
 func (t SystemTest[S]) Run() {
-	tt := trace_testing.WithTracing(t.T)
 	tracer := otel.Tracer("system test")
 
-	ctx, span := tracer.Start(tt.Context(), t.Name())
-	defer span.End()
-	tt = tt.WithContext(ctx)
-
-	tt.Helper()
+	t.Helper()
 
 	spec := t.Logic.Spec()
 	var system S
@@ -92,7 +86,7 @@ func (t SystemTest[S]) Run() {
 
 	for _, phase := range phases {
 		func() {
-			tt, recover := recoverPhase(tt, tracer, phase.name)
+			tt, recover := recoverPhase(t.T, tracer, phase.name)
 			defer recover()
 			phase.fn(tt)
 		}()
