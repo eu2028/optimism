@@ -1,36 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {CommonBase} from "../../lib/forge-std/src/Base.sol";
-import {Script} from "../../lib/forge-std/src/Script.sol";
-import {StdChains} from "../../lib/forge-std/src/StdChains.sol";
-import {StdCheatsSafe} from "../../lib/forge-std/src/StdCheats.sol";
-import {StdUtils} from "../../lib/forge-std/src/StdUtils.sol";
-import {console} from "../../lib/forge-std/src/console.sol";
-import {SuperchainConfig} from "../../src/L1/SuperchainConfig.sol";
-import {FaultDisputeGame} from "../../src/dispute/FaultDisputeGame.sol";
-import {PermissionedDisputeGame} from "../../src/dispute/PermissionedDisputeGame.sol";
-import {IAnchorStateRegistry} from "../../src/dispute/interfaces/IAnchorStateRegistry.sol";
-import {IBigStepper} from "../../src/dispute/interfaces/IBigStepper.sol";
-import {IDelayedWETH} from "../../src/dispute/interfaces/IDelayedWETH.sol";
-import {DelayedWETH} from "../../src/dispute/weth/DelayedWETH.sol";
-import {Proxy} from "../../src/universal/Proxy.sol";
-import {GameType, Duration, Claim} from "../../src/dispute/lib/LibUDT.sol";
-import {GameTypes} from "../../src/dispute/lib/Types.sol";
-import {DisputeGameFactory} from "../../src/dispute/DisputeGameFactory.sol";
-import {Constants} from "../../src/libraries/Constants.sol";
-import {ChainAssertions} from "./ChainAssertions.sol";
+import { CommonBase } from "../../lib/forge-std/src/Base.sol";
+import { Script } from "../../lib/forge-std/src/Script.sol";
+import { StdChains } from "../../lib/forge-std/src/StdChains.sol";
+import { StdCheatsSafe } from "../../lib/forge-std/src/StdCheats.sol";
+import { StdUtils } from "../../lib/forge-std/src/StdUtils.sol";
+import { console } from "../../lib/forge-std/src/console.sol";
+import { SuperchainConfig } from "../../src/L1/SuperchainConfig.sol";
+import { FaultDisputeGame } from "../../src/dispute/FaultDisputeGame.sol";
+import { PermissionedDisputeGame } from "../../src/dispute/PermissionedDisputeGame.sol";
+import { IAnchorStateRegistry } from "../../src/dispute/interfaces/IAnchorStateRegistry.sol";
+import { IBigStepper } from "../../src/dispute/interfaces/IBigStepper.sol";
+import { IDelayedWETH } from "../../src/dispute/interfaces/IDelayedWETH.sol";
+import { DelayedWETH } from "../../src/dispute/weth/DelayedWETH.sol";
+import { Proxy } from "../../src/universal/Proxy.sol";
+import { GameType, Duration, Claim } from "../../src/dispute/lib/LibUDT.sol";
+import { GameTypes } from "../../src/dispute/lib/Types.sol";
+import { DisputeGameFactory } from "../../src/dispute/DisputeGameFactory.sol";
+import { Constants } from "../../src/libraries/Constants.sol";
+import { ChainAssertions } from "./ChainAssertions.sol";
 
 contract DeployPermissionless is Script {
-
     address public _disputeGameFactoryProxy = vm.envAddress("DGF_FACTORY_PROXY");
     bytes32 public _absolutePrestate = vm.envBytes32("ABSOLUTE_PRESTATE");
-
 
     function run() external {
         DisputeGameFactory dgf = DisputeGameFactory(_disputeGameFactoryProxy);
 
-        PermissionedDisputeGame permissioned = PermissionedDisputeGame(payable(address(dgf.gameImpls(GameTypes.PERMISSIONED_CANNON))));
+        PermissionedDisputeGame permissioned =
+            PermissionedDisputeGame(payable(address(dgf.gameImpls(GameTypes.PERMISSIONED_CANNON))));
         Proxy proxy = deployDelayedWethProxy();
         DelayedWETH permDelayedWeth = DelayedWETH(payable(address(permissioned.weth())));
         initializeDelayedWethProxy(permDelayedWeth, proxy);
@@ -47,14 +46,17 @@ contract DeployPermissionless is Script {
 
     function deployDelayedWethProxy() internal broadcast returns (Proxy) {
         console.log(string.concat("Deploying ERC1967 proxy for DelayedWETH"));
-        Proxy proxy = new Proxy({_admin: msg.sender});
+        Proxy proxy = new Proxy({ _admin: msg.sender });
         return proxy;
     }
 
     function initializeDelayedWethProxy(DelayedWETH _permissioned, Proxy _proxy) internal broadcast {
         console.log("Initializing proxy for DelayedWETH");
-        address delayedWEthImpl = address(uint160(uint256(vm.load(address(_permissioned), Constants.PROXY_IMPLEMENTATION_ADDRESS))));
-        _proxy.upgradeToAndCall(delayedWEthImpl, abi.encodeCall(DelayedWETH.initialize, (_permissioned.owner(), _permissioned.config())));
+        address delayedWEthImpl =
+            address(uint160(uint256(vm.load(address(_permissioned), Constants.PROXY_IMPLEMENTATION_ADDRESS))));
+        _proxy.upgradeToAndCall(
+            delayedWEthImpl, abi.encodeCall(DelayedWETH.initialize, (_permissioned.owner(), _permissioned.config()))
+        );
     }
 
     function transferDelayedWethProxyAdmin(DelayedWETH _permissioned, Proxy _proxy) internal broadcast {
@@ -63,7 +65,14 @@ contract DeployPermissionless is Script {
         _proxy.changeAdmin(proxyAdmin);
     }
 
-    function deployFaultDisputeGame(PermissionedDisputeGame _permissioned, IDelayedWETH _delayedWeth) internal broadcast returns (FaultDisputeGame) {
+    function deployFaultDisputeGame(
+        PermissionedDisputeGame _permissioned,
+        IDelayedWETH _delayedWeth
+    )
+        internal
+        broadcast
+        returns (FaultDisputeGame)
+    {
         console.log("Deploying FaultDisputeGame");
 
         FaultDisputeGame impl = new FaultDisputeGame(
@@ -81,7 +90,11 @@ contract DeployPermissionless is Script {
         return impl;
     }
 
-    function deployPermissionedDisputeGame(PermissionedDisputeGame _permissioned) internal broadcast returns (PermissionedDisputeGame) {
+    function deployPermissionedDisputeGame(PermissionedDisputeGame _permissioned)
+        internal
+        broadcast
+        returns (PermissionedDisputeGame)
+    {
         console.log("Deploying PermissionedDisputeGame");
         PermissionedDisputeGame impl = new PermissionedDisputeGame(
             GameTypes.PERMISSIONED_CANNON,
@@ -106,7 +119,14 @@ contract DeployPermissionless is Script {
         require(_impl.config() == _expected.config(), "WETH-30");
     }
 
-    function checkFaultDisputeGame(PermissionedDisputeGame _permissioned, FaultDisputeGame _impl, IDelayedWETH _delayedWeth) internal view {
+    function checkFaultDisputeGame(
+        PermissionedDisputeGame _permissioned,
+        FaultDisputeGame _impl,
+        IDelayedWETH _delayedWeth
+    )
+        internal
+        view
+    {
         require(_impl.gameType().raw() == GameTypes.CANNON.raw(), "FDG-10");
         require(_impl.absolutePrestate().raw() == _absolutePrestate, "FDG-20");
         require(_impl.maxGameDepth() == _permissioned.maxGameDepth(), "FDG-30");
@@ -119,7 +139,13 @@ contract DeployPermissionless is Script {
         require(_impl.l2ChainId() == _permissioned.l2ChainId(), "FDG-100");
     }
 
-    function checkPermissionedDisputeGame(PermissionedDisputeGame _permissioned, PermissionedDisputeGame _impl) internal view {
+    function checkPermissionedDisputeGame(
+        PermissionedDisputeGame _permissioned,
+        PermissionedDisputeGame _impl
+    )
+        internal
+        view
+    {
         require(_impl.gameType().raw() == GameTypes.PERMISSIONED_CANNON.raw(), "PDG-10");
         require(_impl.absolutePrestate().raw() == _absolutePrestate, "PDG-20");
         require(_impl.maxGameDepth() == _permissioned.maxGameDepth(), "PDG-30");
