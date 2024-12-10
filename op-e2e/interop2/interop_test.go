@@ -12,9 +12,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
-
-	"github.com/sigma/go-test-trace/pkg/trace_testing"
 )
 
 // high-level requirements for the tests in here.
@@ -46,17 +43,19 @@ func (ti *testInteropBlockBuilding) getShorthands() (alice, bob, chainA, chainB 
 }
 
 func (ti *testInteropBlockBuilding) Setup(t Test, s SuperSystem) {
+	ctx := t.Context()
+
 	ti.auto = automation.NewSuperSystemAutomation(s, testlog.Logger(t, log.LevelInfo), t)
 	// oplog.SetGlobalLogHandler(logger.Handler())
-	ti.auto.NewUniqueUsers(numberOfUsers)
+	ti.auto.NewUniqueUsers(ctx, numberOfUsers)
 
 	alice, _, chainA, chainB := ti.getShorthands()
 
-	err := ti.auto.SetupXChainMessaging(alice, chainA, chainB)
+	err := ti.auto.SetupXChainMessaging(ctx, alice, chainA, chainB)
 	require.NoError(t, err)
 
 	// emit log on chain A
-	syncPoint, err := ti.auto.SendXChainMessage(alice, chainA, "hello world")
+	syncPoint, err := ti.auto.SendXChainMessage(ctx, alice, chainA, "hello world")
 	require.NoError(t, err)
 
 	ti.setupSyncPoint = syncPoint
@@ -89,36 +88,31 @@ func (ti *testInteropBlockBuilding) Check(t Test, s SuperSystem) {
 	for _, tt := range data {
 		t.Run(tt.name, func(t Test) {
 			bobAddr := s.Address(chainA, bob) // direct it to a random account without code
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 			defer cancel()
 
-			_, err := ti.auto.ExecuteMessage(ctx, chainB, alice, ti.setupSyncPoint.Identifier(), bobAddr, tt.payload, tt.expectedError)
+			_, err := ti.auto.ExecuteMessage(ctx, chainB, alice, ti.setupSyncPoint.Identifier(ctx), bobAddr, tt.payload, tt.expectedError)
 			tt.executionExpectation(ctx, t, err)
 		})
 	}
 }
 
 func TestInteropBlockBuilding(t *testing.T) {
-	tt := trace_testing.WithTracing(t)
-	tracer := otel.Tracer(tt.Name())
+	tt := WithExtendedT(t)
 
-	ctx, span := tracer.Start(tt.Context(), tt.Name())
-	defer span.End()
-	tt = tt.WithContext(ctx)
-
-	for _, useFiltering := range []bool{
-		false,
-		true,
-	} {
-		tNamePrefix := "without"
-		if useFiltering {
-			tNamePrefix = "with"
-		}
-		tName := tNamePrefix + "_mempool_filtering"
-		tt.Run(tName, func(t trace_testing.T) {
+	data := []struct {
+		name         string
+		useFiltering bool
+	}{
+		{name: "without_mempool_filtering", useFiltering: false},
+		{name: "with_mempool_filtering", useFiltering: true},
+	}
+	for _, d := range data {
+		tt.Run(d.name, func(t T) {
+			t.Parallel()
 			spec := &interfaces.SuperSystemSpec{
 				Config: interfaces.NewSuperSystemConfig(
-					interfaces.WithMempoolFiltering(useFiltering),
+					interfaces.WithMempoolFiltering(d.useFiltering),
 					interfaces.WithNumberOfL2s(numberOfL2s),
 				),
 			}

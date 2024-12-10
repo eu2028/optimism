@@ -44,7 +44,7 @@ require (
 	github.com/pkg/profile v1.7.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/protolambda/ctxlock v0.1.0
-	github.com/sigma/go-test-trace v0.0.0-20241209214657-650c196a8c51
+	github.com/sigma/go-test-trace v0.0.0-20241210092618-a488fd3509c3
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
 	go.opentelemetry.io/otel v1.32.0
