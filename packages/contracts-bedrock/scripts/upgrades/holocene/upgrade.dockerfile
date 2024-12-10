@@ -31,11 +31,8 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 # Set the working directory
 WORKDIR /app
 
-# Clone the repository
-RUN git clone https://github.com/ethereum-optimism/optimism.git .
-
-# Check out the target branch
-RUN git checkout $REV
+# Clone the repository, only at the target revision
+RUN git clone --branch $REV --depth 1 https://github.com/ethereum-optimism/optimism.git .
 
 # Set the working directory to the root of the monorepo
 WORKDIR /app
