@@ -195,3 +195,25 @@ rules:
     paths:
       exclude:
         - packages/contracts-bedrock/test
+
+  - id: sol-style-custom-natspec
+    languages: [solidity]
+    severity: ERROR
+    message: Custom natspec must match allowed patterns
+    patterns:
+      - pattern-regex: "@custom:"
+      - pattern-not-regex: "@custom:predeploy 0x[a-fA-F0-9]{40}"
+      - pattern-not-regex: "@custom:semver .*"
+      - pattern-not-regex: "@custom:proxied true"
+      - pattern-not-regex: "@custom:field .*"
+      - pattern-not-regex: "@custom:kontrol-.*"
+      - pattern-not-regex: "@custom:invariant .*"
+      - pattern-not-regex: "@custom:property-*"
+      - pattern-not-regex: "@custom:legacy"
+      - pattern-not-regex: "@custom:spacer"
+      - pattern-not-regex: "@custom:value .*"
+      - pattern-not-regex: "@custom:network-specific"
+      - pattern-not-regex: "@custom:upgradeable"
+      - pattern-not-regex: "@custom:attribution .*"
+      - pattern-not-regex: "@custom:deprecated .*"
+      - pattern-not-regex: "@custom:storage-location .*"

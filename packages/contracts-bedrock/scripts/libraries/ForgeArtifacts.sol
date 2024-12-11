@@ -81,7 +81,7 @@ library ForgeArtifacts {
     /// @param _name The name of the contract to check.
     /// @return out_ Whether or not the contract is proxied.
     function isProxiedContract(string memory _name) internal returns (bool out_) {
-        // TODO: Using the `@custom:proxied` tag is to determine if a contract is meant to be
+        // TODO: Using the `custom:proxied` tag is to determine if a contract is meant to be
         // proxied is functional but developers can easily forget to add the tag when writing a new
         // contract. We should consider determining whether a contract is proxied based on the
         // deployment script since it's the source of truth for that. Current deployment script
@@ -100,7 +100,7 @@ library ForgeArtifacts {
     /// @param _name The name of the contract to check.
     /// @return out_ Whether or not the contract is predeployed.
     function isPredeployedContract(string memory _name) internal returns (bool out_) {
-        // TODO: Similar to the above, using the `@custom:predeployed` tag is not reliable but
+        // TODO: Similar to the above, using the `custom:predeployed` tag is not reliable but
         // functional for now. Deployment script should make this easier to determine.
         string memory res = Process.bash(
             string.concat(

@@ -10,7 +10,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismERC20Factory } from "interfaces/L2/IOptimismERC20Factory.sol";
 
 /// @custom:proxied true
-/// @custom:predeployed 0x4200000000000000000000000000000000000012
+/// @custom:predeploy 0x4200000000000000000000000000000000000012
 /// @title OptimismMintableERC20Factory
 /// @notice OptimismMintableERC20Factory is a factory contract that generates OptimismMintableERC20
 ///         contracts on the network it's deployed to. Simplifies the deployment process for users

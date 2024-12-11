@@ -6,7 +6,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:legacy true
 /// @custom:proxied true
-/// @custom:predeployed 0x4200000000000000000000000000000000000002
+/// @custom:predeploy 0x4200000000000000000000000000000000000002
 /// @title DeployerWhitelist
 /// @notice DeployerWhitelist is a legacy contract that was originally used to act as a whitelist of
 ///         addresses allowed to the Optimism network. The DeployerWhitelist has since been

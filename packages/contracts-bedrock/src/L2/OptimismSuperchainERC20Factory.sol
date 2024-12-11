@@ -12,8 +12,8 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
-/// @custom:proxied
-/// @custom:predeployed 0x4200000000000000000000000000000000000026
+/// @custom:proxied true
+/// @custom:predeploy 0x4200000000000000000000000000000000000026
 /// @title OptimismSuperchainERC20Factory
 /// @notice OptimismSuperchainERC20Factory is a factory contract that deploys OptimismSuperchainERC20 Beacon Proxies
 ///         using CREATE3.
