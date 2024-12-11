@@ -1,7 +1,7 @@
 package multithreaded
 
 import (
-	lru "github.com/hashicorp/golang-lru/v2"
+	lru "github.com/hashicorp/golang-lru/v2/simplelru"
 
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 )
@@ -43,7 +43,7 @@ var _ StatsTracker = (*noopStatsTracker)(nil)
 // Actual implementation
 type statsTrackerImpl struct {
 	// State
-	lastLLStepByThread    *lru.Cache[Word, uint64]
+	lastLLStepByThread    *lru.LRU[Word, uint64]
 	isWakeupTraversal     bool
 	activeThreadId        Word
 	lastActiveStepThread0 uint64
@@ -134,7 +134,7 @@ func NewStatsTracker() StatsTracker {
 }
 
 func newStatsTracker(cacheSize int) StatsTracker {
-	llStepCache, err := lru.New[Word, uint64](cacheSize)
+	llStepCache, err := lru.NewLRU[Word, uint64](cacheSize, nil)
 	if err != nil {
 		panic(err) // negative size parameter may produce an error
 	}
