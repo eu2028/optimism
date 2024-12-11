@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/utils"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
@@ -44,9 +45,9 @@ func TestGenerateProof(t *testing.T) {
 		L2BlockNumber: big.NewInt(3333),
 	}
 
-	info := &debugInfo{
+	info := &mipsevm.DebugInfo{
 		MemoryUsed:                   11,
-		Steps:                        123455,
+		TotalSteps:                   123455,
 		RmwSuccessCount:              12,
 		RmwFailCount:                 34,
 		MaxStepsBetweenLLAndSC:       56,
@@ -178,13 +179,13 @@ func TestGenerateProof(t *testing.T) {
 	})
 }
 
-func validateMetrics(t require.TestingT, m *capturingVmMetrics, expected *debugInfo, cfg Config) {
+func validateMetrics(t require.TestingT, m *capturingVmMetrics, expected *mipsevm.DebugInfo, cfg Config) {
 	require.Equal(t, 1, m.executionTimeRecordCount, "Should record vm execution time")
 
 	// Check metrics sourced from cannon.mipsevm.DebugInfo json file
 	if cfg.DebugInfo {
 		require.Equal(t, expected.MemoryUsed, m.memoryUsed)
-		require.Equal(t, expected.Steps, m.steps)
+		require.Equal(t, expected.TotalSteps, m.steps)
 		require.Equal(t, expected.RmwSuccessCount, m.rmwSuccessCount)
 		require.Equal(t, expected.RmwFailCount, m.rmwFailCount)
 		require.Equal(t, expected.MaxStepsBetweenLLAndSC, m.maxStepsBetweenLLAndSC)
