@@ -674,15 +674,15 @@ jobs:
       - run:
           name: Run tests
           command: |
-            TEST_FILES=$(<<parameters.test_list>>)
-            TEST_FILES=$(echo "$TEST_FILES" | circleci tests split --split-by=timings)
-            TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
-            MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
             if [[ "$UPGRADE_TEST" == "true" ]]; then
               echo "Running upgrade tests"
               export ETH_RPC_URL="https://ci-mainnet-l1-archive.optimism.io"
-              just test-upgrade --match-path "$MATCH_PATH"
+              just test-upgrade
             else
+              TEST_FILES=$(<<parameters.test_list>>)
+              TEST_FILES=$(echo "$TEST_FILES" | circleci tests split --split-by=timings)
+              TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
+              MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
               forge <<parameters.test_command>> <<parameters.test_flags>> --match-path "$MATCH_PATH"
             fi
           environment:

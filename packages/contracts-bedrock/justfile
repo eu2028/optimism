@@ -63,7 +63,8 @@ test-upgrade *ARGS:
   FOUNDRY_PROFILE=lite \
   FORK_RPC_URL=$ETH_RPC_URL \
     UPGRADE_TEST=true \
-    forge test {{ARGS}}
+    forge test --match-path "test/L1/**" \
+    {{ARGS}}
 
 # Starts a local anvil node with a mainnet fork and sends it to the background
 # Requires ETH_RPC_URL to be set to a production (Sepolia or Mainnet) RPC URL.
