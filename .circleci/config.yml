@@ -674,7 +674,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            if [[ "$(<<parameters.test_upgrade>>)" == "true" ]]; then
+            if [[ "<<parameters.test_upgrade>>" == "true" ]]; then
               echo "Running upgrade tests"
               export ETH_RPC_URL="https://ci-mainnet-l1-archive.optimism.io"
               just test-upgrade
