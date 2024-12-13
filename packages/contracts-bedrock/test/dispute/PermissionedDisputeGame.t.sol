@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
+import { console2 as console } from "forge-std/console2.sol";
+
 // Testing
 import { DisputeGameFactory_Init } from "test/dispute/DisputeGameFactory.t.sol";
 import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
@@ -46,7 +48,7 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
         }
 
         // Set the extra data for the game creation
-        extraData = abi.encode(l2BlockNumber);
+        extraData = abi.encode(l2BlockNumber); // MOOSE: goes into disputeGameFactory.create()
 
         IPreimageOracle oracle = IPreimageOracle(
             DeployUtils.create1({
@@ -95,8 +97,16 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
         disputeGameFactory.setImplementation(GAME_TYPE, gameImpl);
         // Create a new game.
         uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
+        console.log("bondAmount", bondAmount);
         vm.prank(PROPOSER, PROPOSER);
         gameProxy = IPermissionedDisputeGame(
+            // MOOSE: this call reverts with
+            // "UnexpectedRootClaim(0x010000000000000000000000000000000000000000000000000000000000000a)"
+            // however the revert actually happens further downstream in AnchorStateRegistry.anchors()
+            // ─ [56306] PermissionedDisputeGameProxy::initialize{value: 80000000000000000}()
+            // ├─ [56088] PermissionedDisputeGame::initialize{value: 80000000000000000}() [delegatecall]
+            // │   ├─ [7654] AnchorStateRegistry::anchors(1) [staticcall]
+            // │   │   ├─ [4665] AnchorStateRegistry::anchors(1) [delegatecall]
             payable(address(disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, rootClaim, extraData)))
         );
 
@@ -131,10 +141,13 @@ contract PermissionedDisputeGame_Test is PermissionedDisputeGame_Init {
     Claim internal absolutePrestate;
 
     function setUp() public override {
-        absolutePrestateData = abi.encode(0);
+        absolutePrestateData = abi.encode(0); // MOOSE: not fork friendly?
         absolutePrestate = _changeClaimStatus(Claim.wrap(keccak256(absolutePrestateData)), VMStatuses.UNFINISHED);
 
         super.setUp();
+
+        // MOOSE: root claim is just bytes32(0x0a.....10), it's an input to disputeGameFactory.create()
+        //         l2 block number is way too low... what should it be relative to current block?
         super.init({ rootClaim: ROOT_CLAIM, absolutePrestate: absolutePrestate, l2BlockNumber: 0x10 });
     }
 
