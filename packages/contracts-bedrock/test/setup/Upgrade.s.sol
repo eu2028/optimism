@@ -47,6 +47,12 @@ contract Upgrade is Deployer {
         string memory superchainBasePath = "./lib/superchain-registry/superchain/configs/";
 
         // Read the superchain config files
+        // During development of an upgrade which adds a new contract, the contract will not yet be present in the
+        // superchain-registry. In this case, the contract will be deployed by the upgrade process, and will need to
+        // be saved by after the call to opcm.upgrade().
+        // After the upgrade is complete, the superchain-registry will be updated and the contract will be present.
+        // At this point, the test will need to be updated to read the new contract from the superchain-registry using
+        // either the `saveProxyAndImpl` or `save` functions.
         string memory superchainToml =
             vm.readFile(string.concat(superchainBasePath, upgradeBaseChain(), "/superchain.toml"));
         string memory opToml =
