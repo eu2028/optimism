@@ -674,7 +674,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            if [[ "$UPGRADE_TEST" == "true" ]]; then
+            if [[ "$(<<parameters.test_upgrade>>)" == "true" ]]; then
               echo "Running upgrade tests"
               export ETH_RPC_URL="https://ci-mainnet-l1-archive.optimism.io"
               just test-upgrade
@@ -687,7 +687,6 @@ jobs:
             fi
           environment:
             FOUNDRY_PROFILE: <<parameters.test_profile>>
-            UPGRADE_TEST: <<parameters.test_upgrade>>
           working_directory: packages/contracts-bedrock
           no_output_timeout: <<parameters.test_timeout>>
       - run:
@@ -1222,7 +1221,7 @@ workflows:
       - contracts-bedrock-tests:
           # Test everything except PreimageOracle.t.sol since it's slow.
           name: contracts-bedrock-tests
-          test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
+          test_list: ""
       - contracts-bedrock-tests:
           # Test everything except PreimageOracle.t.sol since it's slow.
           name: contracts-bedrock-tests-upgrade
