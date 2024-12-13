@@ -37,11 +37,12 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
     event Move(uint256 indexed parentIndex, Claim indexed pivot, address indexed claimant);
 
     function init(Claim rootClaim, Claim absolutePrestate, uint256 l2BlockNumber) public {
-        // Set the time to a realistic date.
-        if (!isForkTest) {
-            vm.warp(1690906994);
-        } else {
+        if (isForkTest) {
+            // Fund the proposer on this fork.
             vm.deal(PROPOSER, 100 ether);
+        } else {
+            // Set the time to a realistic date.
+            vm.warp(1690906994);
         }
 
         // Set the extra data for the game creation
