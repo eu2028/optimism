@@ -46,12 +46,14 @@ contract CommonTest is Test, Setup, Events {
     IOptimismMintableERC20Full RemoteL1Token;
 
     function setUp() public virtual override {
+        // Because Setup.setup() may create a forked network, all cheatcodes must be run prior to any
+        // state modifying cheat codes.
+        Setup.setUp();
+
         alice = makeAddr("alice");
         bob = makeAddr("bob");
         vm.deal(alice, 10000 ether);
         vm.deal(bob, 10000 ether);
-
-        Setup.setUp();
 
         // Override the config after the deploy script initialized the config
         if (useAltDAOverride) {

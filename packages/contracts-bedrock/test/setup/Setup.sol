@@ -157,10 +157,10 @@ contract Setup {
     }
 
     /// @dev Skips tests when running against a forked production network.
-    function skipIfForkTest() public {
+    function skipIfForkTest(string memory message) public {
         if (isForkTest) {
             vm.skip(true);
-            console.log("Setup: fork test detected, skipping tests");
+            console.log(string.concat("Skipping Fork Test: ", message));
         }
     }
 

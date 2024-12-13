@@ -34,6 +34,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
 
     function setUp() public virtual override {
         super.setUp();
+        skipIfForkTest("SystemConfig_Initialize_Test: cannot test initialization on forked network");
         batchInbox = deploy.cfg().batchInboxAddress();
         owner = deploy.cfg().finalSystemOwner();
         basefeeScalar = deploy.cfg().basefeeScalar();
@@ -511,6 +512,7 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
 
     /// @notice Ensures that `setGasConfig` reverts if version byte is set.
     function test_setGasConfig_badValues_reverts() external {
+        skipIfForkTest("SystemConfig_Setters_TestFail: scalar exceeds max check DNE on op mainnet");
         vm.prank(systemConfig.owner());
         vm.expectRevert("SystemConfig: scalar exceeds max.");
         systemConfig.setGasConfig({ _overhead: 0, _scalar: type(uint256).max });
