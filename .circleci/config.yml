@@ -691,7 +691,12 @@ jobs:
           no_output_timeout: <<parameters.test_timeout>>
       - run:
           name: Print failed test traces
-          command: just test-rerun
+          command: |
+            if [[ "<<parameters.test_upgrade>>" == "true" ]]; then
+              just test-upgrade-rerun
+            else
+              just test-rerun
+            fi
           environment:
             FOUNDRY_PROFILE: ci
           working_directory: packages/contracts-bedrock
