@@ -393,7 +393,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageSender(), address(0));
     }
 
-    /// @dev Tests the `relayMessage` function returns the expected return data of the call to the target contract.
+    /// @dev Tests the `relayMessage` function returns the expected return data from the call to the target contract.
     function testFuzz_relayMessage_returnData_succeeds(
         uint256 _source,
         uint256 _nonce,
