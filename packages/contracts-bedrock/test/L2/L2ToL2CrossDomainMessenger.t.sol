@@ -411,7 +411,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         vm.deal(_target, 0);
 
         // Declare a random call to be made over the target
-        bytes memory message = abi.encodeWithSignature("randomCall()");
+        bytes memory message = abi.encodePacked("randomCall()");
 
         // Construct the message
         Identifier memory id =
