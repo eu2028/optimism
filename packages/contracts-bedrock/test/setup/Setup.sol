@@ -156,6 +156,14 @@ contract Setup {
         }
     }
 
+    /// @dev Skips the tests if when running against a forked production network.
+    function skipIfForkTest() public {
+        if (isForkTest) {
+            vm.skip(true);
+            console.log("Setup: fork test detected, skipping tests");
+        }
+    }
+
     /// @dev Sets up the L1 contracts.
     function L1() public {
         console.log("Setup: creating L1 deployments");
@@ -224,6 +232,12 @@ contract Setup {
 
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
+        // Fork tests focus on L1 contracts so there is no need to do all the work of setting up L2.
+        if (isForkTest) {
+            console.log("Setup: fork test detected, skipping L2 setup");
+            return;
+        }
+
         console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
         l2Genesis.runWithOptions(
             OutputMode.NONE,

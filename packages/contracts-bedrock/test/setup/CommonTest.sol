@@ -91,13 +91,8 @@ contract CommonTest is Test, Setup, Events {
 
         // Deploy L1
         Setup.L1();
-        if (isForkTest) {
-            console.log("CommonTest: fork test detected, skipping L2 setup");
-        } else {
-            console.log("CommonTest: L2 setup start!");
-            // Deploy L2
-            Setup.L2();
-        }
+        // Deploy L2
+        Setup.L2();
 
         // Call bridge initializer setup function
         bridgeInitializerSetUp();
@@ -124,7 +119,10 @@ contract CommonTest is Test, Setup, Events {
         );
         vm.label(address(LegacyL2Token), "LegacyMintableERC20");
 
-        if (!isForkTest) {
+        if (isForkTest) {
+            console.log("CommonTest: fork test detected, skipping L2 setup");
+            L2Token = IOptimismMintableERC20Full(makeAddr("L2Token"));
+        } else {
             // Deploy the L2 ERC20 now
             L2Token = IOptimismMintableERC20Full(
                 l2OptimismMintableERC20Factory.createStandardL2Token(
@@ -133,9 +131,6 @@ contract CommonTest is Test, Setup, Events {
                     string(abi.encodePacked("L2-", L1Token.symbol()))
                 )
             );
-        } else {
-            console.log("CommonTest: fork test detected, skipping L2 setup");
-            L2Token = IOptimismMintableERC20Full(makeAddr("L2Token"));
         }
 
         NativeL2Token = new ERC20("Native L2 Token", "L2T");
@@ -217,12 +212,5 @@ contract CommonTest is Test, Setup, Events {
         }
 
         useInteropOverride = true;
-    }
-
-    function skipIfForkTest() public {
-        if (isForkTest) {
-            vm.skip(true);
-            console.log("CommonTest: fork test detected, skipping setup");
-        }
     }
 }
