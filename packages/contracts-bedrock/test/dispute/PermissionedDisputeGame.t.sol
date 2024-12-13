@@ -40,6 +40,8 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
         // Set the time to a realistic date.
         if (!isForkTest) {
             vm.warp(1690906994);
+        } else {
+            vm.deal(PROPOSER, 100 ether);
         }
 
         // Set the extra data for the game creation
@@ -91,9 +93,11 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
         // Register the game implementation with the factory.
         disputeGameFactory.setImplementation(GAME_TYPE, gameImpl);
         // Create a new game.
+        uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
         vm.prank(PROPOSER, PROPOSER);
-        gameProxy =
-            IPermissionedDisputeGame(payable(address(disputeGameFactory.create(GAME_TYPE, rootClaim, extraData))));
+        gameProxy = IPermissionedDisputeGame(
+            payable(address(disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, rootClaim, extraData)))
+        );
 
         // Check immutables
         assertEq(gameProxy.proposer(), PROPOSER);

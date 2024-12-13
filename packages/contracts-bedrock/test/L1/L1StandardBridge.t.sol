@@ -21,12 +21,14 @@ import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 
 contract L1StandardBridge_Getter_Test is CommonTest {
     /// @dev Test that the accessors return the correct initialized values.
-    function test_getters_succeeds() external view {
+    function test_getters_succeeds() external {
         assert(l1StandardBridge.l2TokenBridge() == address(l2StandardBridge));
         assert(address(l1StandardBridge.OTHER_BRIDGE()) == address(l2StandardBridge));
         assert(address(l1StandardBridge.messenger()) == address(l1CrossDomainMessenger));
         assert(address(l1StandardBridge.MESSENGER()) == address(l1CrossDomainMessenger));
         assert(l1StandardBridge.superchainConfig() == superchainConfig);
+
+        returnIfForkTest("L1StandardBridge_Getter_Test: systemConfig() getter DNE on op mainnet");
         assert(l1StandardBridge.systemConfig() == systemConfig);
     }
 }
@@ -43,17 +45,21 @@ contract L1StandardBridge_Initialize_Test is CommonTest {
         assertEq(address(impl.OTHER_BRIDGE()), address(0));
         assertEq(address(impl.otherBridge()), address(0));
         assertEq(address(l2StandardBridge), Predeploys.L2_STANDARD_BRIDGE);
+
+        returnIfForkTest("L1StandardBridge_Initialize_Test: systemConfig() getter DNE on op mainnet");
         assertEq(address(impl.systemConfig()), address(0));
     }
 
     /// @dev Test that the initialize function sets the correct values.
-    function test_initialize_succeeds() external view {
+    function test_initialize_succeeds() external {
         assertEq(address(l1StandardBridge.superchainConfig()), address(superchainConfig));
         assertEq(address(l1StandardBridge.MESSENGER()), address(l1CrossDomainMessenger));
         assertEq(address(l1StandardBridge.messenger()), address(l1CrossDomainMessenger));
         assertEq(address(l1StandardBridge.OTHER_BRIDGE()), Predeploys.L2_STANDARD_BRIDGE);
         assertEq(address(l1StandardBridge.otherBridge()), Predeploys.L2_STANDARD_BRIDGE);
         assertEq(address(l2StandardBridge), Predeploys.L2_STANDARD_BRIDGE);
+
+        returnIfForkTest("L1StandardBridge_Initialize_Test: systemConfig() getter DNE on op mainnet");
         assertEq(address(l1StandardBridge.systemConfig()), address(systemConfig));
     }
 }

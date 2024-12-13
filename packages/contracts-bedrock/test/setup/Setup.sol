@@ -160,7 +160,16 @@ contract Setup {
     function skipIfForkTest(string memory message) public {
         if (isForkTest) {
             vm.skip(true);
-            console.log(string.concat("Skipping Fork Test: ", message));
+            console.log(string.concat("Skipping fork test: ", message));
+        }
+    }
+
+    /// @dev Returns early when running against a forked production network. Useful for allowing a portion of a test
+    ///      to run.
+    function returnIfForkTest(string memory message) public view {
+        if (isForkTest) {
+            console.log(string.concat("Returning early from fork test: ", message));
+            return;
         }
     }
 
