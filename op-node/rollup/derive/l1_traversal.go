@@ -29,6 +29,11 @@ type L1Traversal struct {
 	log      log.Logger
 	sysCfg   eth.SystemConfig
 	cfg      *rollup.Config
+
+	// if the L1Traversal is in managed mode, it will use the managedTarget
+	// instead of the next block from the L1BlockRefByNumberFetcher
+	managedMode   bool
+	managedTarget eth.L1BlockRef
 }
 
 var _ ResettableStage = (*L1Traversal)(nil)
@@ -56,20 +61,35 @@ func (l1t *L1Traversal) NextL1Block(_ context.Context) (eth.L1BlockRef, error) {
 	}
 }
 
-// AdvanceL1Block advances the internal state of L1 Traversal
-func (l1t *L1Traversal) AdvanceL1Block(ctx context.Context) error {
+func (l1t *L1Traversal) checkForNextRef(ctx context.Context) (eth.L1BlockRef, error) {
 	origin := l1t.block
 	nextL1Origin, err := l1t.l1Blocks.L1BlockRefByNumber(ctx, origin.Number+1)
 	if errors.Is(err, ethereum.NotFound) {
 		l1t.log.Debug("can't find next L1 block info (yet)", "number", origin.Number+1, "origin", origin)
-		return io.EOF
+		return eth.L1BlockRef{}, io.EOF
 	} else if err != nil {
-		return NewTemporaryError(fmt.Errorf("failed to find L1 block info by number, at origin %s next %d: %w", origin, origin.Number+1, err))
+		return eth.L1BlockRef{}, NewTemporaryError(fmt.Errorf("failed to find L1 block info by number, at origin %s next %d: %w", origin, origin.Number+1, err))
 	}
 	if l1t.block.Hash != nextL1Origin.ParentHash {
-		return NewResetError(fmt.Errorf("detected L1 reorg from %s to %s with conflicting parent %s", l1t.block, nextL1Origin, nextL1Origin.ParentID()))
+		return eth.L1BlockRef{}, NewResetError(fmt.Errorf("detected L1 reorg from %s to %s with conflicting parent %s", l1t.block, nextL1Origin, nextL1Origin.ParentID()))
 	}
+	return nextL1Origin, nil
+}
 
+func (l1t *L1Traversal) target(ctx context.Context) (eth.L1BlockRef, error) {
+	if l1t.managedMode {
+		if l1t.managedTarget == (eth.L1BlockRef{}) {
+			return eth.L1BlockRef{}, NewTemporaryError(fmt.Errorf("managed mode enabled but no managed target set"))
+		}
+		return l1t.managedTarget, nil
+	}
+	return l1t.checkForNextRef(ctx)
+}
+
+// AdvanceL1Block advances the internal state of L1 Traversal given a specific L1 block.
+func (l1t *L1Traversal) AdvanceL1BLock(ctx context.Context) error {
+	origin := l1t.block
+	nextL1Origin, err := l1t.target(ctx)
 	// Parse L1 receipts of the given block and update the L1 system configuration
 	_, receipts, err := l1t.l1Blocks.FetchReceipts(ctx, nextL1Origin.Hash)
 	if err != nil {

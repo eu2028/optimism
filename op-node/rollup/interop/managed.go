@@ -102,6 +102,7 @@ func (ib *InteropAPI) Reset(ctx context.Context) error {
 }
 
 func (ib *InteropAPI) TryDeriveNext(ctx context.Context, nextL1 eth.BlockRef) error {
+	// Set the pipeline's ManagedTarget to the nextL1 and then,
 	// TODO(#13336): fire derivation step event
 	// TODO(#13336): await deriver progress (L1 or L2 kind of progress) or ctx timeout
 	// TODO(#13336): need to not auto-derive the next thing until next TryDeriveNext call: need to modify driver

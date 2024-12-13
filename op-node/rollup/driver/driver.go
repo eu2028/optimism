@@ -218,6 +218,11 @@ func NewDriver(
 
 	derivationPipeline := derive.NewDerivationPipeline(log, cfg, verifConfDepth, l1Blobs, altDA, l2, metrics)
 
+	// TODO: this is the WRONG check to make. We need to know if the node is in ManagedMode, not if interop is scheduled.
+	if cfg.InteropTime != nil {
+		derivationPipeline.SetManagedMode()
+	}
+
 	sys.Register("pipeline",
 		derive.NewPipelineDeriver(driverCtx, derivationPipeline), opts)
 

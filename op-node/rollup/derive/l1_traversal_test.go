@@ -137,7 +137,7 @@ func TestL1TraversalAdvance(t *testing.T) {
 			_ = tr.Reset(context.Background(), test.startBlock, test.initialL1Cfg)
 
 			// Advance it + assert output
-			err := tr.AdvanceL1Block(context.Background())
+			err := tr.AdvanceL1BLock(context.Background())
 			require.ErrorIs(t, err, test.expectedErr)
 
 			if test.expectedErr == nil {

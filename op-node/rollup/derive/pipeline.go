@@ -134,6 +134,14 @@ func (dp *DerivationPipeline) Reset() {
 	dp.engineIsReset = false
 }
 
+func (dp *DerivationPipeline) SetManagedMode() {
+	dp.traversal.managedMode = true
+}
+
+func (dp *DerivationPipeline) SetManagedTarget(target eth.L1BlockRef) {
+	dp.traversal.managedTarget = target
+}
+
 func (dp *DerivationPipeline) DepositsOnlyAttributes(parent eth.BlockID, derivedFrom eth.L1BlockRef) (*AttributesWithParent, error) {
 	return dp.attrib.DepositsOnlyAttributes(parent, derivedFrom)
 }
@@ -201,7 +209,7 @@ func (dp *DerivationPipeline) Step(ctx context.Context, pendingSafeHead eth.L2Bl
 		return attrib, nil
 	} else if err == io.EOF {
 		// If every stage has returned io.EOF, try to advance the L1 Origin
-		return nil, dp.traversal.AdvanceL1Block(ctx)
+		return nil, dp.traversal.AdvanceL1BLock(ctx)
 	} else if errors.Is(err, EngineELSyncing) {
 		return nil, err
 	} else {
