@@ -129,7 +129,7 @@ contract L1CrossDomainMessenger_Test is CommonTest {
 
         // Try to relay a v2 message.
         vm.prank(address(optimismPortal));
-        l2CrossDomainMessenger.relayMessage(
+        l1CrossDomainMessenger.relayMessage(
             Encoding.encodeVersionedNonce({ _nonce: 0, _version: 2 }), // nonce
             sender,
             target,
