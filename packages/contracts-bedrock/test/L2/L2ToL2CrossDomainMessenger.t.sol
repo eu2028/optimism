@@ -393,6 +393,48 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageSender(), address(0));
     }
 
+    /// @dev Tests the `relayMessage` function returns the expected return data of the call to the target contract.
+    function testFuzz_relayMessage_returnData_succeeds(
+        uint256 _source,
+        uint256 _nonce,
+        address _sender,
+        uint256 _value,
+        uint256 _blockNum,
+        uint256 _logIndex,
+        uint256 _time,
+        address _target,
+        bytes memory _mockedReturnData
+    )
+        public
+    {
+        // Declare a random call to be made over the target
+        bytes memory message = abi.encodeWithSignature("randomCall()");
+
+        // Construct the message
+        Identifier memory id =
+            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
+            abi.encode(_sender, message) // data
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(message))),
+            returnData: ""
+        });
+
+        // Mock the random call over the target with the expected return data
+        vm.mockCall({ callee: _target, data: message, returnData: _mockedReturnData });
+
+        hoax(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _value);
+        bytes memory returnData = l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
+
+        // Check that the return data is the mocked one
+        assertEq(returnData, _mockedReturnData);
+    }
+
     /// @dev Mock reentrant function that calls the `relayMessage` function.
     /// @param _source Source chain ID of the message.
     /// @param _nonce Nonce of the message.
