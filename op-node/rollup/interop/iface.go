@@ -9,6 +9,13 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 )
 
+type InteropMode int
+
+const (
+	Unmanaged InteropMode = iota
+	Managed   InteropMode = iota
+)
+
 type SubSystem interface {
 	event.Deriver
 	event.AttachEmitter
@@ -21,4 +28,5 @@ type Setup interface {
 	TemporarySetup(ctx context.Context, logger log.Logger, eng Engine) (
 		*sources.SupervisorClient, *TemporaryInteropServer, error)
 	Check() error
+	Mode() InteropMode
 }

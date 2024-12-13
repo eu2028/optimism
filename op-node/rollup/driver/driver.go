@@ -157,10 +157,12 @@ type Drain interface {
 
 // NewDriver composes an events handler that tracks L1 state, triggers L2 Derivation, and optionally sequences new L2 blocks.
 func NewDriver(
+	driverCfg *Config,
+	interopCfg interop.Setup,
+	rollupCfg *rollup.Config,
+	syncCfg *sync.Config,
 	sys event.Registry,
 	drain Drain,
-	driverCfg *Config,
-	cfg *rollup.Config,
 	l2 L2Chain,
 	l1 L1Chain,
 	supervisor interop.InteropBackend, // may be nil pre-interop.
@@ -171,7 +173,6 @@ func NewDriver(
 	metrics Metrics,
 	sequencerStateListener sequencing.SequencerStateListener,
 	safeHeadListener rollup.SafeHeadListener,
-	syncCfg *sync.Config,
 	sequencerConductor conductor.SequencerConductor,
 	altDA AltDAIface,
 ) *Driver {
@@ -182,8 +183,8 @@ func NewDriver(
 	// If interop is scheduled we start the driver.
 	// It will then be ready to pick up verification work
 	// as soon as we reach the upgrade time (if the upgrade is not already active).
-	if cfg.InteropTime != nil {
-		interopDeriver := interop.NewInteropDeriver(log, cfg, driverCtx, supervisor, l2)
+	if rollupCfg.InteropTime != nil {
+		interopDeriver := interop.NewInteropDeriver(log, rollupCfg, driverCtx, supervisor, l2)
 		sys.Register("interop", interopDeriver, opts)
 	}
 
@@ -196,30 +197,29 @@ func NewDriver(
 	l1 = NewMeteredL1Fetcher(l1Tracker, metrics)
 	verifConfDepth := confdepth.NewConfDepth(driverCfg.VerifierConfDepth, statusTracker.L1Head, l1)
 
-	ec := engine.NewEngineController(l2, log, metrics, cfg, syncCfg,
+	ec := engine.NewEngineController(l2, log, metrics, rollupCfg, syncCfg,
 		sys.Register("engine-controller", nil, opts))
 
 	sys.Register("engine-reset",
-		engine.NewEngineResetDeriver(driverCtx, log, cfg, l1, l2, syncCfg), opts)
+		engine.NewEngineResetDeriver(driverCtx, log, rollupCfg, l1, l2, syncCfg), opts)
 
-	clSync := clsync.NewCLSync(log, cfg, metrics) // alt-sync still uses cl-sync state to determine what to sync to
+	clSync := clsync.NewCLSync(log, rollupCfg, metrics) // alt-sync still uses cl-sync state to determine what to sync to
 	sys.Register("cl-sync", clSync, opts)
 
 	var finalizer Finalizer
-	if cfg.AltDAEnabled() {
-		finalizer = finality.NewAltDAFinalizer(driverCtx, log, cfg, l1, altDA)
+	if rollupCfg.AltDAEnabled() {
+		finalizer = finality.NewAltDAFinalizer(driverCtx, log, rollupCfg, l1, altDA)
 	} else {
-		finalizer = finality.NewFinalizer(driverCtx, log, cfg, l1)
+		finalizer = finality.NewFinalizer(driverCtx, log, rollupCfg, l1)
 	}
 	sys.Register("finalizer", finalizer, opts)
 
 	sys.Register("attributes-handler",
-		attributes.NewAttributesHandler(log, cfg, driverCtx, l2), opts)
+		attributes.NewAttributesHandler(log, rollupCfg, driverCtx, l2), opts)
 
-	derivationPipeline := derive.NewDerivationPipeline(log, cfg, verifConfDepth, l1Blobs, altDA, l2, metrics)
+	derivationPipeline := derive.NewDerivationPipeline(log, rollupCfg, verifConfDepth, l1Blobs, altDA, l2, metrics)
 
-	// TODO: this is the WRONG check to make. We need to know if the node is in ManagedMode, not if interop is scheduled.
-	if cfg.InteropTime != nil {
+	if interopCfg.Mode() == interop.Managed {
 		derivationPipeline.SetManagedMode()
 	}
 
@@ -232,7 +232,7 @@ func NewDriver(
 		CLSync:         clSync,
 		Engine:         ec,
 		SyncCfg:        syncCfg,
-		Config:         cfg,
+		Config:         rollupCfg,
 		L1:             l1,
 		L2:             l2,
 		Log:            log,
@@ -241,7 +241,7 @@ func NewDriver(
 	}
 	sys.Register("sync", syncDeriver, opts)
 
-	sys.Register("engine", engine.NewEngDeriver(log, driverCtx, cfg, metrics, ec), opts)
+	sys.Register("engine", engine.NewEngDeriver(log, driverCtx, rollupCfg, metrics, ec), opts)
 
 	schedDeriv := NewStepSchedulingDeriver(log)
 	sys.Register("step-scheduler", schedDeriv, opts)
@@ -249,11 +249,11 @@ func NewDriver(
 	var sequencer sequencing.SequencerIface
 	if driverCfg.SequencerEnabled {
 		asyncGossiper := async.NewAsyncGossiper(driverCtx, network, log, metrics)
-		attrBuilder := derive.NewFetchingAttributesBuilder(cfg, l1, l2)
+		attrBuilder := derive.NewFetchingAttributesBuilder(rollupCfg, l1, l2)
 		sequencerConfDepth := confdepth.NewConfDepth(driverCfg.SequencerConfDepth, statusTracker.L1Head, l1)
-		findL1Origin := sequencing.NewL1OriginSelector(driverCtx, log, cfg, sequencerConfDepth)
+		findL1Origin := sequencing.NewL1OriginSelector(driverCtx, log, rollupCfg, sequencerConfDepth)
 		sys.Register("origin-selector", findL1Origin, opts)
-		sequencer = sequencing.NewSequencer(driverCtx, log, cfg, attrBuilder, findL1Origin,
+		sequencer = sequencing.NewSequencer(driverCtx, log, rollupCfg, attrBuilder, findL1Origin,
 			sequencerStateListener, sequencerConductor, asyncGossiper, metrics)
 		sys.Register("sequencer", sequencer, opts)
 	} else {

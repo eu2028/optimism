@@ -37,6 +37,14 @@ func (cfg *Config) Check() error {
 	return nil
 }
 
+func (cfg *Config) Mode() InteropMode {
+	if cfg.RPCAddr != "" {
+		return Managed
+	} else {
+		return Unmanaged
+	}
+}
+
 func (cfg *Config) Setup(ctx context.Context, logger log.Logger) (SubSystem, error) {
 	if cfg.RPCAddr != "" {
 		logger.Info("Setting up Interop RPC server to serve supervisor sync work")

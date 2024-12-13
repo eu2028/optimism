@@ -429,8 +429,32 @@ func (n *OpNode) initL2(ctx context.Context, cfg *Config) error {
 	} else {
 		n.safeDB = safedb.Disabled
 	}
-	n.l2Driver = driver.NewDriver(n.eventSys, n.eventDrain, &cfg.Driver, &cfg.Rollup, n.l2Source, n.l1Source,
-		n.supervisor, n.beacon, n, n, n.log, n.metrics, cfg.ConfigPersistence, n.safeDB, &cfg.Sync, sequencerConductor, altDA)
+	n.l2Driver = driver.NewDriver(
+		&cfg.Driver,
+		cfg.InteropConfig,
+		&cfg.Rollup,
+		&cfg.Sync,
+		n.eventSys,
+		n.eventDrain,
+		n.l2Source,
+		n.l1Source,
+		n.supervisor,
+		n.beacon,
+		n,
+		n,
+		n.log,
+		n.metrics,
+		cfg.ConfigPersistence,
+		n.safeDB,
+		sequencerConductor,
+		altDA)
+
+	if cfg.InteropConfig.Mode() == interop.Managed {
+		// we would have a Subsystem here,
+		// so we would hook it to the driver's pipeline's SetManagedTarget function
+		// here would be the place where we can attach the two of them
+	}
+
 	return nil
 }
 
