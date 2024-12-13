@@ -129,7 +129,7 @@ contract Setup {
         if (vm.envOr("UPGRADE_TEST", false)) {
             string memory forkUrl = vm.envString("FORK_RPC_URL");
             isForkTest = true;
-            vm.createSelectFork(forkUrl, 21387830);
+            vm.createSelectFork(forkUrl, vm.envUint("FORK_BLOCK_NUMBER"));
             require(
                 block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
                 "Setup: ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL"
@@ -156,7 +156,7 @@ contract Setup {
         }
     }
 
-    /// @dev Skips the tests if when running against a forked production network.
+    /// @dev Skips tests when running against a forked production network.
     function skipIfForkTest() public {
         if (isForkTest) {
             vm.skip(true);
@@ -174,7 +174,6 @@ contract Setup {
         );
 
         deploy.run();
-
         console.log("Setup: completed L1 deployment, registering addresses now");
 
         optimismPortal = IOptimismPortal(deploy.mustGetAddress("OptimismPortalProxy"));

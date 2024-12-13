@@ -58,8 +58,14 @@ test-dev *ARGS: build-go-ffi
 
 # Runs upgrade path variant of contract tests.
 # Requires ETH_RPC_URL to be set to a production (Sepolia or Mainnet) RPC URL.
+# The FORK_BLOCK_NUMBER is the block number used to create the fork. Pinning the
+# block number greatly speeds up the test execution time by caching the rpc call
+# responses made in ~/.foundry/cache/rpc. This block will need to be updated
+# when the L1 chain is upgraded. Alternatively, a block number can be set in the
+# env.
 test-upgrade *ARGS: build-go-ffi
-  FORK_RPC_URL=$ETH_RPC_URL \
+  FORK_BLOCK_NUMBER=$(env FORK_BLOCK_NUMBER || echo "21387830") \
+    FORK_RPC_URL=$ETH_RPC_URL \
     UPGRADE_TEST=true \
     forge test --match-path "test/{L1,dispute}/**" \
     {{ARGS}}
