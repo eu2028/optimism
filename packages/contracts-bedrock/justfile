@@ -64,8 +64,10 @@ test-dev *ARGS: build-go-ffi
 #   rpc call responses in ~/.foundry/cache/rpc. The default block will need to be updated
 #   when the L1 chain is upgraded.
 test-upgrade *ARGS: build-go-ffi
-  FORK_BLOCK_NUMBER=$(env FORK_BLOCK_NUMBER || echo "21387830") \
-    FORK_RPC_URL=$ETH_RPC_URL \
+  #!/bin/bash
+  export PINNED_BLOCK_NUMBER="21387830"
+  export FORK_BLOCK_NUMBER=$(env FORK_BLOCK_NUMBER || echo $PINNED_BLOCK_NUMBER)
+  FORK_RPC_URL=$ETH_RPC_URL \
     UPGRADE_TEST=true \
     forge test --match-path "test/{L1,dispute}/**" \
     {{ARGS}}
