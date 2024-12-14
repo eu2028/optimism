@@ -182,7 +182,11 @@ func TestApplyExistingOPCM(t *testing.T) {
 func testApplyExistingOPCM(t *testing.T, l1ChainID uint64, forkRPCUrl string, versions standard.L1Versions) {
 	op_e2e.InitParallel(t)
 
-	require.NotEmpty(t, forkRPCUrl, "no fork RPC URL provided")
+	anvil.Test(t)
+
+	if forkRPCUrl == "" {
+		t.Skip("no fork RPC URL provided")
+	}
 
 	lgr := testlog.Logger(t, slog.LevelDebug)
 
@@ -402,6 +406,7 @@ func testApplyExistingOPCM(t *testing.T, l1ChainID uint64, forkRPCUrl string, ve
 	//Use a custom equality function to compare the genesis allocs
 	//because the reflect-based one is really slow
 	actAllocs := st.Chains[0].Allocs.Data.Accounts
+	require.Equal(t, len(expAllocs), len(actAllocs))
 	for addr, expAcc := range expAllocs {
 		actAcc, ok := actAllocs[addr]
 		require.True(t, ok)
@@ -415,17 +420,11 @@ func testApplyExistingOPCM(t *testing.T, l1ChainID uint64, forkRPCUrl string, ve
 		}
 		storageChecker(addr, actAcc.Storage)
 	}
-	for addr := range actAllocs {
-		if _, ok := expAllocs[addr]; ok {
-			continue
-		}
-
-		t.Logf("unexpected account: %s", addr.Hex())
-	}
 }
 
 func TestGlobalOverrides(t *testing.T) {
 	op_e2e.InitParallel(t)
+	kurtosisutil.Test(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -500,9 +499,9 @@ func TestProofParamOverrides(t *testing.T) {
 
 	opts, intent, st := setupGenesisChain(t, defaultL1ChainID)
 	intent.GlobalDeployOverrides = map[string]any{
-		"faultGameWithdrawalDelay":                standard.WithdrawalDelaySeconds + 1,
-		"preimageOracleMinProposalSize":           standard.MinProposalSizeBytes + 1,
-		"preimageOracleChallengePeriod":           standard.ChallengePeriodSeconds + 1,
+		"withdrawalDelaySeconds":                  standard.WithdrawalDelaySeconds + 1,
+		"minProposalSizeBytes":                    standard.MinProposalSizeBytes + 1,
+		"challengePeriodSeconds":                  standard.ChallengePeriodSeconds + 1,
 		"proofMaturityDelaySeconds":               standard.ProofMaturityDelaySeconds + 1,
 		"disputeGameFinalityDelaySeconds":         standard.DisputeGameFinalityDelaySeconds + 1,
 		"mipsVersion":                             standard.MIPSVersion + 1,
@@ -530,17 +529,17 @@ func TestProofParamOverrides(t *testing.T) {
 		address common.Address
 	}{
 		{
-			"faultGameWithdrawalDelay",
+			"withdrawalDelaySeconds",
 			uint64Caster,
 			st.ImplementationsDeployment.DelayedWETHImplAddress,
 		},
 		{
-			"preimageOracleMinProposalSize",
+			"minProposalSizeBytes",
 			uint64Caster,
 			st.ImplementationsDeployment.PreimageOracleSingletonAddress,
 		},
 		{
-			"preimageOracleChallengePeriod",
+			"challengePeriodSeconds",
 			uint64Caster,
 			st.ImplementationsDeployment.PreimageOracleSingletonAddress,
 		},
@@ -709,9 +708,7 @@ func TestAdditionalDisputeGames(t *testing.T) {
 	defer cancel()
 
 	opts, intent, st := setupGenesisChain(t, defaultL1ChainID)
-	deployerAddr := crypto.PubkeyToAddress(opts.DeployerPrivateKey.PublicKey)
-	(&intent.Chains[0].Roles).L1ProxyAdminOwner = deployerAddr
-	intent.SuperchainRoles.Guardian = deployerAddr
+	(&intent.Chains[0].Roles).L1ProxyAdminOwner = crypto.PubkeyToAddress(opts.DeployerPrivateKey.PublicKey)
 	intent.GlobalDeployOverrides = map[string]any{
 		"challengePeriodSeconds": 1,
 	}
@@ -729,7 +726,6 @@ func TestAdditionalDisputeGames(t *testing.T) {
 			UseCustomOracle:              true,
 			OracleMinProposalSize:        10000,
 			OracleChallengePeriodSeconds: 120,
-			MakeRespected:                true,
 			VMType:                       state.VMTypeAlphabet,
 		},
 	}
@@ -852,7 +848,7 @@ func newIntent(
 			ProtocolVersionsOwner: addrFor(t, dk, devkeys.SuperchainDeployerKey.Key(l1ChainID)),
 			Guardian:              addrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainID)),
 		},
-		FundDevAccounts:    false,
+		FundDevAccounts:    true,
 		L1ContractsLocator: l1Loc,
 		L2ContractsLocator: l2Loc,
 		Chains: []*state.ChainIntent{

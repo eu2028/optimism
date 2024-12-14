@@ -11,8 +11,16 @@ type DeployMIPSInput struct {
 	PreimageOracle common.Address
 }
 
+func (input *DeployMIPSInput) InputSet() bool {
+	return true
+}
+
 type DeployMIPSOutput struct {
 	MipsSingleton common.Address
+}
+
+func (output *DeployMIPSOutput) CheckOutput(input common.Address) error {
+	return nil
 }
 
 type DeployMIPSScript struct {

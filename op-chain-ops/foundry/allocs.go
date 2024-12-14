@@ -1,7 +1,6 @@
 package foundry
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -77,19 +76,9 @@ func (d *forgeAllocsDump) OnAccount(address *common.Address, account state.DumpA
 	}
 }
 
-// Copy returns a deep copy of the ForgeAllocs. We can't
-// perform a shallow copy here because some tests modify
-// the accounts individually.
 func (d *ForgeAllocs) Copy() *ForgeAllocs {
 	out := make(types.GenesisAlloc, len(d.Accounts))
-	for k, v := range d.Accounts {
-		out[k] = types.Account{
-			Code:    bytes.Clone(v.Code),
-			Storage: maps.Clone(v.Storage),
-			Balance: new(big.Int).Set(v.Balance),
-			Nonce:   v.Nonce,
-		}
-	}
+	maps.Copy(out, d.Accounts)
 	return &ForgeAllocs{Accounts: out}
 }
 
