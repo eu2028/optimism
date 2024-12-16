@@ -124,10 +124,12 @@ contract DisputeGameFactory_Create_Test is DisputeGameFactory_Init {
             disputeGameFactory.setImplementation(GameType.wrap(i), IDisputeGame(address(fakeClone)));
         }
 
+        uint256 bondAmount = disputeGameFactory.initBonds(gt);
+
         // Create our first dispute game - this should succeed.
         vm.expectEmit(false, true, true, false);
         emit DisputeGameCreated(address(0), gt, rootClaim);
-        IDisputeGame proxy = disputeGameFactory.create(gt, rootClaim, extraData);
+        IDisputeGame proxy = disputeGameFactory.create{ value: bondAmount }(gt, rootClaim, extraData);
 
         (IDisputeGame game, Timestamp timestamp) = disputeGameFactory.games(gt, rootClaim, extraData);
         // Ensure that the dispute game was assigned to the `disputeGames` mapping.
@@ -138,7 +140,7 @@ contract DisputeGameFactory_Create_Test is DisputeGameFactory_Init {
         vm.expectRevert(
             abi.encodeWithSelector(GameAlreadyExists.selector, disputeGameFactory.getGameUUID(gt, rootClaim, extraData))
         );
-        disputeGameFactory.create(gt, rootClaim, extraData);
+        disputeGameFactory.create{ value: bondAmount }(gt, rootClaim, extraData);
     }
 
     function changeClaimStatus(Claim _claim, VMStatus _status) public pure returns (Claim out_) {
