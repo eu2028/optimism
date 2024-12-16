@@ -51,7 +51,7 @@ Note that in order to build the Docker image, you have to allow Docker to use at
 memory, or the Solidity compilations may fail. Docker's default is only 8GB.
 
 :warning: The `deploy-config.json` that you use for your chain must set the latest `faultGameAbsolutePrestate`
-value, not the one at deployment.
+value, not the original value that was set during deployment of the chain.
 
 You can use `0x03f89406817db1ed7fd8b31e13300444652cdb0b9c509a674de43483b2f83568`, which is based on
 `op-program/v1.4.0-rc.3` and includes Holocene activations for
