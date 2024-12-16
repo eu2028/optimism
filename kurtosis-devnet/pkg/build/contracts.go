@@ -3,8 +3,8 @@ package build
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os/exec"
-	"path/filepath"
 	"text/template"
 )
 
@@ -14,15 +14,13 @@ type ContractBuilder struct {
 	baseDir string
 	// Template for the build command
 	cmdTemplate *template.Template
-	// Path where the contract bundle will be created
-	bundlePath string
+
 	// Dry run mode
 	dryRun bool
 }
 
 const (
-	contractsCmdTemplateStr = "just CONTRACTS_BUNDLE={{.BundlePath}} contracts/build"
-	defaultBundlePath       = "contracts-bundle.tar.gz"
+	contractsCmdTemplateStr = "just _contracts-build"
 )
 
 var defaultContractTemplate *template.Template
@@ -45,12 +43,6 @@ func WithContractTemplate(cmdTemplate *template.Template) ContractBuilderOptions
 	}
 }
 
-func WithContractBundlePath(bundlePath string) ContractBuilderOptions {
-	return func(b *ContractBuilder) {
-		b.bundlePath = bundlePath
-	}
-}
-
 func WithContractDryRun(dryRun bool) ContractBuilderOptions {
 	return func(b *ContractBuilder) {
 		b.dryRun = dryRun
@@ -62,7 +54,6 @@ func NewContractBuilder(opts ...ContractBuilderOptions) *ContractBuilder {
 	b := &ContractBuilder{
 		baseDir:     ".",
 		cmdTemplate: defaultContractTemplate,
-		bundlePath:  defaultBundlePath,
 		dryRun:      false,
 	}
 
@@ -70,24 +61,21 @@ func NewContractBuilder(opts ...ContractBuilderOptions) *ContractBuilder {
 		opt(b)
 	}
 
-	// Ensure bundlePath is absolute
-	if !filepath.IsAbs(b.bundlePath) {
-		b.bundlePath = filepath.Join(b.baseDir, b.bundlePath)
-	}
-
 	return b
 }
 
 // templateData holds the data for the command template
 type contractTemplateData struct {
+	Layer      string
 	BundlePath string
 }
 
 // Build executes the contract build command
-func (b *ContractBuilder) Build() (string, error) {
+func (b *ContractBuilder) Build(layer string) (string, error) {
+	log.Printf("Building contracts for layer: %s", layer)
 	// Prepare template data
 	data := contractTemplateData{
-		BundlePath: b.bundlePath,
+		Layer: layer,
 	}
 
 	// Execute template to get command string
@@ -101,7 +89,7 @@ func (b *ContractBuilder) Build() (string, error) {
 	cmd.Dir = b.baseDir
 
 	if b.dryRun {
-		return b.bundlePath, nil
+		return "url://contracts-bundle.tar.gz", nil
 	}
 
 	// Capture output and error
@@ -111,5 +99,9 @@ func (b *ContractBuilder) Build() (string, error) {
 	}
 
 	// Return the bundle path as confirmation of successful build
-	return b.bundlePath, nil
+	lines := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
+	if len(lines) == 0 {
+		return "", fmt.Errorf("no output from contract build command")
+	}
+	return string(lines[len(lines)-1]), nil
 }

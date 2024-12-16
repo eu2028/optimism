@@ -1,0 +1,27 @@
+set shell := ["/bin/bash", "-c"]
+
+CONTRACTS_BUNDLE := "contracts-bundle.tar.gz"
+
+IMAGE_TAG := ""
+
+
+# Internal recipes for kurtosis-devnet
+_contracts-build:
+    # TODO: just a stub, pointing to the optimism-package artifact
+    echo "https://storage.googleapis.com/oplabs-contract-artifacts/artifacts-v1-9af7366a7102f51e8dbe451dcfa22971131d89e218915c91f420a164cc48be65.tar.gz"
+
+_docker-build PROJECT_NAME:
+    # TODO: just a stub, retagging the optimism-package image
+    docker tag us-docker.pkg.dev/oplabs-tools-artifacts/images/{{PROJECT_NAME}}:develop {{IMAGE_TAG}}
+
+_kurtosis-run PACKAGE_NAME ARG_FILE ENCLAVE:
+	kurtosis run {{PACKAGE_NAME}} --args-file {{ARG_FILE}} --enclave {{ENCLAVE}}
+
+# Devnet template recipe
+_devnet TEMPLATE_FILE DATA_FILE="":
+    go run cmd/main.go -template "{{TEMPLATE_FILE}}" -data "{{DATA_FILE}}" -enclave `basename {{TEMPLATE_FILE}} .yaml`
+
+# Devnet recipes
+
+# Simple devnet
+simple-devnet: (_devnet "simple.yaml")

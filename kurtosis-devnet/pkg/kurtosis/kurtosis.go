@@ -2,9 +2,9 @@ package kurtosis
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"text/template"
@@ -28,9 +28,11 @@ type KurtosisDeployer struct {
 	packageName string
 	// Dry run mode
 	dryRun bool
+	// Enclave name
+	enclave string
 }
 
-const cmdTemplateStr = "kurtosis run {{.PackageName}} . --arg-file {{.ArgFile}}"
+const cmdTemplateStr = "just _kurtosis-run {{.PackageName}} {{.ArgFile}} {{.Enclave}}"
 
 var defaultCmdTemplate *template.Template
 
@@ -64,6 +66,12 @@ func WithKurtosisDryRun(dryRun bool) KurtosisDeployerOptions {
 	}
 }
 
+func WithKurtosisEnclave(enclave string) KurtosisDeployerOptions {
+	return func(d *KurtosisDeployer) {
+		d.enclave = enclave
+	}
+}
+
 // NewKurtosisDeployer creates a new KurtosisDeployer instance
 func NewKurtosisDeployer(opts ...KurtosisDeployerOptions) *KurtosisDeployer {
 	d := &KurtosisDeployer{
@@ -71,6 +79,7 @@ func NewKurtosisDeployer(opts ...KurtosisDeployerOptions) *KurtosisDeployer {
 		cmdTemplate: defaultCmdTemplate,
 		packageName: DefaultPackageName,
 		dryRun:      false,
+		enclave:     "devnet",
 	}
 
 	for _, opt := range opts {
@@ -84,6 +93,7 @@ func NewKurtosisDeployer(opts ...KurtosisDeployerOptions) *KurtosisDeployer {
 type templateData struct {
 	PackageName string
 	ArgFile     string
+	Enclave     string
 }
 
 // Deploy executes the Kurtosis deployment command with the provided input
@@ -96,10 +106,9 @@ func (d *KurtosisDeployer) Deploy(input io.Reader) (*KurtosisEnvironment, error)
 	defer os.Remove(argFile.Name())
 
 	var writer io.Writer = argFile
-	if d.dryRun {
-		fmt.Println("Dry run mode enabled, kurtosis would run with the following arguments:")
-		writer = io.MultiWriter(writer, os.Stdout)
-	}
+	writer = io.MultiWriter(writer, os.Stdout)
+
+	log.Print("Running Kurtosis with the following arguments:")
 	// Copy input to arg file
 	if _, err := io.Copy(writer, input); err != nil {
 		return nil, fmt.Errorf("failed to write arg file: %w", err)
@@ -109,6 +118,7 @@ func (d *KurtosisDeployer) Deploy(input io.Reader) (*KurtosisEnvironment, error)
 	data := templateData{
 		PackageName: d.packageName,
 		ArgFile:     argFile.Name(),
+		Enclave:     d.enclave,
 	}
 	argFile.Close()
 
@@ -128,18 +138,16 @@ func (d *KurtosisDeployer) Deploy(input io.Reader) (*KurtosisEnvironment, error)
 		return &KurtosisEnvironment{}, nil
 	}
 
-	// Capture output and error
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("kurtosis deployment failed: %w\nOutput: %s", err, string(output))
+	// Stream output to stdout and stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("kurtosis deployment failed: %w", err)
 	}
 
-	// Parse output into KurtosisEnvironment
-	// TODO: Implement actual parsing once we define the environment structure
+	// TODO: Populate KurtosisEnvironment with the actual environment details
 	env := &KurtosisEnvironment{}
-	if err := json.Unmarshal(output, env); err != nil {
-		return nil, fmt.Errorf("failed to parse kurtosis output: %w", err)
-	}
 
 	return env, nil
 }

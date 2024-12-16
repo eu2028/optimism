@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,6 +20,7 @@ func main() {
 	templateFile := flag.String("template", "", "Path to the template file (required)")
 	dataFile := flag.String("data", "", "Path to JSON data file (optional)")
 	kurtosisPackage := flag.String("kurtosis-package", kurtosis.DefaultPackageName, "Kurtosis package to deploy")
+	enclave := flag.String("enclave", "devnet", "Enclave name")
 	dryRun := flag.Bool("dry-run", false, "Dry run mode")
 	flag.Parse()
 
@@ -37,17 +39,11 @@ func main() {
 
 	imageTag := func(projectName string) string {
 		timestamp := fmt.Sprintf("%d", time.Now().UnixNano()/1e6)
-		return fmt.Sprintf("%s-kurtosis-%s", projectName, timestamp)
-	}
-
-	artifactsPath := func() string {
-		timestamp := fmt.Sprintf("%d", time.Now().UnixNano()/1e6)
-		return filepath.Join(baseDir, "contracts", "dist", fmt.Sprintf("artifacts-%s.tar.gz", timestamp))
+		return fmt.Sprintf("%s:kurtosis-%s", projectName, timestamp)
 	}
 
 	contractBuilder := build.NewContractBuilder(
 		build.WithContractBaseDir(baseDir),
-		build.WithContractBundlePath(artifactsPath()),
 		build.WithContractDryRun(*dryRun),
 	)
 
@@ -55,8 +51,8 @@ func main() {
 		tmpl.WithFunction("localDockerImage", func(projectName string) (string, error) {
 			return dockerBuilder.Build(projectName, imageTag(projectName))
 		}),
-		tmpl.WithFunction("localContractArtifacts", func(_ string) (string, error) {
-			return contractBuilder.Build()
+		tmpl.WithFunction("localContractArtifacts", func(layer string) (string, error) {
+			return contractBuilder.Build(layer)
 		}),
 	}
 
@@ -64,14 +60,12 @@ func main() {
 	if *dataFile != "" {
 		data, err := os.ReadFile(*dataFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading data file: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Error reading data file: %v\n", err)
 		}
 
 		var templateData map[string]interface{}
 		if err := json.Unmarshal(data, &templateData); err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing JSON data: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Error parsing JSON data: %v\n", err)
 		}
 
 		opts = append(opts, tmpl.WithData(templateData))
@@ -80,8 +74,7 @@ func main() {
 	// Open template file
 	tmplFile, err := os.Open(*templateFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening template file: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error opening template file: %v\n", err)
 	}
 	defer tmplFile.Close()
 
@@ -91,15 +84,20 @@ func main() {
 	// Process template
 	buf := bytes.NewBuffer(nil)
 	if err := ctx.InstantiateTemplate(tmplFile, buf); err != nil {
-		fmt.Fprintf(os.Stderr, "Error processing template: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error processing template: %v\n", err)
 	}
 
 	kurtosisDeployer := kurtosis.NewKurtosisDeployer(
 		kurtosis.WithKurtosisBaseDir(baseDir),
 		kurtosis.WithKurtosisDryRun(*dryRun),
 		kurtosis.WithKurtosisPackageName(*kurtosisPackage),
+		kurtosis.WithKurtosisEnclave(*enclave),
 	)
 
-	kurtosisDeployer.Deploy(buf)
+	env, err := kurtosisDeployer.Deploy(buf)
+	if err != nil {
+		log.Fatalf("Error deploying kurtosis: %v\n", err)
+	}
+
+	fmt.Println(env)
 }

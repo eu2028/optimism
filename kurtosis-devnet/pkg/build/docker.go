@@ -3,6 +3,7 @@ package build
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os/exec"
 	"text/template"
 )
@@ -17,7 +18,7 @@ type DockerBuilder struct {
 	dryRun bool
 }
 
-const cmdTemplateStr = "just IMAGE_TAG={{.ImageTag}} docker/{{.ProjectName}}"
+const cmdTemplateStr = "just IMAGE_TAG={{.ImageTag}} _docker-build {{.ProjectName}}"
 
 var defaultCmdTemplate *template.Template
 
@@ -68,6 +69,7 @@ type templateData struct {
 
 // Build executes the docker build command for the given project and image tag
 func (b *DockerBuilder) Build(projectName, imageTag string) (string, error) {
+	log.Printf("Building docker image for project: %s with tag: %s", projectName, imageTag)
 	// Prepare template data
 	data := templateData{
 		ImageTag:    imageTag,
