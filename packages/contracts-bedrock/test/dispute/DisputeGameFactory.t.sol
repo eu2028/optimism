@@ -263,7 +263,8 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
 
     /// @dev Tests that `findLatestGames` returns the correct games.
     function test_findLatestGames_static_succeeds() public {
-        // Create some dispute games of varying game types.
+        // Create some dispute games of varying game types, repeatedly iterating over the game types 0, 1, 2.
+        // 1 << 5 = 32, resulting in the final three games added being ordered 2, 0, 1.
         for (uint256 i; i < 1 << 5; i++) {
             disputeGameFactory.create(GameType.wrap(uint8(i % 3)), Claim.wrap(bytes32(i)), abi.encode(i));
         }
@@ -272,23 +273,28 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
 
         IDisputeGameFactory.GameSearchResult[] memory games;
 
-        games = disputeGameFactory.findLatestGames(GameType.wrap(0), gameCount - 1, 1);
-        assertEq(games.length, 1);
-        assertEq(games[0].index, 30);
-        (GameType gameType, Timestamp createdAt, address game) = games[0].metadata.unpack();
-        assertEq(gameType.raw(), 0);
-        assertEq(createdAt.raw(), block.timestamp);
+        uint256 start = gameCount - 1;
 
-        games = disputeGameFactory.findLatestGames(GameType.wrap(1), gameCount - 1, 1);
+        games = disputeGameFactory.findLatestGames(GameType.wrap(1), start, 1);
         assertEq(games.length, 1);
-        assertEq(games[0].index, 31);
+        // The type 1 game should be the last one added.
+        assertEq(games[0].index, start);
         (gameType, createdAt, game) = games[0].metadata.unpack();
         assertEq(gameType.raw(), 1);
         assertEq(createdAt.raw(), block.timestamp);
 
-        games = disputeGameFactory.findLatestGames(GameType.wrap(2), gameCount - 1, 1);
+        games = disputeGameFactory.findLatestGames(GameType.wrap(0), start, 1);
         assertEq(games.length, 1);
-        assertEq(games[0].index, 29);
+        // The type 0 game should be the second to last one added.
+        assertEq(games[0].index, start - 1);
+        (GameType gameType, Timestamp createdAt, address game) = games[0].metadata.unpack();
+        assertEq(gameType.raw(), 0);
+        assertEq(createdAt.raw(), block.timestamp);
+
+        games = disputeGameFactory.findLatestGames(GameType.wrap(2), start, 1);
+        assertEq(games.length, 1);
+        // The type 2 game should be the third to last one added.
+        assertEq(games[0].index, start - 2);
         (gameType, createdAt, game) = games[0].metadata.unpack();
         assertEq(gameType.raw(), 2);
         assertEq(createdAt.raw(), block.timestamp);
