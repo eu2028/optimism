@@ -25,6 +25,7 @@ func isTrivialType(typeString string) bool {
 }
 
 func isImportUsed(importNode solc.AstNode, usedTypes map[string]bool) bool {
+
 	if importNode.AbsolutePath != "" {
 		baseName := getBaseName(importNode.AbsolutePath)
 		return usedTypes[baseName]
@@ -41,28 +42,26 @@ func getBaseName(path string) string {
 	return path
 }
 
-func stripContractPrefix(typeString string) string {
-	if strings.HasPrefix(typeString, "contract ") {
-		parts := strings.SplitN(typeString, " ", 2)
+func normaliseParam(param string, context string) string {
+	if strings.Contains(param, "payable") {
+		return param
+	}
+
+	if strings.Contains(param, " ") {
+		parts := strings.SplitN(param, " ", 2)
 		if len(parts) == 2 {
+
+			if strings.Contains(param, ".") {
+				parts1 := strings.Split(param, ".")
+				if strings.Contains(parts1[0], context) {
+					return parts1[1]
+				}
+			}
+
 			return parts[1]
 		}
 	}
-	return typeString
-}
-
-func glob(dir string, ext string) (map[string]string, error) {
-	out := make(map[string]string)
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() && filepath.Ext(path) == ext {
-			out[strings.TrimSuffix(filepath.Base(path), ext)] = path
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory: %w", err)
-	}
-	return out, nil
+	return param
 }
 
 func buildDirectoryTree(root string) (*TreeNode, error) {
@@ -157,4 +156,11 @@ func extractMappingDetails(mappingString string) ([]string, string) {
 	// Remove anything after "public" or similar modifiers
 	cleanString := strings.Split(mappingString, "public")[0]
 	return parseMapping(cleanString)
+}
+
+func resolveAlias(typeName string, aliasMapping map[string]string) string {
+	if alias, exists := aliasMapping[typeName]; exists {
+		return alias
+	}
+	return typeName
 }

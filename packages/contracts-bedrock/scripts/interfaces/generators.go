@@ -63,7 +63,7 @@ func GenerateTypeDefinition(udtype solc.AstNode) string {
 	return fmt.Sprintf("type %s is %s;", udtype.Name, udtype.UnderlyingType.Name)
 }
 
-func GenerateFunctionSignature(fn solc.AstNode) string {
+func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, context string) string {
 	signature := "function "
 
 	// Handle receive function
@@ -87,13 +87,18 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 			// Handle mappings
 			if strings.HasPrefix(typeString, "mapping(") {
 				params, returnType := extractMappingDetails(typeString)
-				signature += strings.Join(params, ", ") + ") external view returns (" + returnType + ");"
+
+				for i := 0; i < len(params); i++ {
+					params[i] = normaliseParam(params[i], context)
+				}
+
+				signature += strings.Join(params, ", ") + ") external view returns (" + normaliseParam(returnType, context) + ");"
 				return signature
 			}
 
 			// Handle non-mapping types
 			signature += ") external view"
-			returnType := stripContractPrefix(typeString)
+			returnType := normaliseParam(typeString, context)
 			if !isTrivialType(returnType) {
 				returnType += " memory"
 			}
@@ -115,12 +120,17 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 	if fn.Parameters != nil {
 		params := []string{}
 		for _, param := range fn.Parameters.Parameters {
-			paramType := stripContractPrefix(param.TypeDescriptions.TypeString)
+			paramType := resolveAlias(normaliseParam(param.TypeDescriptions.TypeString, context), aliasMapping)
+
 			paramName := param.Name
 			if paramName == "" {
 				paramName = "_"
 			}
-			params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
+			if param.StorageLocation == "default" {
+				params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
+			} else {
+				params = append(params, fmt.Sprintf("%s %s %s", paramType, param.StorageLocation, paramName))
+			}
 		}
 		signature += strings.Join(params, ", ")
 	}
@@ -136,7 +146,7 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 	if fn.ReturnParameters != nil && len(fn.ReturnParameters.Parameters) > 0 {
 		var returns []string
 		for _, ret := range fn.ReturnParameters.Parameters {
-			returnType := stripContractPrefix(ret.TypeDescriptions.TypeString)
+			returnType := normaliseParam(ret.TypeDescriptions.TypeString, context)
 			returns = append(returns, returnType)
 		}
 		signature += " returns (" + strings.Join(returns, ", ") + ")"
@@ -146,7 +156,7 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 	return signature
 }
 
-func GenerateEventDefinition(event solc.AstNode) string {
+func GenerateEventDefinition(event solc.AstNode, aliasMapping map[string]string, context string) string {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("event %s(", event.Name))
@@ -154,20 +164,10 @@ func GenerateEventDefinition(event solc.AstNode) string {
 	if event.Parameters != nil {
 		params := []string{}
 		for _, param := range event.Parameters.Parameters {
-			paramType := param.TypeDescriptions.TypeString
+			paramType := resolveAlias(normaliseParam(param.TypeDescriptions.TypeString, context), aliasMapping)
 			paramName := param.Name
 			if paramName == "" {
 				paramName = "_"
-			}
-
-			if strings.HasPrefix(paramType, "enum ") {
-				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
-			}
-			if strings.HasPrefix(paramType, "contract ") {
-				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
-			}
-			if strings.HasPrefix(paramType, "struct ") {
-				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
 			}
 
 			if param.Indexed {
@@ -185,7 +185,7 @@ func GenerateEventDefinition(event solc.AstNode) string {
 	return builder.String()
 }
 
-func GenerateErrorDefinition(errorDef solc.AstNode) string {
+func GenerateErrorDefinition(errorDef solc.AstNode, aliasMapping map[string]string) string {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("error %s(", errorDef.Name))
@@ -195,7 +195,7 @@ func GenerateErrorDefinition(errorDef solc.AstNode) string {
 			if i > 0 {
 				builder.WriteString(", ")
 			}
-			paramType := param.TypeDescriptions.TypeString
+			paramType := resolveAlias(param.TypeDescriptions.TypeString, aliasMapping)
 			paramName := param.Name
 			if paramName == "" {
 				builder.WriteString(fmt.Sprintf("%s", paramType))
@@ -210,13 +210,13 @@ func GenerateErrorDefinition(errorDef solc.AstNode) string {
 	return builder.String()
 }
 
-func GenerateStructDefinition(structDef StructDefinition) string {
+func GenerateStructDefinition(structDef StructDefinition, aliasMapping map[string]string, context string) string {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("struct %s {\n", structDef.Name))
 
 	for _, member := range structDef.Members {
-		builder.WriteString(fmt.Sprintf("\t\t%s %s;\n", member.Type, member.Name))
+		builder.WriteString(fmt.Sprintf("\t\t%s %s;\n", resolveAlias(normaliseParam(member.Type, context), aliasMapping), member.Name))
 	}
 
 	builder.WriteString("\t}\n")
@@ -224,7 +224,7 @@ func GenerateStructDefinition(structDef StructDefinition) string {
 	return builder.String()
 }
 
-func GenerateEnumSignature(enumDef EnumDefinition) string {
+func GenerateEnumSignature(enumDef EnumDefinition, aliasMapping map[string]string) string {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("enum %s {\n", enumDef.Name))
@@ -233,7 +233,9 @@ func GenerateEnumSignature(enumDef EnumDefinition) string {
 		if i > 0 {
 			builder.WriteString(",\n")
 		}
-		builder.WriteString(fmt.Sprintf("\t\t%s", member.Name))
+		memberName := resolveAlias(member.Name, aliasMapping)
+
+		builder.WriteString(fmt.Sprintf("\t\t%s", memberName))
 	}
 
 	builder.WriteString("\n\t}\n")

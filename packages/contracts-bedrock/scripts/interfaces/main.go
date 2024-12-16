@@ -10,7 +10,7 @@ import (
 func GenerateSolidityInterface(contractName string, astData ContractData) string {
 	if len(astData.Functions) == 0 && len(astData.Events) == 0 && len(astData.Errors) == 0 &&
 		len(astData.Types) == 0 && len(astData.Structs) == 0 && len(astData.Enums) == 0 &&
-		len(astData.Imports) == 0 && len(astData.Inherited) == 0 && len(astData.OutEnums) == 0 && len(astData.OutStructs) == 0 {
+		len(astData.Imports) == 0 && len(astData.Inherited) == 0 && len(astData.OutEnums) == 0 && len(astData.OutStructs) == 0 || contractName == "L1ChugSplashProxy" {
 		return ""
 	}
 
@@ -31,7 +31,30 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 		}
 		parts := strings.Fields(typeString)
 		if len(parts) > 1 {
+			if strings.Contains(parts[1], ".") {
+				part := strings.Split(parts[1], ".")
+				usedTypes[part[0]] = true
+				return
+			}
 			usedTypes[parts[1]] = true
+		}
+	}
+
+	if contractName == "L2ToL2CrossDomainMessenger" {
+		print("")
+	}
+
+	aliasMapping := map[string]string{}
+
+	for _, importNode := range astData.Imports {
+		if importNode.NodeType == "ImportDirective" {
+			for _, alias := range importNode.SymbolAliases {
+				if alias.Local != "" {
+					aliasMapping[alias.Foreign.Name] = alias.Local
+				} else {
+					aliasMapping[alias.Foreign.Name] = alias.Foreign.Name
+				}
+			}
 		}
 	}
 
@@ -99,7 +122,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add out structs
 	for _, structDef := range astData.OutStructs {
-		structDefinition := GenerateStructDefinition(structDef)
+		structDefinition := GenerateStructDefinition(structDef, aliasMapping, contractName)
 		if !seenStructs[structDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
 			seenStructs[structDefinition] = true
@@ -108,7 +131,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add out enums
 	for _, enumDef := range astData.OutEnums {
-		enumSignature := GenerateEnumSignature(enumDef)
+		enumSignature := GenerateEnumSignature(enumDef, aliasMapping)
 		if !seenEnums[enumSignature] {
 			builder.WriteString(fmt.Sprintf("\n    %s", enumSignature))
 			seenEnums[enumSignature] = true
@@ -127,11 +150,9 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 	// Start the interface declaration
 	builder.WriteString(GenerateInterfaceDeclaration(contractName, astData.Inherited))
 
-	//builder.WriteString(interfaceHeader + " {\n")
-
 	// Add structs
 	for _, structDef := range astData.Structs {
-		structDefinition := GenerateStructDefinition(structDef)
+		structDefinition := GenerateStructDefinition(structDef, aliasMapping, contractName)
 		if !seenStructs[structDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
 			seenStructs[structDefinition] = true
@@ -140,7 +161,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add enums
 	for _, enumDef := range astData.Enums {
-		enumSignature := GenerateEnumSignature(enumDef)
+		enumSignature := GenerateEnumSignature(enumDef, aliasMapping)
 		if !seenEnums[enumSignature] {
 			builder.WriteString(fmt.Sprintf("\n    %s", enumSignature))
 			seenEnums[enumSignature] = true
@@ -149,7 +170,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add errors
 	for _, errDef := range astData.Errors {
-		errorDefinition := GenerateErrorDefinition(errDef)
+		errorDefinition := GenerateErrorDefinition(errDef, aliasMapping)
 		if !seenErrors[errorDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", errorDefinition))
 			seenErrors[errorDefinition] = true
@@ -158,7 +179,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add events
 	for _, event := range astData.Events {
-		eventDefinition := GenerateEventDefinition(event)
+		eventDefinition := GenerateEventDefinition(event, aliasMapping, contractName)
 		if !seenEvents[eventDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", eventDefinition))
 			seenEvents[eventDefinition] = true
@@ -167,7 +188,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add public function signatures (including public variable getters)
 	for _, fn := range astData.Functions {
-		functionSignature := GenerateFunctionSignature(fn)
+		functionSignature := GenerateFunctionSignature(fn, aliasMapping, contractName)
 		if !seenFunctions[functionSignature] {
 			builder.WriteString(fmt.Sprintf("\n    %s", functionSignature))
 			seenFunctions[functionSignature] = true
