@@ -75,7 +75,7 @@ contract CommonTest is Test, Setup, Events {
             if (useAltDAOverride || useLegacyContracts || customGasToken != address(0) || useInteropOverride) {
                 vm.skip(true);
             }
-
+        } else {
             // Modifying these values on a fork test causes issues.
             vm.warp(deploy.cfg().l2OutputOracleStartingTimestamp() + 1);
             vm.roll(deploy.cfg().l2OutputOracleStartingBlockNumber() + 1);
