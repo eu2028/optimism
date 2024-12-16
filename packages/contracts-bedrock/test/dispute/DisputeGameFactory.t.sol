@@ -54,6 +54,8 @@ contract DisputeGameFactory_Create_Test is DisputeGameFactory_Init {
 
         vm.deal(address(this), _value);
 
+        uint256 gameCountBefore = disputeGameFactory.gameCount();
+
         vm.expectEmit(false, true, true, false);
         emit DisputeGameCreated(address(0), gt, rootClaim);
         IDisputeGame proxy = disputeGameFactory.create{ value: _value }(gt, rootClaim, extraData);
@@ -63,7 +65,7 @@ contract DisputeGameFactory_Create_Test is DisputeGameFactory_Init {
         // Ensure that the dispute game was assigned to the `disputeGames` mapping.
         assertEq(address(game), address(proxy));
         assertEq(Timestamp.unwrap(timestamp), block.timestamp);
-        assertEq(disputeGameFactory.gameCount(), 1);
+        assertEq(disputeGameFactory.gameCount(), gameCountBefore + 1);
 
         (, Timestamp timestamp2, IDisputeGame game2) = disputeGameFactory.gameAtIndex(0);
         assertEq(address(game2), address(proxy));
