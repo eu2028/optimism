@@ -165,7 +165,6 @@ func NewDriver(
 	drain Drain,
 	l2 L2Chain,
 	l1 L1Chain,
-	supervisor interop.InteropBackend, // may be nil pre-interop.
 	l1Blobs derive.L1BlobsFetcher,
 	altSync AltSync,
 	network Network,
@@ -179,14 +178,6 @@ func NewDriver(
 	driverCtx, driverCancel := context.WithCancel(context.Background())
 
 	opts := event.DefaultRegisterOpts()
-
-	// If interop is scheduled we start the driver.
-	// It will then be ready to pick up verification work
-	// as soon as we reach the upgrade time (if the upgrade is not already active).
-	if rollupCfg.InteropTime != nil {
-		interopDeriver := interop.NewInteropDeriver(log, rollupCfg, driverCtx, supervisor, l2)
-		sys.Register("interop", interopDeriver, opts)
-	}
 
 	statusTracker := status.NewStatusTracker(log, metrics)
 	sys.Register("status", statusTracker, opts)
