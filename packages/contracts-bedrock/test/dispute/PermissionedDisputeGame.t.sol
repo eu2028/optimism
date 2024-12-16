@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import { console2 as console } from "forge-std/console2.sol";
-
 // Testing
 import { DisputeGameFactory_Init } from "test/dispute/DisputeGameFactory.t.sol";
 import { AlphabetVM } from "test/mocks/AlphabetVM.sol";
@@ -97,7 +95,6 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
         disputeGameFactory.setImplementation(GAME_TYPE, gameImpl);
         // Create a new game.
         uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
-        console.log("bondAmount", bondAmount);
         vm.prank(PROPOSER, PROPOSER);
         gameProxy = IPermissionedDisputeGame(
             payable(address(disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, rootClaim, extraData)))
