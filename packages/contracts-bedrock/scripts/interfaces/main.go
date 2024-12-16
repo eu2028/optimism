@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/ethereum-optimism/optimism/packages/contracts-bedrock/scripts/checks/common"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 func GenerateSolidityInterface(contractName string, astData ContractData) string {
-	seenImports := make(map[string]bool) // Track imports already added
+	if len(astData.Functions) == 0 && len(astData.Events) == 0 && len(astData.Errors) == 0 &&
+		len(astData.Types) == 0 && len(astData.Structs) == 0 && len(astData.Enums) == 0 &&
+		len(astData.Imports) == 0 && len(astData.Inherited) == 0 && len(astData.OutEnums) == 0 && len(astData.OutStructs) == 0 {
+		return ""
+	}
+
+	seenImports := make(map[string]bool)
 	seenTypes := make(map[string]bool)
 	seenStructs := make(map[string]bool)
 	seenEnums := make(map[string]bool)
@@ -28,6 +33,11 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 		if len(parts) > 1 {
 			usedTypes[parts[1]] = true
 		}
+	}
+
+	// Analyze Inheritance
+	for _, inherited := range astData.Inherited {
+		usedTypes[inherited.BaseName.Name] = true
 	}
 
 	// Analyze Functions
@@ -72,7 +82,9 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 	// Add SPDX license and pragma version
 	var builder strings.Builder
 	builder.WriteString("// SPDX-License-Identifier: MIT\n")
-	builder.WriteString(fmt.Sprintf("pragma solidity %s;\n\n", astData.Version))
+
+	//builder.WriteString(fmt.Sprintf("pragma solidity %s;\n\n", astData.Version))
+	builder.WriteString(fmt.Sprintf("pragma solidity ^0.8.0;\n\n"))
 
 	// Add imports
 	for _, importNode := range astData.Imports {
@@ -82,6 +94,24 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 				builder.WriteString(fmt.Sprintf("%s\n", importDefinition))
 				seenImports[importDefinition] = true
 			}
+		}
+	}
+
+	// Add out structs
+	for _, structDef := range astData.OutStructs {
+		structDefinition := GenerateStructDefinition(structDef)
+		if !seenStructs[structDefinition] {
+			builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
+			seenStructs[structDefinition] = true
+		}
+	}
+
+	// Add out enums
+	for _, enumDef := range astData.OutEnums {
+		enumSignature := GenerateEnumSignature(enumDef)
+		if !seenEnums[enumSignature] {
+			builder.WriteString(fmt.Sprintf("\n    %s", enumSignature))
+			seenEnums[enumSignature] = true
 		}
 	}
 
@@ -95,7 +125,9 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 	}
 
 	// Start the interface declaration
-	builder.WriteString(fmt.Sprintf("\ninterface I%s {\n", contractName))
+	builder.WriteString(GenerateInterfaceDeclaration(contractName, astData.Inherited))
+
+	//builder.WriteString(interfaceHeader + " {\n")
 
 	// Add structs
 	for _, structDef := range astData.Structs {
@@ -142,24 +174,12 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 		}
 	}
 
-	// Close the interface definition
 	builder.WriteString("\n}\n")
 
 	return builder.String()
 }
 
-func writeStderr(msg string, args ...any) {
-	_, _ = fmt.Fprintf(os.Stderr, msg+"\n", args...)
-}
-
 func main() {
-	/*
-		artifact, _ := common.ReadForgeArtifact("packages/contracts-bedrock/forge-artifacts/AddressManager.sol/AddressManager.json")
-		astData := ExtractASTData(artifact.Ast, false, "")
-
-		interfaceCode := GenerateSolidityInterface("DelayedWETH", astData)
-		fmt.Println(interfaceCode)
-	*/
 	err := run()
 	if err != nil {
 		return
@@ -172,46 +192,83 @@ func run() error {
 		return fmt.Errorf("failed to get current working directory: %w", err)
 	}
 
-	artifactsDir := filepath.Join(cwd, "packages/contracts-bedrock/forge-artifacts")
+	sourceDir := filepath.Join(cwd, "packages/contracts-bedrock/src")
+	interfaceDir := filepath.Join(cwd, "packages/contracts-bedrock/interfaces")
 
-	artifactFiles, err := glob(artifactsDir, ".json")
+	tree, err := buildDirectoryTree(sourceDir)
 	if err != nil {
-		return fmt.Errorf("failed to get artifact files: %w", err)
+		return err
 	}
 
-	// Remove duplicates from artifactFiles
-	uniqueArtifacts := make(map[string]string)
-	for contractName, artifactPath := range artifactFiles {
-		baseName := strings.Split(contractName, ".")[0]
-		uniqueArtifacts[baseName] = artifactPath
-	}
-
-	fail := func(msg string, args ...any) {
-		writeStderr("❌  "+msg, args...)
-	}
-
-	for contractName, artifactPath := range uniqueArtifacts {
-		contractName := contractName
-		artifactPath := artifactPath
-
-		if err := processArtifact(contractName, artifactPath, artifactsDir, fail); err != nil {
-			fail("%s: %v", contractName, err)
-		}
-	}
+	processFilesAndGenerateInterfaces(tree, sourceDir, interfaceDir)
 
 	return nil
 }
 
-func processArtifact(contractName, artifactPath, artifactsDir string, fail func(string, ...any)) error {
-	if strings.Contains(artifactPath, ".s.") || strings.Contains(artifactPath, ".t.") || strings.HasPrefix(contractName, "I") {
-		return nil
+func processFilesAndGenerateInterfaces(tree *TreeNode, sourceDir, targetBaseDir string) {
+	processFiles(tree, sourceDir, func(fileNode *TreeNode, parentDir string) {
+		name := strings.TrimSuffix(fileNode.Name, ".sol")
+
+		if name == "CannonTypes" || name == "LibUDT" || strings.HasPrefix(name, "I") {
+			return
+		}
+
+		artifact := mapArtifact(name, "")
+		if artifact == nil {
+			fmt.Printf("Artifact not found for: %s\n", name)
+			return
+		}
+
+		data := ExtractASTData(artifact.Ast, false, "", map[string]bool{})
+
+		// Generate the Solidity interface as a string
+		interfaceContent := GenerateSolidityInterface(name, data)
+
+		// Determine the relative path from the source directory to the current parent directory
+		relativeDir, err := filepath.Rel(sourceDir, parentDir)
+		if err != nil {
+			fmt.Printf("Error determining relative path for %s: %v\n", parentDir, err)
+			return
+		}
+		cleanedRelativeDir := strings.TrimPrefix(relativeDir, "src/")
+
+		// Combine the target base directory with the relative path
+		targetDir := filepath.Join(targetBaseDir, cleanedRelativeDir)
+
+		// Ensure the target directory exists
+		err = os.MkdirAll(targetDir, os.ModePerm)
+		if err != nil {
+			fmt.Printf("Error creating directory %s: %v\n", targetDir, err)
+			return
+		}
+
+		// Define the output file path
+		outputFile := filepath.Join(targetDir, "I"+name+".sol")
+
+		if interfaceContent != "" {
+			// Write the interface content to the file
+			err = os.WriteFile(outputFile, []byte(interfaceContent), 0644)
+			if err != nil {
+				fmt.Printf("Error writing file %s: %v\n", outputFile, err)
+				return
+			}
+		}
+	})
+}
+
+func processFiles(node *TreeNode, parentDir string, processor FileProcessor) {
+	if node.IsDir && (strings.EqualFold(node.Name, "lib") || strings.EqualFold(node.Name, "libraries")) {
+		fmt.Printf("Skipping directory: %s\n", filepath.Join(parentDir, node.Name))
+		return
 	}
-	artifact, _ := common.ReadForgeArtifact(artifactPath)
 
-	print(fmt.Sprintf("Creating: %s\n", contractName))
+	if !node.IsDir {
+		processor(node, parentDir)
+		return
+	}
 
-	astData := ExtractASTData(artifact.Ast, false, "")
-	GenerateSolidityInterface(contractName, astData)
-
-	return nil
+	for _, child := range node.Children {
+		childPath := filepath.Join(parentDir, node.Name)
+		processFiles(child, childPath, processor)
+	}
 }

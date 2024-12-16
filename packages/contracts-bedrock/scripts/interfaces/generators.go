@@ -7,6 +7,28 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/solc"
 )
 
+func GenerateInterfaceDeclaration(contractName string, inherited []solc.AstBaseContract) string {
+	if contractName == "" {
+		return ""
+	}
+
+	// Start the interface declaration
+	interfaceHeader := fmt.Sprintf("interface I%s", contractName)
+
+	// Add inherited base contracts if any
+	if len(inherited) > 0 {
+		baseContracts := []string{}
+		for _, baseContract := range inherited {
+			baseContracts = append(baseContracts, baseContract.BaseName.Name)
+		}
+		interfaceHeader += " is " + strings.Join(baseContracts, ", ")
+	}
+
+	// Close the interface declaration
+	interfaceHeader += " {\n"
+	return interfaceHeader
+}
+
 func GenerateImportDefinition(importNode solc.AstNode) string {
 	filePath := importNode.AbsolutePath
 	if filePath == "" {
@@ -46,31 +68,38 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 
 	// Handle receive function
 	if fn.Kind == "receive" {
-		signature = "receive() external payable;"
-		return signature
+		return "receive() external payable;"
 	}
 
 	// Handle fallback function
 	if fn.Kind == "fallback" {
-		signature = "fallback() external payable;"
-		return signature
+		return "fallback() external payable;"
 	}
 
 	// Handle public variables
 	if fn.NodeType == "VariableDeclaration" {
-		signature += fn.Name + "() external view"
+		// Start the signature
+		signature += fn.Name + "("
 
 		if fn.TypeDescriptions != nil {
-			var returnType = stripContractPrefix(fn.TypeDescriptions.TypeString)
+			typeString := fn.TypeDescriptions.TypeString
 
+			// Handle mappings
+			if strings.HasPrefix(typeString, "mapping(") {
+				params, returnType := extractMappingDetails(typeString)
+				signature += strings.Join(params, ", ") + ") external view returns (" + returnType + ");"
+				return signature
+			}
+
+			// Handle non-mapping types
+			signature += ") external view"
+			returnType := stripContractPrefix(typeString)
 			if !isTrivialType(returnType) {
 				returnType += " memory"
 			}
-
-			signature += " returns (" + returnType + ")"
+			signature += " returns (" + returnType + ");"
 		}
 
-		signature += ";"
 		return signature
 	}
 
@@ -79,6 +108,7 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 		fn.Name = "__constructor__"
 	}
 
+	// Start regular function signature
 	signature += fn.Name + "("
 
 	// Add function parameters
@@ -90,12 +120,6 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 			if paramName == "" {
 				paramName = "_"
 			}
-
-			// Add memory or calldata if applicable
-			if param.StorageLocation == "memory" || param.StorageLocation == "calldata" {
-				paramType += " " + param.StorageLocation
-			}
-
 			params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
 		}
 		signature += strings.Join(params, ", ")
@@ -113,12 +137,6 @@ func GenerateFunctionSignature(fn solc.AstNode) string {
 		var returns []string
 		for _, ret := range fn.ReturnParameters.Parameters {
 			returnType := stripContractPrefix(ret.TypeDescriptions.TypeString)
-
-			// Add memory or calldata if applicable
-			if ret.StorageLocation == "memory" || ret.StorageLocation == "calldata" {
-				returnType += " " + ret.StorageLocation
-			}
-
 			returns = append(returns, returnType)
 		}
 		signature += " returns (" + strings.Join(returns, ", ") + ")"
@@ -145,8 +163,18 @@ func GenerateEventDefinition(event solc.AstNode) string {
 			if strings.HasPrefix(paramType, "enum ") {
 				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
 			}
+			if strings.HasPrefix(paramType, "contract ") {
+				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
+			}
+			if strings.HasPrefix(paramType, "struct ") {
+				paramType = paramType[strings.LastIndex(paramType, ".")+1:]
+			}
 
-			params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
+			if param.Indexed {
+				params = append(params, fmt.Sprintf("%s indexed %s", paramType, paramName))
+			} else {
+				params = append(params, fmt.Sprintf("%s %s", paramType, paramName))
+			}
 		}
 		builder.WriteString(strings.Join(params, ", "))
 	}
@@ -170,9 +198,10 @@ func GenerateErrorDefinition(errorDef solc.AstNode) string {
 			paramType := param.TypeDescriptions.TypeString
 			paramName := param.Name
 			if paramName == "" {
-				paramName = "_"
+				builder.WriteString(fmt.Sprintf("%s", paramType))
+			} else {
+				builder.WriteString(fmt.Sprintf("%s %s", paramType, paramName))
 			}
-			builder.WriteString(fmt.Sprintf("%s %s", paramType, paramName))
 		}
 	}
 
@@ -187,10 +216,10 @@ func GenerateStructDefinition(structDef StructDefinition) string {
 	builder.WriteString(fmt.Sprintf("struct %s {\n", structDef.Name))
 
 	for _, member := range structDef.Members {
-		builder.WriteString(fmt.Sprintf("    %s %s;\n", member.Type, member.Name))
+		builder.WriteString(fmt.Sprintf("\t\t%s %s;\n", member.Type, member.Name))
 	}
 
-	builder.WriteString("}\n")
+	builder.WriteString("\t}\n")
 
 	return builder.String()
 }
