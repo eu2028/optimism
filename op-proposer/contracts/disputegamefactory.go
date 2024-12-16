@@ -136,7 +136,7 @@ func (f *DisputeGameFactory) gameAtIndex(ctx context.Context, idx uint64) (gameM
 	if err != nil {
 		return gameMetadata{}, fmt.Errorf("failed to load root claim of game %v: %w", idx, err)
 	}
-	// We don't need most of the claim data, only the claimant which is the game proposer
+	// We don't need most of the claim data, only the claim and the claimant which is the game proposer
 	claimant := result.GetAddress(2)
 	claim := result.GetHash(4)
 

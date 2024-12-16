@@ -295,7 +295,7 @@ func (l *L2OutputSubmitter) FetchDGFOutput(ctx context.Context) (*eth.OutputResp
 		return nil, false, fmt.Errorf("could not fetch output at current block number %d: %w", currentBlockNumber, err)
 	}
 
-	if claim == output.StateRoot {
+	if claim == common.Hash(output.OutputRoot) {
 		l.Log.Debug("Skipping proposal: output root unchanged since last porposed game", "last proposed claim", claim, "output_root", output.StateRoot)
 		return nil, false, nil
 	}
