@@ -7,10 +7,14 @@ import (
 	"strings"
 )
 
+type PortMap map[string]int
+
+type ServiceMap map[string]PortMap
+
 // InspectOutput represents the parsed output of "kurtosis enclave inspect"
 type InspectOutput struct {
 	FileArtifacts []string
-	UserServices  map[string]map[string]int
+	UserServices  ServiceMap
 }
 
 // extractPortName extracts the port name from the left part of a port mapping
@@ -65,7 +69,7 @@ func parsePortMapping(line string, currentService string, result *InspectOutput)
 func ParseInspectOutput(r io.Reader) (*InspectOutput, error) {
 	result := &InspectOutput{
 		FileArtifacts: make([]string, 0),
-		UserServices:  make(map[string]map[string]int),
+		UserServices:  make(ServiceMap),
 	}
 
 	scanner := bufio.NewScanner(r)

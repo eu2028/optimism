@@ -21,6 +21,7 @@ func main() {
 	dataFile := flag.String("data", "", "Path to JSON data file (optional)")
 	kurtosisPackage := flag.String("kurtosis-package", kurtosis.DefaultPackageName, "Kurtosis package to deploy")
 	enclave := flag.String("enclave", "devnet", "Enclave name")
+	environment := flag.String("environment", "", "Path to JSON environment file output (optional)")
 	dryRun := flag.Bool("dry-run", false, "Dry run mode")
 	flag.Parse()
 
@@ -99,5 +100,19 @@ func main() {
 		log.Fatalf("Error deploying kurtosis: %v\n", err)
 	}
 
-	fmt.Println(env)
+	envOutput := os.Stdout
+	if *environment != "" {
+		envOutput, err = os.Create(*environment)
+		if err != nil {
+			log.Fatalf("Error creating environment file: %v\n", err)
+		}
+	} else {
+		log.Println("Environment description:")
+	}
+
+	enc := json.NewEncoder(envOutput)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(env); err != nil {
+		log.Fatalf("Error encoding environment: %v\n", err)
+	}
 }

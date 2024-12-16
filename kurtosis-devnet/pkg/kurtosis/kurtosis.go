@@ -4,24 +4,24 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"text/template"
 )
 
 const DefaultPackageName = "github.com/ethpandaops/optimism-package"
 
 type Chain struct {
-	Name string
-	ID   string
-	RPC  string
+	Name string `json:"name"`
+	ID   string `json:"id,omitempty"`
+	RPC  string `json:"rpc"`
 }
 
 // KurtosisEnvironment represents the output of a Kurtosis deployment
 type KurtosisEnvironment struct {
-	L1 *Chain
-	L2 []*Chain
+	L1 *Chain   `json:"l1"`
+	L2 []*Chain `json:"l2"`
 }
 
 // KurtosisDeployer handles deploying packages using Kurtosis
@@ -102,58 +102,159 @@ type templateData struct {
 	Enclave     string
 }
 
-// Deploy executes the Kurtosis deployment command with the provided input
-func (d *KurtosisDeployer) Deploy(input io.Reader) (*KurtosisEnvironment, error) {
-	// Create temporary file for arguments
+// getInspectOutput runs kurtosis enclave inspect and writes its output to the provided writer
+func (d *KurtosisDeployer) getInspectOutput(w io.Writer) error {
+	cmd := exec.Command("kurtosis", "enclave", "inspect", d.enclave)
+	cmd.Stdout = w
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to inspect kurtosis enclave: %w", err)
+	}
+	return nil
+}
+
+// findRPCEndpoint looks for a service matching the given predicate that has an RPC port
+func findRPCEndpoint(services ServiceMap, matchService func(string) bool) string {
+	for serviceName, ports := range services {
+		if !matchService(serviceName) {
+			continue
+		}
+		if port, ok := ports["rpc"]; ok {
+			return fmt.Sprintf("http://localhost:%d", port)
+		}
+	}
+	return ""
+}
+
+// findL2RPCEndpoint looks for a service with the given suffix that has an RPC port
+func findL2RPCEndpoint(services ServiceMap, suffix string) string {
+	return findRPCEndpoint(services, func(serviceName string) bool {
+		return strings.HasSuffix(serviceName, suffix)
+	})
+}
+
+// findL1RPCEndpoint looks the RPC port of the Ethereum service
+func findL1RPCEndpoint(services ServiceMap) string {
+	return findRPCEndpoint(services, func(serviceName string) bool {
+		return strings.HasPrefix(serviceName, "el-1")
+	})
+}
+
+// prepareArgFile creates a temporary file with the input content and returns its path
+func (d *KurtosisDeployer) prepareArgFile(input io.Reader) (string, error) {
 	argFile, err := os.CreateTemp("", "kurtosis-args-*.yaml")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temporary arg file: %w", err)
+		return "", fmt.Errorf("failed to create temporary arg file: %w", err)
 	}
-	defer os.Remove(argFile.Name())
+	defer argFile.Close()
 
-	var writer io.Writer = argFile
-	writer = io.MultiWriter(writer, os.Stdout)
-
-	log.Print("Running Kurtosis with the following arguments:")
-	// Copy input to arg file
-	if _, err := io.Copy(writer, input); err != nil {
-		return nil, fmt.Errorf("failed to write arg file: %w", err)
+	if _, err := io.Copy(argFile, input); err != nil {
+		os.Remove(argFile.Name())
+		return "", fmt.Errorf("failed to write arg file: %w", err)
 	}
 
-	// Prepare template data
+	return argFile.Name(), nil
+}
+
+// runKurtosisCommand executes the kurtosis command with the given arguments
+func (d *KurtosisDeployer) runKurtosisCommand(argFile string) error {
 	data := templateData{
 		PackageName: d.packageName,
-		ArgFile:     argFile.Name(),
+		ArgFile:     argFile,
 		Enclave:     d.enclave,
 	}
-	argFile.Close()
 
-	// Execute template to get command string
 	var cmdBuf bytes.Buffer
 	if err := d.cmdTemplate.Execute(&cmdBuf, data); err != nil {
-		return nil, fmt.Errorf("failed to execute command template: %w", err)
+		return fmt.Errorf("failed to execute command template: %w", err)
 	}
-
-	// Create command
-	cmd := exec.Command("sh", "-c", cmdBuf.String())
-	cmd.Dir = d.baseDir
 
 	if d.dryRun {
 		fmt.Println("Dry run mode enabled, kurtosis would run the following command:")
 		fmt.Println(cmdBuf.String())
-		return &KurtosisEnvironment{}, nil
+		return nil
 	}
 
-	// Stream output to stdout and stderr
+	cmd := exec.Command("sh", "-c", cmdBuf.String())
+	cmd.Dir = d.baseDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("kurtosis deployment failed: %w", err)
+		return fmt.Errorf("kurtosis deployment failed: %w", err)
 	}
 
-	// TODO: Populate KurtosisEnvironment with the actual environment details
-	env := &KurtosisEnvironment{}
+	return nil
+}
+
+// getEnvironmentInfo parses the input spec and inspect output to create KurtosisEnvironment
+func (d *KurtosisDeployer) getEnvironmentInfo(spec *EnclaveSpec) (*KurtosisEnvironment, error) {
+	var inspectBuf bytes.Buffer
+	if err := d.getInspectOutput(&inspectBuf); err != nil {
+		return nil, err
+	}
+
+	inspectResult, err := ParseInspectOutput(&inspectBuf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse inspect output: %w", err)
+	}
+
+	env := &KurtosisEnvironment{
+		L2: make([]*Chain, 0, len(spec.Chains)),
+	}
+
+	// Find L1 endpoint
+	if rpcEndpoint := findL1RPCEndpoint(inspectResult.UserServices); rpcEndpoint != "" {
+		env.L1 = &Chain{
+			Name: "Ethereum",
+			RPC:  rpcEndpoint,
+		}
+	}
+
+	// Find L2 endpoints
+	for _, chainSpec := range spec.Chains {
+		rpcEndpoint := findL2RPCEndpoint(inspectResult.UserServices, chainSpec.Name)
+		if rpcEndpoint == "" {
+			continue
+		}
+
+		env.L2 = append(env.L2, &Chain{
+			Name: chainSpec.Name,
+			ID:   chainSpec.NetworkID,
+			RPC:  rpcEndpoint,
+		})
+	}
 
 	return env, nil
+}
+
+// Deploy executes the Kurtosis deployment command with the provided input
+func (d *KurtosisDeployer) Deploy(input io.Reader) (*KurtosisEnvironment, error) {
+	// Parse the input spec first
+	inputCopy := new(bytes.Buffer)
+	tee := io.TeeReader(input, inputCopy)
+
+	spec, err := ParseSpec(tee)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input spec: %w", err)
+	}
+
+	// Prepare argument file
+	argFile, err := d.prepareArgFile(inputCopy)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(argFile)
+
+	// Run kurtosis command
+	if err := d.runKurtosisCommand(argFile); err != nil {
+		return nil, err
+	}
+
+	// If dry run, return empty environment
+	if d.dryRun {
+		return &KurtosisEnvironment{}, nil
+	}
+
+	// Get environment information
+	return d.getEnvironmentInfo(spec)
 }
