@@ -695,11 +695,16 @@ contract Deploy is Deployer {
         string memory version = dac.version();
         console.log("DataAvailabilityChallenge version: %s", version);
 
-        require(dac.owner() == finalSystemOwner);
-        require(dac.challengeWindow() == daChallengeWindow);
-        require(dac.resolveWindow() == daResolveWindow);
-        require(dac.bondSize() == daBondSize);
-        require(dac.resolverRefundPercentage() == daResolverRefundPercentage);
+        require(dac.owner() == finalSystemOwner, "Deploy: DataAvailabilityChallenge owner not set");
+        require(
+            dac.challengeWindow() == daChallengeWindow, "Deploy: DataAvailabilityChallenge challenge window not set"
+        );
+        require(dac.resolveWindow() == daResolveWindow, "Deploy: DataAvailabilityChallenge resolve window not set");
+        require(dac.bondSize() == daBondSize, "Deploy: DataAvailabilityChallenge bond size not set");
+        require(
+            dac.resolverRefundPercentage() == daResolverRefundPercentage,
+            "Deploy: DataAvailabilityChallenge resolver refund percentage not set"
+        );
     }
 
     ////////////////////////////////////////////////////////////////
