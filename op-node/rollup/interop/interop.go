@@ -3,6 +3,7 @@ package interop
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,11 +28,10 @@ type InteropBackend interface {
 	SafeView(ctx context.Context, chainID types.ChainID, safe types.ReferenceView) (types.ReferenceView, error)
 	Finalized(ctx context.Context, chainID types.ChainID) (eth.BlockID, error)
 
-	DerivedFrom(ctx context.Context, chainID types.ChainID, derived eth.BlockID) (eth.L1BlockRef, error)
+	CrossDerivedFrom(ctx context.Context, chainID types.ChainID, derived eth.BlockID) (eth.L1BlockRef, error)
 
 	UpdateLocalUnsafe(ctx context.Context, chainID types.ChainID, head eth.BlockRef) error
 	UpdateLocalSafe(ctx context.Context, chainID types.ChainID, derivedFrom eth.L1BlockRef, lastDerived eth.BlockRef) error
-	UpdateFinalizedL1(ctx context.Context, chainID types.ChainID, finalized eth.L1BlockRef) error
 }
 
 // For testing usage, the backend of the supervisor implements the interface, no need for RPC.
@@ -139,7 +139,10 @@ func (d *InteropDeriver) onInteropPendingSafeChangedEvent(x engine.InteropPendin
 	defer cancel()
 	if err := d.backend.UpdateLocalSafe(ctx, d.chainID, x.DerivedFrom, x.Ref.BlockRef()); err != nil {
 		d.log.Debug("Failed to signal derived-from update to interop backend", "derivedFrom", x.DerivedFrom, "block", x.Ref)
-		// still continue to try and do a cross-safe update
+		if strings.Contains(err.Error(), "too far behind") {
+			d.log.Error("Supervisor is too far behind, resetting derivation", "err", err)
+			d.emitter.Emit(rollup.ResetEvent{Err: fmt.Errorf("supervisor is too far behind: %w", err)})
+		}
 	}
 	// Now that the op-supervisor is aware of the new local-safe block, we want to check if cross-safe changed.
 	d.emitter.Emit(engine.RequestCrossSafeEvent{})
@@ -149,12 +152,10 @@ func (d *InteropDeriver) onFinalizedL1(x finality.FinalizeL1Event) {
 	if !d.cfg.IsInterop(x.FinalizedL1.Time) {
 		return
 	}
-	d.log.Debug("Signaling finalized L1 update to interop backend", "finalized", x.FinalizedL1)
-	ctx, cancel := context.WithTimeout(d.driverCtx, rpcTimeout)
-	defer cancel()
-	if err := d.backend.UpdateFinalizedL1(ctx, d.chainID, x.FinalizedL1); err != nil {
-		d.log.Warn("Failed to signal finalized L1 block to interop backend", "finalized", x.FinalizedL1, "err", err)
-	}
+	// there used to be code here which sent the finalized L1 block to the supervisor
+	// but the supervisor manages its own finality now
+	// so we don't need to do anything here besides emit the event.
+
 	// New L2 blocks may be ready to finalize now that the backend knows of new L1 finalized info.
 	d.emitter.Emit(engine.RequestFinalizedUpdateEvent{})
 }
@@ -224,7 +225,7 @@ func (d *InteropDeriver) onCrossSafeUpdateEvent(x engine.CrossSafeUpdateEvent) e
 	}
 	if result.Cross.Number < x.CrossSafe.Number {
 		d.log.Warn("op-supervisor is behind known cross-safe block", "supervisor", result.Cross, "known", x.CrossSafe)
-		// TODO: we may want to force set the cross-safe block in the engine,
+		// TODO(#13337): we may want to force set the cross-safe block in the engine,
 		//  and then reset derivation, so this op-node can help get the supervisor back in sync.
 		return nil
 	}
@@ -232,10 +233,11 @@ func (d *InteropDeriver) onCrossSafeUpdateEvent(x engine.CrossSafeUpdateEvent) e
 		Hash:   result.Cross.Hash,
 		Number: result.Cross.Number,
 	}
-	derivedFrom, err := d.backend.DerivedFrom(ctx, d.chainID, derived)
+	derivedFrom, err := d.backend.CrossDerivedFrom(ctx, d.chainID, derived)
 	if err != nil {
 		return fmt.Errorf("failed to get derived-from of %s: %w", result.Cross, err)
 	}
+	d.log.Info("New cross-safe block", "block", result.Cross.Number)
 	ref, err := d.l2.L2BlockRefByHash(ctx, result.Cross.Hash)
 	if err != nil {
 		return fmt.Errorf("failed to get block ref of %s: %w", result.Cross, err)
@@ -272,6 +274,7 @@ func (d *InteropDeriver) onFinalizedUpdate(x engine.FinalizedUpdateEvent) error 
 	if err != nil {
 		return fmt.Errorf("failed to get block ref of %s: %w", finalized, err)
 	}
+	d.log.Info("New finalized block from supervisor", "block", finalized.Number)
 	d.emitter.Emit(engine.PromoteFinalizedEvent{
 		Ref: ref,
 	})

@@ -4,10 +4,10 @@ pragma solidity 0.8.15;
 import { Script } from "forge-std/Script.sol";
 import { stdToml } from "forge-std/StdToml.sol";
 
-import { ISuperchainConfig } from "src/L1/interfaces/ISuperchainConfig.sol";
-import { IProtocolVersions, ProtocolVersion } from "src/L1/interfaces/IProtocolVersions.sol";
-import { IProxyAdmin } from "src/universal/interfaces/IProxyAdmin.sol";
-import { IProxy } from "src/universal/interfaces/IProxy.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IProtocolVersions, ProtocolVersion } from "interfaces/L1/IProtocolVersions.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
 
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
@@ -60,9 +60,9 @@ import { BaseDeployIO } from "scripts/deploy/BaseDeployIO.sol";
 // we use variable names that are shorthand for the full contract names, for example:
 //   - `dsi` for DeploySuperchainInput
 //   - `dso` for DeploySuperchainOutput
-//   - `dio` for DeployImplementationsInput
+//   - `dii` for DeployImplementationsInput
 //   - `dio` for DeployImplementationsOutput
-//   - `doo` for DeployOPChainInput
+//   - `doi` for DeployOPChainInput
 //   - `doo` for DeployOPChainOutput
 //   - etc.
 

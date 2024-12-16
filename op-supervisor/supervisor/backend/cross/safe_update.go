@@ -57,7 +57,7 @@ func CrossSafeUpdate(ctx context.Context, logger log.Logger, chainID types.Chain
 	if err != nil {
 		return fmt.Errorf("cannot find parent-block of cross-safe: %w", err)
 	}
-	crossSafeRef := currentCrossSafe.WithParent(parent.ID())
+	crossSafeRef := currentCrossSafe.MustWithParent(parent.ID())
 	logger.Debug("Bumping cross-safe scope", "scope", newScope, "crossSafe", crossSafeRef)
 	if err := d.UpdateCrossSafe(chainID, newScope, crossSafeRef); err != nil {
 		return fmt.Errorf("failed to update cross-safe head with L1 scope increment to %s and repeat of L2 block %s: %w", candidateScope, crossSafeRef, err)
@@ -89,9 +89,9 @@ func scopedCrossSafeUpdate(logger log.Logger, chainID types.ChainID, d CrossSafe
 	if err := HazardSafeFrontierChecks(d, candidateScope.ID(), hazards); err != nil {
 		return candidateScope, fmt.Errorf("failed to verify block %s in cross-safe frontier: %w", candidate, err)
 	}
-	//if err := HazardCycleChecks(d, candidate.Timestamp, hazards); err != nil {
-	// TODO
-	//}
+	if err := HazardCycleChecks(d, candidate.Time, hazards); err != nil {
+		return candidateScope, fmt.Errorf("failed to verify block %s in cross-safe check for cycle hazards: %w", candidate, err)
+	}
 
 	// promote the candidate block to cross-safe
 	if err := d.UpdateCrossSafe(chainID, candidateScope, candidate); err != nil {

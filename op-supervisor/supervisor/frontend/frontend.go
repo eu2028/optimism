@@ -11,22 +11,22 @@ import (
 type AdminBackend interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	AddL2RPC(ctx context.Context, rpc string) error
+	AddL2RPC(ctx context.Context, rpc string, jwtSecret eth.Bytes32) error
 }
 
 type QueryBackend interface {
 	CheckMessage(identifier types.Identifier, payloadHash common.Hash) (types.SafetyLevel, error)
 	CheckMessages(messages []types.Message, minSafety types.SafetyLevel) error
-	DerivedFrom(ctx context.Context, chainID types.ChainID, derived eth.BlockID) (derivedFrom eth.BlockRef, err error)
+	CrossDerivedFrom(ctx context.Context, chainID types.ChainID, derived eth.BlockID) (derivedFrom eth.BlockRef, err error)
 	UnsafeView(ctx context.Context, chainID types.ChainID, unsafe types.ReferenceView) (types.ReferenceView, error)
 	SafeView(ctx context.Context, chainID types.ChainID, safe types.ReferenceView) (types.ReferenceView, error)
 	Finalized(ctx context.Context, chainID types.ChainID) (eth.BlockID, error)
+	FinalizedL1() eth.BlockRef
 }
 
 type UpdatesBackend interface {
 	UpdateLocalUnsafe(ctx context.Context, chainID types.ChainID, head eth.BlockRef) error
 	UpdateLocalSafe(ctx context.Context, chainID types.ChainID, derivedFrom eth.BlockRef, lastDerived eth.BlockRef) error
-	UpdateFinalizedL1(ctx context.Context, chainID types.ChainID, finalized eth.BlockRef) error
 }
 
 type Backend interface {
@@ -47,7 +47,7 @@ func (q *QueryFrontend) CheckMessage(identifier types.Identifier, payloadHash co
 	return q.Supervisor.CheckMessage(identifier, payloadHash)
 }
 
-// CheckMessage checks the safety-level of a collection of messages,
+// CheckMessages checks the safety-level of a collection of messages,
 // and returns if the minimum safety-level is met for all messages.
 func (q *QueryFrontend) CheckMessages(
 	messages []types.Message,
@@ -67,8 +67,12 @@ func (q *QueryFrontend) Finalized(ctx context.Context, chainID types.ChainID) (e
 	return q.Supervisor.Finalized(ctx, chainID)
 }
 
-func (q *QueryFrontend) DerivedFrom(ctx context.Context, chainID types.ChainID, derived eth.BlockID) (derivedFrom eth.BlockRef, err error) {
-	return q.Supervisor.DerivedFrom(ctx, chainID, derived)
+func (q *QueryFrontend) FinalizedL1() eth.BlockRef {
+	return q.Supervisor.FinalizedL1()
+}
+
+func (q *QueryFrontend) CrossDerivedFrom(ctx context.Context, chainID types.ChainID, derived eth.BlockID) (derivedFrom eth.BlockRef, err error) {
+	return q.Supervisor.CrossDerivedFrom(ctx, chainID, derived)
 }
 
 type AdminFrontend struct {
@@ -88,8 +92,8 @@ func (a *AdminFrontend) Stop(ctx context.Context) error {
 }
 
 // AddL2RPC adds a new L2 chain to the supervisor backend
-func (a *AdminFrontend) AddL2RPC(ctx context.Context, rpc string) error {
-	return a.Supervisor.AddL2RPC(ctx, rpc)
+func (a *AdminFrontend) AddL2RPC(ctx context.Context, rpc string, jwtSecret eth.Bytes32) error {
+	return a.Supervisor.AddL2RPC(ctx, rpc, jwtSecret)
 }
 
 type UpdatesFrontend struct {
@@ -104,8 +108,4 @@ func (u *UpdatesFrontend) UpdateLocalUnsafe(ctx context.Context, chainID types.C
 
 func (u *UpdatesFrontend) UpdateLocalSafe(ctx context.Context, chainID types.ChainID, derivedFrom eth.BlockRef, lastDerived eth.BlockRef) error {
 	return u.Supervisor.UpdateLocalSafe(ctx, chainID, derivedFrom, lastDerived)
-}
-
-func (u *UpdatesFrontend) UpdateFinalizedL1(ctx context.Context, chainID types.ChainID, finalized eth.BlockRef) error {
-	return u.Supervisor.UpdateFinalizedL1(ctx, chainID, finalized)
 }
