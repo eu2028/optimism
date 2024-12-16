@@ -1,6 +1,7 @@
 package kurtosis
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -38,9 +39,32 @@ d8010602c8d9   el-1-geth-lighthouse                             engine-rpc: 8551
                                                                 rpc: 8545/tcp -> 127.0.0.1:56382
                                                                 tcp-discovery: 30303/tcp -> 127.0.0.1:56381
                                                                 udp-discovery: 30303/udp -> 127.0.0.1:50818
-                                                                ws: 8546/tcp -> 127.0.0.1:56383`
+                                                                ws: 8546/tcp -> 127.0.0.1:56383
+cea9c515cc61   op-batcher-op-kurtosis-1                         http: 8548/tcp -> http://127.0.0.1:56772      RUNNING
+0d0dea3a7281   op-batcher-op-kurtosis-2                         http: 8548/tcp -> http://127.0.0.1:57052      RUNNING
+108409b50fc1   op-cl-1-op-node-op-geth-op-kurtosis-1            http: 8547/tcp -> http://127.0.0.1:56752      RUNNING
+                                                                tcp-discovery: 9003/tcp -> 127.0.0.1:56753
+                                                                udp-discovery: 9003/udp -> 127.0.0.1:61159
+a5392ca8849f   op-cl-1-op-node-op-geth-op-kurtosis-2            http: 8547/tcp -> http://127.0.0.1:56901      RUNNING
+                                                                tcp-discovery: 9003/tcp -> 127.0.0.1:56902
+                                                                udp-discovery: 9003/udp -> 127.0.0.1:58904
+93128de6641b   op-el-1-op-geth-op-node-op-kurtosis-1            engine-rpc: 8551/tcp -> 127.0.0.1:56734       RUNNING
+                                                                metrics: 9001/tcp -> 127.0.0.1:56735
+                                                                rpc: 8545/tcp -> http://127.0.0.1:56732
+                                                                tcp-discovery: 30303/tcp -> 127.0.0.1:56731
+                                                                udp-discovery: 30303/udp -> 127.0.0.1:64848
+                                                                ws: 8546/tcp -> 127.0.0.1:56733
+884fca1b00ad   op-el-1-op-geth-op-node-op-kurtosis-2            engine-rpc: 8551/tcp -> 127.0.0.1:56786       RUNNING
+                                                                metrics: 9001/tcp -> 127.0.0.1:56787
+                                                                rpc: 8545/tcp -> http://127.0.0.1:56784
+                                                                tcp-discovery: 30303/tcp -> 127.0.0.1:56783
+                                                                udp-discovery: 30303/udp -> 127.0.0.1:52005
+                                                                ws: 8546/tcp -> 127.0.0.1:56785
+a75ce8815bea   validator-key-generation-cl-validator-keystore   <none>                                        RUNNING
+155a7d9a065d   vc-1-geth-lighthouse                             metrics: 8080/tcp -> http://127.0.0.1:56408   RUNNING
+`
 
-	result, err := ParseInspectOutput(output)
+	result, err := ParseInspectOutput(strings.NewReader(output))
 	if err != nil {
 		t.Fatalf("Failed to parse inspect output: %v", err)
 	}
@@ -91,6 +115,42 @@ d8010602c8d9   el-1-geth-lighthouse                             engine-rpc: 8551
 			"tcp-discovery": 56381,
 			"udp-discovery": 50818,
 			"ws":            56383,
+		},
+		"op-batcher-op-kurtosis-1": {
+			"http": 56772,
+		},
+		"op-batcher-op-kurtosis-2": {
+			"http": 57052,
+		},
+		"op-cl-1-op-node-op-geth-op-kurtosis-1": {
+			"http":          56752,
+			"tcp-discovery": 56753,
+			"udp-discovery": 61159,
+		},
+		"op-cl-1-op-node-op-geth-op-kurtosis-2": {
+			"http":          56901,
+			"tcp-discovery": 56902,
+			"udp-discovery": 58904,
+		},
+		"op-el-1-op-geth-op-node-op-kurtosis-1": {
+			"engine-rpc":    56734,
+			"metrics":       56735,
+			"rpc":           56732,
+			"tcp-discovery": 56731,
+			"udp-discovery": 64848,
+			"ws":            56733,
+		},
+		"op-el-1-op-geth-op-node-op-kurtosis-2": {
+			"engine-rpc":    56786,
+			"metrics":       56787,
+			"rpc":           56784,
+			"tcp-discovery": 56783,
+			"udp-discovery": 52005,
+			"ws":            56785,
+		},
+		"validator-key-generation-cl-validator-keystore": {},
+		"vc-1-geth-lighthouse": {
+			"metrics": 56408,
 		},
 	}
 

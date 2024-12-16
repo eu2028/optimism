@@ -3,6 +3,7 @@ package kurtosis
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -12,14 +13,62 @@ type InspectOutput struct {
 	UserServices  map[string]map[string]int
 }
 
+// extractPortName extracts the port name from the left part of a port mapping
+func extractPortName(leftPart string) string {
+	if strings.Contains(leftPart, ":") {
+		lastColonIndex := strings.LastIndex(leftPart, ":")
+		return strings.TrimSpace(leftPart[:lastColonIndex])
+	}
+
+	fields := strings.Fields(leftPart)
+	if len(fields) > 0 {
+		return fields[0]
+	}
+	return ""
+}
+
+// extractPort extracts the port number from the right part of a port mapping
+func extractPort(rightPart string) (int, error) {
+	rightPart = strings.TrimSpace(rightPart)
+	rightPart = strings.TrimPrefix(rightPart, "http://")
+	if !strings.HasPrefix(rightPart, "127.0.0.1:") {
+		return 0, fmt.Errorf("invalid port mapping format")
+	}
+
+	portStr := strings.TrimPrefix(rightPart, "127.0.0.1:")
+	var port int
+	_, err := fmt.Sscanf(portStr, "%d", &port)
+	return port, err
+}
+
+// parsePortMapping parses a port mapping string and adds it to the result
+func parsePortMapping(line string, currentService string, result *InspectOutput) {
+	parts := strings.Split(line, "->")
+	if len(parts) < 2 {
+		return
+	}
+
+	leftPart := strings.TrimRight(parts[0], " \t")
+
+	portName := extractPortName(leftPart)
+	if portName == "" {
+		return
+	}
+
+	port, err := extractPort(parts[1])
+	if err == nil && currentService != "" {
+		result.UserServices[currentService][portName] = port
+	}
+}
+
 // ParseInspectOutput parses the output of "kurtosis enclave inspect" command
-func ParseInspectOutput(output string) (*InspectOutput, error) {
+func ParseInspectOutput(r io.Reader) (*InspectOutput, error) {
 	result := &InspectOutput{
 		FileArtifacts: make([]string, 0),
 		UserServices:  make(map[string]map[string]int),
 	}
 
-	scanner := bufio.NewScanner(strings.NewReader(output))
+	scanner := bufio.NewScanner(r)
 
 	// States for parsing different sections
 	const (
@@ -72,7 +121,6 @@ func ParseInspectOutput(output string) (*InspectOutput, error) {
 			if len(fields) >= 2 && len(fields[0]) == 12 {
 				currentService = fields[1]
 				result.UserServices[currentService] = make(map[string]int)
-				fmt.Printf("New service: %s\n", currentService)
 
 				// Check if there's a port mapping on the same line
 				if strings.Contains(line, "->") {
@@ -81,77 +129,11 @@ func ParseInspectOutput(output string) (*InspectOutput, error) {
 					// Process the rest of the line for port mapping
 					portLine := line[serviceNameEnd:]
 					if strings.Contains(portLine, "->") {
-						parts := strings.Split(portLine, "->")
-						if len(parts) >= 2 {
-							leftPart := strings.TrimRight(parts[0], " \t")
-							fmt.Printf("Processing port line from service line. Left part: '%s'\n", leftPart)
-
-							var portName string
-							if strings.Contains(leftPart, ":") {
-								lastColonIndex := strings.LastIndex(leftPart, ":")
-								portName = strings.TrimSpace(leftPart[:lastColonIndex])
-							} else {
-								fields := strings.Fields(leftPart)
-								if len(fields) > 0 {
-									portName = fields[0]
-								}
-							}
-
-							if portName != "" {
-								fmt.Printf("Found port name: '%s'\n", portName)
-								rightPart := strings.TrimSpace(parts[1])
-								rightPart = strings.TrimPrefix(rightPart, "http://")
-								if strings.HasPrefix(rightPart, "127.0.0.1:") {
-									portStr := strings.TrimPrefix(rightPart, "127.0.0.1:")
-									var port int
-									_, err := fmt.Sscanf(portStr, "%d", &port)
-									if err == nil {
-										result.UserServices[currentService][portName] = port
-										fmt.Printf("Added port %s:%d for service %s\n", portName, port, currentService)
-									}
-								}
-							}
-						}
+						parsePortMapping(portLine, currentService, result)
 					}
 				}
 			} else if strings.Contains(line, "->") {
-				// Use original line for port parsing
-				parts := strings.Split(line, "->")
-				if len(parts) < 2 {
-					continue
-				}
-
-				leftPart := strings.TrimRight(parts[0], " \t")
-				fmt.Printf("Processing port line. Left part: '%s'\n", leftPart)
-
-				var portName string
-				if strings.Contains(leftPart, ":") {
-					lastColonIndex := strings.LastIndex(leftPart, ":")
-					portName = strings.TrimSpace(leftPart[:lastColonIndex])
-				} else {
-					fields := strings.Fields(leftPart)
-					if len(fields) > 0 {
-						portName = fields[0]
-					}
-				}
-
-				if portName == "" {
-					continue
-				}
-
-				fmt.Printf("Found port name: '%s'\n", portName)
-
-				rightPart := strings.TrimSpace(parts[1])
-				rightPart = strings.TrimPrefix(rightPart, "http://")
-				if strings.HasPrefix(rightPart, "127.0.0.1:") {
-					portStr := strings.TrimPrefix(rightPart, "127.0.0.1:")
-					var port int
-					_, err := fmt.Sscanf(portStr, "%d", &port)
-					if err == nil && currentService != "" {
-						result.UserServices[currentService][portName] = port
-						fmt.Printf("Added port %s:%d for service %s\n", portName, port, currentService)
-					}
-				}
+				parsePortMapping(line, currentService, result)
 			}
 		}
 	}
