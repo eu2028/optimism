@@ -12,10 +12,16 @@ import (
 
 const DefaultPackageName = "github.com/ethpandaops/optimism-package"
 
+type Chain struct {
+	Name string
+	ID   string
+	RPC  string
+}
+
 // KurtosisEnvironment represents the output of a Kurtosis deployment
-// Note: This is a placeholder - we'll define the actual structure later
 type KurtosisEnvironment struct {
-	// TODO: Add environment details
+	L1 *Chain
+	L2 []*Chain
 }
 
 // KurtosisDeployer handles deploying packages using Kurtosis
