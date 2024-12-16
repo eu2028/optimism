@@ -8,7 +8,6 @@ import { stdJson } from "forge-std/StdJson.sol";
 import { Deployer } from "scripts/deploy/Deployer.sol";
 
 // Libraries
-import { Constants } from "src/libraries/Constants.sol";
 import { GameTypes } from "src/dispute/lib/Types.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
