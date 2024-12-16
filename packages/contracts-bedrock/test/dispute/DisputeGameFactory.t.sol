@@ -275,22 +275,25 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
 
         uint256 start = gameCount - 1;
 
+        // Find type 1 games.
         games = disputeGameFactory.findLatestGames(GameType.wrap(1), start, 1);
         assertEq(games.length, 1);
         // The type 1 game should be the last one added.
         assertEq(games[0].index, start);
-        (gameType, createdAt, game) = games[0].metadata.unpack();
+        (GameType gameType, Timestamp createdAt, address game) = games[0].metadata.unpack();
         assertEq(gameType.raw(), 1);
         assertEq(createdAt.raw(), block.timestamp);
 
+        // Find type 0 games.
         games = disputeGameFactory.findLatestGames(GameType.wrap(0), start, 1);
         assertEq(games.length, 1);
         // The type 0 game should be the second to last one added.
         assertEq(games[0].index, start - 1);
-        (GameType gameType, Timestamp createdAt, address game) = games[0].metadata.unpack();
+        (gameType, createdAt, game) = games[0].metadata.unpack();
         assertEq(gameType.raw(), 0);
         assertEq(createdAt.raw(), block.timestamp);
 
+        // Find type 2 games.
         games = disputeGameFactory.findLatestGames(GameType.wrap(2), start, 1);
         assertEq(games.length, 1);
         // The type 2 game should be the third to last one added.
@@ -317,10 +320,13 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
         games = disputeGameFactory.findLatestGames(GameType.wrap(2), gameCount - 1, 5);
         assertEq(games.length, 0);
 
-        games = disputeGameFactory.findLatestGames(GameType.wrap(1), gameCount - 1, 5);
-        assertEq(games.length, 2);
-        assertEq(games[0].index, 1);
-        assertEq(games[1].index, 0);
+        // Forked network will have an indefinite, but very large number of games, so we skip this test when forking.
+        if (!isForkTest) {
+            games = disputeGameFactory.findLatestGames(GameType.wrap(1), gameCount - 1, 5);
+            assertEq(games.length, 2);
+            assertEq(games[0].index, 1);
+            assertEq(games[1].index, 0);
+        }
     }
 
     /// @dev Tests that the expected number of games are returned when `findLatestGames` is called.
