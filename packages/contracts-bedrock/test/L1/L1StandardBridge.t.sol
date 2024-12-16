@@ -168,7 +168,7 @@ contract L1StandardBridge_Initialize_TestFail is CommonTest { }
 contract L1StandardBridge_Receive_Test is CommonTest {
     /// @dev Tests receive bridges ETH successfully.
     function test_receive_succeeds() external {
-        assertEq(address(optimismPortal).balance, 0);
+        uint256 balanceBefore = address(optimismPortal).balance;
 
         // The legacy event must be emitted for backwards compatibility
         vm.expectEmit(address(l1StandardBridge));
@@ -192,13 +192,16 @@ contract L1StandardBridge_Receive_Test is CommonTest {
         vm.prank(alice, alice);
         (bool success,) = address(l1StandardBridge).call{ value: 100 }(hex"");
         assertEq(success, true);
-        assertEq(address(optimismPortal).balance, 100);
+        assertEq(address(optimismPortal).balance, balanceBefore + 100);
     }
 }
 
 contract L1StandardBridge_Receive_TestFail is CommonTest {
     /// @dev Tests receive function reverts with custom gas token.
     function testFuzz_receive_customGasToken_reverts(uint256 _value) external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1StandardBridge_Receive_TestFail: gas paying token functionality DNE on op mainnet");
+
         vm.prank(alice, alice);
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(18))
@@ -305,6 +308,9 @@ contract L1StandardBridge_DepositETH_TestFail is CommonTest {
 
     /// @dev Tests that depositing reverts with custom gas token.
     function test_depositETH_customGasToken_reverts() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1StandardBridge_DepositETH_TestFail: gas paying token functionality DNE on op mainnet");
+
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
         );
@@ -331,6 +337,9 @@ contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
 contract L1StandardBridge_BridgeETH_TestFail is PreBridgeETH {
     /// @dev Tests that bridging eth reverts with custom gas token.
     function test_bridgeETH_customGasToken_reverts() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1StandardBridge_BridgeETH_TestFail: gas paying token functionality DNE on op mainnet");
+
         vm.prank(alice, alice);
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
@@ -431,6 +440,9 @@ contract L1StandardBridge_DepositETHTo_TestFail is CommonTest {
     )
         external
     {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1StandardBridge_DepositETHTo_TestFail: gas paying token functionality DNE on op mainnet");
+
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
         );
@@ -464,6 +476,9 @@ contract L1StandardBridge_BridgeETHTo_TestFail is PreBridgeETHTo {
     )
         external
     {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1StandardBridge_BridgeETHTo_TestFail: gas paying token functionality DNE on op mainnet");
+
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
         );
@@ -673,6 +688,11 @@ contract L1StandardBridge_FinalizeETHWithdrawal_TestFail is CommonTest {
     )
         external
     {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest(
+            "L1StandardBridge_FinalizeETHWithdrawal_TestFail: gas paying token functionality DNE on op mainnet"
+        );
+
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
         );
@@ -776,6 +796,9 @@ contract L1StandardBridge_FinalizeBridgeETH_Test is CommonTest {
 contract L1StandardBridge_FinalizeBridgeETH_TestFail is CommonTest {
     /// @dev Tests that finalizing bridged reverts with custom gas token.
     function testFuzz_finalizeBridgeETH_customGasToken_reverts(uint256 _value, bytes calldata _extraData) external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1StandardBridge_FinalizeBridgeETH_TestFail: gas paying token functionality DNE on op mainnet");
+
         vm.mockCall(
             address(l1StandardBridge.messenger()),
             abi.encodeCall(ICrossDomainMessenger.xDomainMessageSender, ()),
