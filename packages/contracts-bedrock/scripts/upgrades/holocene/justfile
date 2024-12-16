@@ -1,3 +1,5 @@
+set dotenv-load # to have OP_CONTRACTS_RELEASE available for build-image
+
 # Default recipe to list help menu.
 default:
   @just --list
@@ -25,5 +27,5 @@ build-image:
   docker build \
   -t op-holocene-upgrade:local \
   -f upgrade.dockerfile \
-  --build-arg REV=op-contracts/v1.8.0-rc.2 \
+  --build-arg REV=op-contracts/${OP_CONTRACTS_RELEASE} \
   .

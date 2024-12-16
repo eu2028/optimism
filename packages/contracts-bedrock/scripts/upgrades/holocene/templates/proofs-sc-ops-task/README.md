@@ -18,7 +18,7 @@ The governance proposal should be treated as the source of truth and used to ver
 Governance post of the upgrade can be found at <placeholder>.
 
 This upgrades the Fault Proof contracts in the
-[op-contracts/v1.8.0](https://github.com/ethereum-optimism/optimism/tree/op-contracts/v1.8.0-rc.1) release.
+[op-contracts/v1.8.0-rc.4](https://github.com/ethereum-optimism/optimism/tree/op-contracts/v1.8.0-rc.4) release.
 
 ## Pre-deployments
 

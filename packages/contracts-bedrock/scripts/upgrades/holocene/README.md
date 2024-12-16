@@ -23,7 +23,7 @@ This script has several different modes of operation. Namely:
 
 ```sh
 # 1. Clone the monorepo and navigate to this directory.
-git clone git@github.com:ethereum-optimism/monorepo.git && \
+git clone --branch proposal/op-contracts/v1.8.0 --depth 1 git@github.com:ethereum-optimism/monorepo.git && \
   cd monorepo/packages/contracts-bedrock/scripts/upgrades/holocene
 
 # 2. Set up the `.env` file
@@ -31,7 +31,10 @@ git clone git@github.com:ethereum-optimism/monorepo.git && \
 # Read the documentation carefully, and when in doubt, reach out to the OP Labs team.
 cp .env.example .env && vim .env
 
-# 3. Run the upgrade task.
+# 3. Build the upgrade script Docker image
+just build-image
+
+# 4. Run the upgrade task.
 #
 #    This task will:
 #    - Deploy the new smart contract implementations.
@@ -47,10 +50,13 @@ just run $(realpath path/to/deploy-config.json)
 Note that in order to build the Docker image, you have to allow Docker to use at least 16GB of
 memory, or the Solidity compilations may fail. Docker's default is only 8GB.
 
-The `deploy-config.json` that you use for your chain must set the latest `faultGameAbsolutePrestate`
-value, not the one at deployment. There's currently one available that includes the Sepolia
-Superchain Holocene activations for Base, OP, Mode and Zora:
-`0x03925193e3e89f87835bbdf3a813f60b2aa818a36bbe71cd5d8fd7e79f5e8afe`
+:warning: The `deploy-config.json` that you use for your chain must set the latest `faultGameAbsolutePrestate`
+value, not the original value that was set during deployment of the chain.
+
+You can use `0x03f89406817db1ed7fd8b31e13300444652cdb0b9c509a674de43483b2f83568`, which is based on
+`op-program/v1.4.0-rc.3` and includes Holocene activations for
+* Sepolia: Base, OP, Metal, Mode, Zora, Ethernity, Unichain, Ink
+* Mainnet: Base, OP, Orderly, Lyra, Metal, Mode, Zora, Lisk, Ethernity, Binary
 
 If you want to make local modifications to the scripts in `scripts/`, you need to build the Docker
 image again with `just build-image` before running `just run`.

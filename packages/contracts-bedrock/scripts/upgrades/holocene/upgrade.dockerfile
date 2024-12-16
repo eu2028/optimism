@@ -19,23 +19,24 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Install just
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
+# Install yq
+RUN curl --proto '=https' --tlsv1.2 -sSf -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq && \
+  chmod +x /usr/bin/yq
+
 # Install msup
-RUN git clone https://github.com/clabby/msup.git && \
+RUN git clone --depth 1 https://github.com/clabby/msup.git && \
   cd msup && \
   cargo install --path .
 
 # Install foundryup
-RUN curl -L https://foundry.paradigm.xyz | bash
+RUN curl --proto '=https' --tlsv1.2 -sSf -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:${PATH}"
 
 # Set the working directory
 WORKDIR /app
 
-# Clone the repository
-RUN git clone https://github.com/ethereum-optimism/optimism.git .
-
-# Check out the target branch
-RUN git checkout $REV
+# Clone the repository, only at the target revision
+RUN git clone --branch $REV --depth 1 https://github.com/ethereum-optimism/optimism.git .
 
 # Set the working directory to the root of the monorepo
 WORKDIR /app
@@ -47,7 +48,7 @@ RUN just update-foundry
 WORKDIR /app/packages/contracts-bedrock
 
 # Install dependencies
-RUN just install
+RUN forge install --shallow
 
 # Build the contracts package
 RUN forge build
