@@ -19,9 +19,12 @@ _kurtosis-run PACKAGE_NAME ARG_FILE ENCLAVE:
 
 # Devnet template recipe
 _devnet TEMPLATE_FILE DATA_FILE="":
-    go run cmd/main.go -template "{{TEMPLATE_FILE}}" -data "{{DATA_FILE}}" -enclave `basename {{TEMPLATE_FILE}} .yaml`
+    go run cmd/main.go -template "{{TEMPLATE_FILE}}" -data "{{DATA_FILE}}" -enclave `basename {{TEMPLATE_FILE}} .yaml`-devnet
 
 # Devnet recipes
 
 # Simple devnet
 simple-devnet: (_devnet "simple.yaml")
+
+# Interop devnet
+interop-devnet: (_devnet "interop.yaml")
