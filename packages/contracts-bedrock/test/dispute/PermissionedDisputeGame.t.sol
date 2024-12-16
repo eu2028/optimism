@@ -93,8 +93,14 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
         );
         // Register the game implementation with the factory.
         disputeGameFactory.setImplementation(GAME_TYPE, gameImpl);
+
         // Create a new game.
         uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
+        vm.mockCall(
+            address(anchorStateRegistry),
+            abi.encodeCall(anchorStateRegistry.anchors, (GAME_TYPE)),
+            abi.encode(rootClaim, 0)
+        );
         vm.prank(PROPOSER, PROPOSER);
         gameProxy = IPermissionedDisputeGame(
             payable(address(disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, rootClaim, extraData)))
@@ -141,17 +147,20 @@ contract PermissionedDisputeGame_Test is PermissionedDisputeGame_Init {
 
     /// @dev Tests that the proposer can create a permissioned dispute game.
     function test_createGame_proposer_succeeds() public {
+        uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
         vm.prank(PROPOSER, PROPOSER);
-        disputeGameFactory.create(GAME_TYPE, ROOT_CLAIM, abi.encode(0x420));
+        disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, ROOT_CLAIM, abi.encode(0x420));
     }
 
     /// @dev Tests that the permissioned game cannot be created by any address other than the proposer.
     function testFuzz_createGame_notProposer_reverts(address _p) public {
         vm.assume(_p != PROPOSER);
 
+        uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
+        vm.deal(_p, bondAmount);
         vm.prank(_p, _p);
         vm.expectRevert(BadAuth.selector);
-        disputeGameFactory.create(GAME_TYPE, ROOT_CLAIM, abi.encode(0x420));
+        disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, ROOT_CLAIM, abi.encode(0x420));
     }
 
     /// @dev Tests that the challenger can participate in a permissioned dispute game.
