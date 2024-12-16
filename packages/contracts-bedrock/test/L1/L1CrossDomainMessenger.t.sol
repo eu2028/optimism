@@ -745,6 +745,9 @@ contract L1CrossDomainMessenger_Test is CommonTest {
 
     /// @dev Tests that the sendMessage reverts when call value is non-zero with custom gas token.
     function test_sendMessage_customGasTokenWithValue_reverts() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1CrossDomainMessenger_Test: gas paying token functionality DNE on op mainnet");
+
         // Mock the gasPayingToken function to return a custom gas token
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
@@ -756,6 +759,9 @@ contract L1CrossDomainMessenger_Test is CommonTest {
 
     /// @dev Tests that the relayMessage succeeds with a custom gas token when the call value is zero.
     function test_relayMessage_customGasTokenAndNoValue_succeeds() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1CrossDomainMessenger_Test: gas paying token functionality DNE on op mainnet");
+
         // Mock the gasPayingToken function to return a custom gas token
         vm.mockCall(
             address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(1), uint8(2))
