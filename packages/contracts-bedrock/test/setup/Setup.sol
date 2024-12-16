@@ -174,7 +174,9 @@ contract Setup {
     function returnIfForkTest(string memory message) public view {
         if (_isForkTest) {
             console.log(string.concat("Returning early from fork test: ", message));
-            return;
+            assembly {
+                return(0, 0)
+            }
         }
     }
 
