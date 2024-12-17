@@ -24,8 +24,8 @@
     "sourceCodeHash": "0x4132ff37d267cb12224b75ea806c0aa7d25407b0d66ce526d7fcda8f7d223882"
   },
   "src/L1/OPContractsManager.sol": {
-    "initCodeHash": "0xd58cb3978affc5c1457cdd498ff8420c90aef804d4c3b62cf42ab2691986d6d2",
-    "sourceCodeHash": "0x7bfa6eff76176649fe600303cd60009a0f6e282cbaec55836b5ea1f8875cbeb5"
+    "initCodeHash": "0xd038cc35325d023499151264232d75fa4ecc81f04a8c8353e6b50c43af224d6e",
+    "sourceCodeHash": "0xa13f3ab2b8744015290dbabe5f20fdd44774607e6a7ad3e5e016303fc4aa8c12"
   },
   "src/L1/OptimismPortal.sol": {
     "initCodeHash": "0x152167cfa18635ae4918a6eb3371a599cfa084418c0a652799cdb48bfc0ee0cc",
@@ -152,7 +152,7 @@
     "sourceCodeHash": "0x171d66c651fdad2ac9c287da92689815a5b09589945ada092179508ad2326306"
   },
   "src/cannon/PreimageOracle.sol": {
-    "initCodeHash": "0x5d7e8ae64f802bd9d760e3d52c0a620bd02405dc2c8795818db9183792ffe81c",
+    "initCodeHash": "0x2d25bb2b1cb536ec7d72e7b3f977e335b6ba4d0ed0b08f2394fa9f62e86d7c7a",
     "sourceCodeHash": "0x979d8595d925c70a123e72c062fa58c9ef94777c2e93b6bc3231d6679e2e9055"
   },
   "src/dispute/AnchorStateRegistry.sol": {
