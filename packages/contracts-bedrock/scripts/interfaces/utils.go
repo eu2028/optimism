@@ -42,7 +42,7 @@ func getBaseName(path string) string {
 	return path
 }
 
-func normaliseParam(param string, context string) string {
+func normaliseParam(param string, context string, localTypes map[string]bool) string {
 	if strings.Contains(param, "payable") {
 		return param
 	}
@@ -53,7 +53,8 @@ func normaliseParam(param string, context string) string {
 
 			if strings.Contains(param, ".") {
 				parts1 := strings.Split(param, ".")
-				if strings.Contains(parts1[0], context) {
+
+				if localTypes[parts1[1]] {
 					return parts1[1]
 				}
 			}

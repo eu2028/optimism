@@ -23,6 +23,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 	seenFunctions := make(map[string]bool)
 
 	usedTypes := map[string]bool{}
+	localTypes := map[string]bool{}
 
 	// Collect used types from all components
 	collectUsedTypes := func(typeString string) {
@@ -58,6 +59,19 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 		}
 	}
 
+	// Analyze Enums
+	for _, enumDef := range astData.Enums {
+		localTypes[enumDef.Name] = true
+	}
+
+	// Analyze Structs
+	for _, structDef := range astData.Structs {
+		localTypes[structDef.Name] = true
+		for _, member := range structDef.Members {
+			collectUsedTypes(member.Type)
+		}
+	}
+
 	// Analyze Inheritance
 	for _, inherited := range astData.Inherited {
 		usedTypes[inherited.BaseName.Name] = true
@@ -74,13 +88,6 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 			for _, ret := range fn.ReturnParameters.Parameters {
 				collectUsedTypes(ret.TypeDescriptions.TypeString)
 			}
-		}
-	}
-
-	// Analyze Structs
-	for _, structDef := range astData.Structs {
-		for _, member := range structDef.Members {
-			collectUsedTypes(member.Type)
 		}
 	}
 
@@ -122,7 +129,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add out structs
 	for _, structDef := range astData.OutStructs {
-		structDefinition := GenerateStructDefinition(structDef, aliasMapping, contractName)
+		structDefinition := GenerateStructDefinition(structDef, aliasMapping, contractName, localTypes)
 		if !seenStructs[structDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
 			seenStructs[structDefinition] = true
@@ -152,7 +159,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add structs
 	for _, structDef := range astData.Structs {
-		structDefinition := GenerateStructDefinition(structDef, aliasMapping, contractName)
+		structDefinition := GenerateStructDefinition(structDef, aliasMapping, contractName, localTypes)
 		if !seenStructs[structDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", structDefinition))
 			seenStructs[structDefinition] = true
@@ -179,7 +186,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add events
 	for _, event := range astData.Events {
-		eventDefinition := GenerateEventDefinition(event, aliasMapping, contractName)
+		eventDefinition := GenerateEventDefinition(event, aliasMapping, contractName, localTypes)
 		if !seenEvents[eventDefinition] {
 			builder.WriteString(fmt.Sprintf("\n    %s", eventDefinition))
 			seenEvents[eventDefinition] = true
@@ -188,7 +195,7 @@ func GenerateSolidityInterface(contractName string, astData ContractData) string
 
 	// Add public function signatures (including public variable getters)
 	for _, fn := range astData.Functions {
-		functionSignature := GenerateFunctionSignature(fn, aliasMapping, contractName)
+		functionSignature := GenerateFunctionSignature(fn, aliasMapping, contractName, localTypes)
 		if !seenFunctions[functionSignature] {
 			builder.WriteString(fmt.Sprintf("\n    %s", functionSignature))
 			seenFunctions[functionSignature] = true

@@ -63,7 +63,7 @@ func GenerateTypeDefinition(udtype solc.AstNode) string {
 	return fmt.Sprintf("type %s is %s;", udtype.Name, udtype.UnderlyingType.Name)
 }
 
-func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, context string) string {
+func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, context string, localTypes map[string]bool) string {
 	signature := "function "
 
 	// Handle receive function
@@ -89,16 +89,16 @@ func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, 
 				params, returnType := extractMappingDetails(typeString)
 
 				for i := 0; i < len(params); i++ {
-					params[i] = normaliseParam(params[i], context)
+					params[i] = normaliseParam(params[i], context, localTypes)
 				}
 
-				signature += strings.Join(params, ", ") + ") external view returns (" + normaliseParam(returnType, context) + ");"
+				signature += strings.Join(params, ", ") + ") external view returns (" + normaliseParam(returnType, context, localTypes) + ");"
 				return signature
 			}
 
 			// Handle non-mapping types
 			signature += ") external view"
-			returnType := normaliseParam(typeString, context)
+			returnType := normaliseParam(typeString, context, localTypes)
 			if !isTrivialType(returnType) {
 				returnType += " memory"
 			}
@@ -120,7 +120,7 @@ func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, 
 	if fn.Parameters != nil {
 		params := []string{}
 		for _, param := range fn.Parameters.Parameters {
-			paramType := resolveAlias(normaliseParam(param.TypeDescriptions.TypeString, context), aliasMapping)
+			paramType := resolveAlias(normaliseParam(param.TypeDescriptions.TypeString, context, localTypes), aliasMapping)
 
 			paramName := param.Name
 			if paramName == "" {
@@ -146,7 +146,7 @@ func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, 
 	if fn.ReturnParameters != nil && len(fn.ReturnParameters.Parameters) > 0 {
 		var returns []string
 		for _, ret := range fn.ReturnParameters.Parameters {
-			returnType := normaliseParam(ret.TypeDescriptions.TypeString, context)
+			returnType := normaliseParam(ret.TypeDescriptions.TypeString, context, localTypes)
 			returns = append(returns, returnType)
 		}
 		signature += " returns (" + strings.Join(returns, ", ") + ")"
@@ -156,7 +156,7 @@ func GenerateFunctionSignature(fn solc.AstNode, aliasMapping map[string]string, 
 	return signature
 }
 
-func GenerateEventDefinition(event solc.AstNode, aliasMapping map[string]string, context string) string {
+func GenerateEventDefinition(event solc.AstNode, aliasMapping map[string]string, context string, localTypes map[string]bool) string {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("event %s(", event.Name))
@@ -164,7 +164,7 @@ func GenerateEventDefinition(event solc.AstNode, aliasMapping map[string]string,
 	if event.Parameters != nil {
 		params := []string{}
 		for _, param := range event.Parameters.Parameters {
-			paramType := resolveAlias(normaliseParam(param.TypeDescriptions.TypeString, context), aliasMapping)
+			paramType := resolveAlias(normaliseParam(param.TypeDescriptions.TypeString, context, localTypes), aliasMapping)
 			paramName := param.Name
 			if paramName == "" {
 				paramName = "_"
@@ -210,13 +210,13 @@ func GenerateErrorDefinition(errorDef solc.AstNode, aliasMapping map[string]stri
 	return builder.String()
 }
 
-func GenerateStructDefinition(structDef StructDefinition, aliasMapping map[string]string, context string) string {
+func GenerateStructDefinition(structDef StructDefinition, aliasMapping map[string]string, context string, localTypes map[string]bool) string {
 	var builder strings.Builder
 
 	builder.WriteString(fmt.Sprintf("struct %s {\n", structDef.Name))
 
 	for _, member := range structDef.Members {
-		builder.WriteString(fmt.Sprintf("\t\t%s %s;\n", resolveAlias(normaliseParam(member.Type, context), aliasMapping), member.Name))
+		builder.WriteString(fmt.Sprintf("\t\t%s %s;\n", resolveAlias(normaliseParam(member.Type, context, localTypes), aliasMapping), member.Name))
 	}
 
 	builder.WriteString("\t}\n")
