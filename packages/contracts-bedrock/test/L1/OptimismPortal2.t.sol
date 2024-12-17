@@ -461,6 +461,7 @@ contract OptimismPortal2_Test is CommonTest {
         vm.deal(alice, _amount);
 
         uint256 preBalance = address(optimismPortal2).balance;
+        _amount = bound(_amount, 0, type(uint256).max - preBalance);
 
         vm.startStateDiffRecording();
         optimismPortal2.donateETH{ value: _amount }();
