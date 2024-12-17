@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -16,12 +17,15 @@ import (
 
 const DefaultPackageName = "github.com/ethpandaops/optimism-package"
 
-type EndpointMap map[string][]string
+type EndpointMap map[string]string
+
+type Node = EndpointMap
 
 type Chain struct {
 	Name      string                       `json:"name"`
 	ID        string                       `json:"id,omitempty"`
-	Endpoints EndpointMap                  `json:"endpoints"`
+	Services  EndpointMap                  `json:"services,omitempty"`
+	Nodes     []Node                       `json:"nodes"`
 	Addresses deployer.DeploymentAddresses `json:"addresses,omitempty"`
 }
 
@@ -128,54 +132,82 @@ func (d *KurtosisDeployer) getInspectOutput(w io.Writer) error {
 }
 
 // findRPCEndpoint looks for a service matching the given predicate that has an RPC port
-func findRPCEndpoints(services inspect.ServiceMap, matchService func(string) (string, bool)) EndpointMap {
-	var interestingPorts = []string{"rpc", "http"}
+func findRPCEndpoints(services inspect.ServiceMap, matchService func(string) (string, int, bool)) ([]Node, EndpointMap) {
+	interestingPorts := []string{"rpc", "http"}
+	nodeServices := []string{"cl", "el"}
 
 	endpointMap := make(EndpointMap)
+	var nodes []Node
+
 	for serviceName, ports := range services {
-		if serviceIdentifier, ok := matchService(serviceName); ok {
-			for _, port := range interestingPorts {
-				if port, ok := ports[port]; ok {
-					endpointMap[serviceIdentifier] = append(endpointMap[serviceIdentifier], fmt.Sprintf("http://localhost:%d", port))
+		var port int
+		for _, interestingPort := range interestingPorts {
+			if p, ok := ports[interestingPort]; ok {
+				port = p
+				break
+			}
+		}
+		if port == 0 { // nothing to see here
+			continue
+		}
+
+		if serviceIdentifier, num, ok := matchService(serviceName); ok {
+			var allocated bool
+			for _, service := range nodeServices {
+				if serviceIdentifier == service { // this is a node
+					if num > len(nodes) {
+						nodes = append(nodes, make(Node))
+					}
+					nodes[num-1][serviceIdentifier] = fmt.Sprintf("http://localhost:%d", port)
+					allocated = true
 				}
+			}
+			if !allocated {
+				endpointMap[serviceIdentifier] = fmt.Sprintf("http://localhost:%d", port)
 			}
 		}
 	}
-	return endpointMap
+	return nodes, endpointMap
 }
 
-func serviceTag(serviceName string) string {
+func serviceTag(serviceName string) (string, int) {
 	// Find index of first number
 	i := strings.IndexFunc(serviceName, func(r rune) bool {
 		return r >= '0' && r <= '9'
 	})
 	if i == -1 {
-		return serviceName
+		return serviceName, 0
 	}
-	return serviceName[:i-1]
+	idx, err := strconv.Atoi(serviceName[i : i+1])
+	if err != nil {
+		return serviceName, 0
+	}
+	return serviceName[:i-1], idx
 }
 
 const l2ServiceTagPrefix = "op-"
 
 // findL2RPCEndpoint looks for a service with the given suffix that has an RPC port
-func findL2RPCEndpoints(services inspect.ServiceMap, suffix string) EndpointMap {
-	return findRPCEndpoints(services, func(serviceName string) (string, bool) {
+func findL2Endpoints(services inspect.ServiceMap, suffix string) ([]Node, EndpointMap) {
+	return findRPCEndpoints(services, func(serviceName string) (string, int, bool) {
 		if strings.HasSuffix(serviceName, suffix) {
 			name := strings.TrimSuffix(serviceName, suffix)
-			return serviceTag(strings.TrimPrefix(name, l2ServiceTagPrefix)), true
+			tag, idx := serviceTag(strings.TrimPrefix(name, l2ServiceTagPrefix))
+			return tag, idx, true
 		}
-		return "", false
+		return "", 0, false
 	})
 }
 
 // findL1RPCEndpoint looks the RPC port of the Ethereum service
-func findL1RPCEndpoints(services inspect.ServiceMap) EndpointMap {
-	return findRPCEndpoints(services, func(serviceName string) (string, bool) {
+func findL1Endpoints(services inspect.ServiceMap) ([]Node, EndpointMap) {
+	return findRPCEndpoints(services, func(serviceName string) (string, int, bool) {
 		match := !strings.HasPrefix(serviceName, l2ServiceTagPrefix)
 		if match {
-			return serviceTag(serviceName), true
+			tag, idx := serviceTag(serviceName)
+			return tag, idx, true
 		}
-		return "", false
+		return "", 0, false
 	})
 }
 
@@ -261,24 +293,23 @@ func (d *KurtosisDeployer) getEnvironmentInfo(spec *spec.EnclaveSpec) (*Kurtosis
 	}
 
 	// Find L1 endpoint
-	if rpcEndpoints := findL1RPCEndpoints(inspectResult.UserServices); len(rpcEndpoints) > 0 {
+	if nodes, endpoints := findL1Endpoints(inspectResult.UserServices); len(nodes) > 0 {
 		env.L1 = &Chain{
-			Name:      "Ethereum",
-			Endpoints: rpcEndpoints,
+			Name:     "Ethereum",
+			Services: endpoints,
+			Nodes:    nodes,
 		}
 	}
 
 	// Find L2 endpoints
 	for _, chainSpec := range spec.Chains {
-		rpcEndpoints := findL2RPCEndpoints(inspectResult.UserServices, fmt.Sprintf("-%s", chainSpec.Name))
-		if len(rpcEndpoints) == 0 {
-			continue
-		}
+		nodes, endpoints := findL2Endpoints(inspectResult.UserServices, fmt.Sprintf("-%s", chainSpec.Name))
 
 		chain := &Chain{
-			Name:      chainSpec.Name,
-			ID:        chainSpec.NetworkID,
-			Endpoints: rpcEndpoints,
+			Name:     chainSpec.Name,
+			ID:       chainSpec.NetworkID,
+			Services: endpoints,
+			Nodes:    nodes,
 		}
 
 		// Add contract addresses if available
