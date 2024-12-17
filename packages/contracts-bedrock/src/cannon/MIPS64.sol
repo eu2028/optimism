@@ -253,12 +253,8 @@ contract MIPS64 is ISemver {
                     // timeout! Allow execution
                     return onWaitComplete(thread, true);
                 } else {
-                    uint64 mem = MIPS64Memory.readMem(
-                        state.memRoot,
-                        thread.futexAddr & arch.ADDRESS_MASK,
-                        MIPS64Memory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
-                    );
-                    if (thread.futexVal == mem) {
+                    uint64 futexVal = getFutexValue(thread.futexAddr);
+                    if (thread.futexVal == futexVal) {
                         // still got expected value, continue sleeping, try next thread.
                         preemptThread(state, thread);
                         return outputState();
@@ -530,16 +526,15 @@ contract MIPS64 is ISemver {
                 return outputState();
             } else if (syscall_no == sys.SYS_FUTEX) {
                 // args: a0 = addr, a1 = op, a2 = val, a3 = timeout
-                uint64 effAddr = a0 & arch.ADDRESS_MASK;
+                // Futex value is 32-bit, so mask out the lower 2 bits
+                uint64 effFutexAddr = a0 & 0xFFFFFFFFFFFFFFFC;
                 if (a1 == sys.FUTEX_WAIT_PRIVATE) {
-                    uint64 mem = MIPS64Memory.readMem(
-                        state.memRoot, effAddr, MIPS64Memory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
-                    );
-                    if (mem != a2) {
+                    uint64 futexVal = getFutexValue(effFutexAddr);
+                    if (futexVal != a2) {
                         v0 = sys.SYS_ERROR_SIGNAL;
                         v1 = sys.EAGAIN;
                     } else {
-                        thread.futexAddr = effAddr;
+                        thread.futexAddr = effFutexAddr;
                         thread.futexVal = a2;
                         thread.futexTimeoutStep = a3 == 0 ? sys.FUTEX_NO_TIMEOUT : state.step + sys.FUTEX_TIMEOUT_STEPS;
                         // Leave cpu scalars as-is. This instruction will be completed by `onWaitComplete`
@@ -549,7 +544,7 @@ contract MIPS64 is ISemver {
                 } else if (a1 == sys.FUTEX_WAKE_PRIVATE) {
                     // Trigger thread traversal starting from the left stack until we find one waiting on the wakeup
                     // address
-                    state.wakeup = effAddr;
+                    state.wakeup = effFutexAddr;
                     // Don't indicate to the program that we've woken up a waiting thread, as there are no guarantees.
                     // The woken up thread should indicate this in userspace.
                     v0 = 0;
@@ -985,5 +980,15 @@ contract MIPS64 is ISemver {
             s >= (THREAD_PROOF_OFFSET + (PACKED_THREAD_STATE_SIZE + 32)),
             "MIPS64: insufficient calldata for thread witness"
         );
+    }
+
+    /// @notice Loads a 32-bit futex value at _vAddr
+    function getFutexValue(uint64 _vAddr) internal pure returns (uint64 out_) {
+        State memory state;
+        assembly {
+            state := STATE_MEM_OFFSET
+        }
+
+        return loadSubWord(state, _vAddr, 4, false);
     }
 }
