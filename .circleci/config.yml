@@ -1226,7 +1226,7 @@ workflows:
       - contracts-bedrock-tests:
           # Test everything except PreimageOracle.t.sol since it's slow.
           name: contracts-bedrock-tests
-          test_list: ""
+          test_list: find test -name "PreimageOracle.t.sol"
       - contracts-bedrock-tests:
           # Test everything except PreimageOracle.t.sol since it's slow.
           name: contracts-bedrock-tests-upgrade
