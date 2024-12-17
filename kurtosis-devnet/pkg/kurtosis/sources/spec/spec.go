@@ -1,4 +1,4 @@
-package kurtosis
+package spec
 
 import (
 	"fmt"

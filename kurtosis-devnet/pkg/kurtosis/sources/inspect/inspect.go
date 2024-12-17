@@ -1,4 +1,4 @@
-package kurtosis
+package inspect
 
 import (
 	"bufio"

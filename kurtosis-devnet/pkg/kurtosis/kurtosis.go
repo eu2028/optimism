@@ -8,23 +8,28 @@ import (
 	"os/exec"
 	"strings"
 	"text/template"
+
+	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/sources/deployer"
+	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/sources/inspect"
+	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/sources/spec"
 )
 
 const DefaultPackageName = "github.com/ethpandaops/optimism-package"
 
-type EndpointMap map[string]string
+type EndpointMap map[string][]string
 
 type Chain struct {
-	Name      string              `json:"name"`
-	ID        string              `json:"id,omitempty"`
-	Endpoints EndpointMap         `json:"endpoints"`
-	Addresses DeploymentAddresses `json:"addresses,omitempty"`
+	Name      string                       `json:"name"`
+	ID        string                       `json:"id,omitempty"`
+	Endpoints EndpointMap                  `json:"endpoints"`
+	Addresses deployer.DeploymentAddresses `json:"addresses,omitempty"`
 }
 
 // KurtosisEnvironment represents the output of a Kurtosis deployment
 type KurtosisEnvironment struct {
-	L1 *Chain   `json:"l1"`
-	L2 []*Chain `json:"l2"`
+	L1      *Chain              `json:"l1"`
+	L2      []*Chain            `json:"l2"`
+	Wallets deployer.WalletList `json:"wallets"`
 }
 
 // KurtosisDeployer handles deploying packages using Kurtosis
@@ -116,15 +121,16 @@ func (d *KurtosisDeployer) getInspectOutput(w io.Writer) error {
 }
 
 // findRPCEndpoint looks for a service matching the given predicate that has an RPC port
-func findRPCEndpoints(services ServiceMap, matchService func(string) (string, bool)) EndpointMap {
+func findRPCEndpoints(services inspect.ServiceMap, matchService func(string) (string, bool)) EndpointMap {
+	var interestingPorts = []string{"rpc", "http"}
+
 	endpointMap := make(EndpointMap)
 	for serviceName, ports := range services {
-		if serviceName, ok := matchService(serviceName); ok {
-			if port, ok := ports["rpc"]; ok {
-				endpointMap[serviceName] = fmt.Sprintf("http://localhost:%d", port)
-			}
-			if port, ok := ports["http"]; ok {
-				endpointMap[serviceName] = fmt.Sprintf("http://localhost:%d", port)
+		if serviceIdentifier, ok := matchService(serviceName); ok {
+			for _, port := range interestingPorts {
+				if port, ok := ports[port]; ok {
+					endpointMap[serviceIdentifier] = append(endpointMap[serviceIdentifier], fmt.Sprintf("http://localhost:%d", port))
+				}
 			}
 		}
 	}
@@ -142,21 +148,23 @@ func serviceTag(serviceName string) string {
 	return serviceName[:i-1]
 }
 
+const l2ServiceTagPrefix = "op-"
+
 // findL2RPCEndpoint looks for a service with the given suffix that has an RPC port
-func findL2RPCEndpoints(services ServiceMap, suffix string) EndpointMap {
+func findL2RPCEndpoints(services inspect.ServiceMap, suffix string) EndpointMap {
 	return findRPCEndpoints(services, func(serviceName string) (string, bool) {
 		if strings.HasSuffix(serviceName, suffix) {
 			name := strings.TrimSuffix(serviceName, suffix)
-			return strings.TrimPrefix(name, "op-"), true
+			return serviceTag(strings.TrimPrefix(name, l2ServiceTagPrefix)), true
 		}
 		return "", false
 	})
 }
 
 // findL1RPCEndpoint looks the RPC port of the Ethereum service
-func findL1RPCEndpoints(services ServiceMap) EndpointMap {
+func findL1RPCEndpoints(services inspect.ServiceMap) EndpointMap {
 	return findRPCEndpoints(services, func(serviceName string) (string, bool) {
-		match := !strings.HasPrefix(serviceName, "op-")
+		match := !strings.HasPrefix(serviceName, l2ServiceTagPrefix)
 		if match {
 			return serviceTag(serviceName), true
 		}
@@ -212,25 +220,26 @@ func (d *KurtosisDeployer) runKurtosisCommand(argFile string) error {
 }
 
 // getEnvironmentInfo parses the input spec and inspect output to create KurtosisEnvironment
-func (d *KurtosisDeployer) getEnvironmentInfo(spec *EnclaveSpec) (*KurtosisEnvironment, error) {
+func (d *KurtosisDeployer) getEnvironmentInfo(spec *spec.EnclaveSpec) (*KurtosisEnvironment, error) {
 	var inspectBuf bytes.Buffer
 	if err := d.getInspectOutput(&inspectBuf); err != nil {
 		return nil, err
 	}
 
-	inspectResult, err := ParseInspectOutput(&inspectBuf)
+	inspectResult, err := inspect.ParseInspectOutput(&inspectBuf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse inspect output: %w", err)
 	}
 
 	// Get contract addresses
-	deployerState, err := ParseDeployerData(d.enclave)
+	deployerState, err := deployer.ParseDeployerData(d.enclave)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse deployer state: %w", err)
 	}
 
 	env := &KurtosisEnvironment{
-		L2: make([]*Chain, 0, len(spec.Chains)),
+		L2:      make([]*Chain, 0, len(spec.Chains)),
+		Wallets: deployerState.Wallets,
 	}
 
 	// Find L1 endpoint
@@ -243,7 +252,7 @@ func (d *KurtosisDeployer) getEnvironmentInfo(spec *EnclaveSpec) (*KurtosisEnvir
 
 	// Find L2 endpoints
 	for _, chainSpec := range spec.Chains {
-		rpcEndpoints := findL2RPCEndpoints(inspectResult.UserServices, chainSpec.Name)
+		rpcEndpoints := findL2RPCEndpoints(inspectResult.UserServices, fmt.Sprintf("-%s", chainSpec.Name))
 		if len(rpcEndpoints) == 0 {
 			continue
 		}
@@ -255,7 +264,7 @@ func (d *KurtosisDeployer) getEnvironmentInfo(spec *EnclaveSpec) (*KurtosisEnvir
 		}
 
 		// Add contract addresses if available
-		if addresses, ok := deployerState[chainSpec.NetworkID]; ok {
+		if addresses, ok := deployerState.State[chainSpec.NetworkID]; ok {
 			chain.Addresses = addresses
 		}
 
@@ -271,7 +280,7 @@ func (d *KurtosisDeployer) Deploy(input io.Reader) (*KurtosisEnvironment, error)
 	inputCopy := new(bytes.Buffer)
 	tee := io.TeeReader(input, inputCopy)
 
-	spec, err := ParseSpec(tee)
+	spec, err := spec.ParseSpec(tee)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse input spec: %w", err)
 	}
