@@ -29,12 +29,14 @@ func (r *RPCDialSetup) Setup(ctx context.Context, logger log.Logger) (SyncNode, 
 		client.WithGethRPCOptions(auth),
 		client.WithDialAttempts(10),
 	}
+	fmt.Println("AXELAXEL dialing", r.Endpoint, opts, auth)
 	rpcCl, err := client.NewRPC(ctx, logger, r.Endpoint, opts...)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("AXELAXEL done dialing", r.Endpoint, opts, auth)
 	return &RPCSyncNode{
-		name: fmt.Sprintf("RPCSyncSource(%s)", r.Endpoint),
+		name: fmt.Sprintf("RPCSyncNode(%s)", r.Endpoint),
 		cl:   rpcCl,
 	}, nil
 }

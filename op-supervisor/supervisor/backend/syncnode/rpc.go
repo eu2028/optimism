@@ -9,6 +9,7 @@ import (
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup/interop/managed"
 	"github.com/ethereum-optimism/optimism/op-service/client"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
@@ -70,8 +71,24 @@ func (rs *RPCSyncNode) String() string {
 	return rs.name
 }
 
-func (rs *RPCSyncNode) TryDeriveNext(ctx context.Context, ref eth.BlockRef) (eth.BlockRef, error) {
-	err := rs.cl.CallContext(ctx, &ref, "interop_tryDeriveNext")
-	// the node only returns an error currently
-	return eth.BlockRef{}, err
+func (rs *RPCSyncNode) SignalNextL1(ctx context.Context, l1Ref eth.BlockRef, l2Ref eth.BlockRef) (managed.DerivedPair, error) {
+	var ret managed.DerivedPair
+	err := rs.cl.CallContext(
+		ctx,
+		&ret,
+		"interop_signalNextL1",
+		l1Ref,
+		l2Ref,
+	)
+	return ret, err
+}
+
+func (rs *RPCSyncNode) AnchorPoint(ctx context.Context) (managed.DerivedPair, error) {
+	var ret managed.DerivedPair
+	err := rs.cl.CallContext(
+		ctx,
+		&ret,
+		"interop_anchorPoint",
+	)
+	return ret, err
 }

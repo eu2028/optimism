@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -57,6 +58,7 @@ func NewManagedMode(log log.Logger, cfg *rollup.Config, addr string, port int, j
 		jwtSecret: jwtSecret,
 	}
 
+	fmt.Println("AXELAXEL NewManagedMode", addr, port, jwtSecret, l1, l2)
 	out.srv = rpc.NewServer(addr, port, "v0.0.0",
 		rpc.WithWebsocketEnabled(),
 		rpc.WithJWTSecret(jwtSecret[:]),
@@ -81,7 +83,7 @@ func (m *ManagedMode) Start(ctx context.Context) error {
 }
 
 func (m *ManagedMode) WSEndpoint() string {
-	return fmt.Sprintf("ws://%s", m.srv.Endpoint())
+	return fmt.Sprintf("http://%s", m.srv.Endpoint())
 }
 
 func (m *ManagedMode) JWTSecret() eth.Bytes32 {
@@ -176,16 +178,19 @@ func (m *ManagedMode) UpdateFinalized(ctx context.Context, ref eth.BlockRef) err
 	return nil
 }
 
-func (m *ManagedMode) AnchorPoint(ctx context.Context) (l1, l2 eth.BlockRef, err error) {
+func (m *ManagedMode) AnchorPoint(ctx context.Context) (DerivedPair, error) {
 	l1Ref, err := m.l1.L1BlockRefByHash(ctx, m.cfg.Genesis.L1.Hash)
 	if err != nil {
-		return eth.BlockRef{}, eth.BlockRef{}, fmt.Errorf("failed to fetch L1 block ref: %w", err)
+		return DerivedPair{}, fmt.Errorf("failed to fetch L1 block ref: %w", err)
 	}
 	l2Ref, err := m.l2.L2BlockRefByHash(ctx, m.cfg.Genesis.L2.Hash)
 	if err != nil {
-		return eth.BlockRef{}, eth.BlockRef{}, fmt.Errorf("failed to fetch L2 block ref: %w", err)
+		return DerivedPair{}, fmt.Errorf("failed to fetch L2 block ref: %w", err)
 	}
-	return l1Ref, l2Ref.BlockRef(), nil
+	return DerivedPair{
+			DerivedFrom: l1Ref,
+			Derived:     l2Ref.BlockRef()},
+		nil
 }
 
 func (m *ManagedMode) Reset(ctx context.Context, unsafe, safe, finalized eth.BlockRef) error {
@@ -230,7 +235,9 @@ func (m *ManagedMode) Reset(ctx context.Context, unsafe, safe, finalized eth.Blo
 	return nil
 }
 
-func (m *ManagedMode) TryDeriveNext(ctx context.Context, prevL2 eth.BlockRef, fromL1 eth.BlockRef) (derived eth.BlockRef, derivedFrom eth.BlockRef, err error) {
+func (m *ManagedMode) SignalNextL1(ctx context.Context, prevL2 eth.BlockRef, fromL1 eth.BlockRef) (dp DerivedPair, err error) {
+	fmt.Println("AXELAXEL TryDeriveNext", prevL2, fromL1)
+	return DerivedPair{}, nil
 
 	// TODO fire a derivation instruction event with (prevL2, fromL1)
 
@@ -250,7 +257,6 @@ func (m *ManagedMode) TryDeriveNext(ctx context.Context, prevL2 eth.BlockRef, fr
 	// then elsewhere we are deriving new blocks while we shouldn't.
 
 	// TODO(#13336): return the L1 or L2 progress
-	return eth.BlockRef{}, eth.BlockRef{}, nil
 }
 
 func (m *ManagedMode) FetchReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error) {

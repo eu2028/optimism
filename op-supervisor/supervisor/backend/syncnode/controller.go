@@ -2,6 +2,7 @@ package syncnode
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -13,7 +14,9 @@ import (
 )
 
 type chainsDB interface {
+	LocalSafeRef(id types.ChainID) (eth.BlockRef, eth.BlockRef, error)
 	UpdateLocalSafe(types.ChainID, eth.BlockRef, eth.BlockRef) error
+	UpdateCrossSafe(types.ChainID, eth.BlockRef, eth.BlockRef) error
 }
 
 // SyncNodeController handles the sync node operations across multiple sync nodes
@@ -40,7 +43,33 @@ func (snc *SyncNodesController) AttachNodeController(id types.ChainID, ctrl Sync
 		return fmt.Errorf("chain %v not in dependency set", id)
 	}
 	snc.controllers.Set(id, ctrl)
+	snc.maybeInit(id)
 	return nil
+}
+
+func (snc *SyncNodesController) maybeInit(id types.ChainID) {
+	// check if the database is empty for this chain
+	_, _, err := snc.db.LocalSafeRef(id)
+	if errors.Is(err, types.ErrFuture) {
+		snc.logger.Debug("initializing chain database", "chain", id)
+		ctrl, ok := snc.controllers.Get(id)
+		if !ok {
+			snc.logger.Warn("missing controller for chain. Not initializing", "chain", id)
+			return
+		}
+		pair, err := ctrl.AnchorPoint(context.Background())
+		if err != nil {
+			snc.logger.Warn("failed to get anchor point", "chain", id, "error", err)
+			return
+		}
+		if err := snc.db.UpdateCrossSafe(id, pair.Derived, pair.Derived); err != nil {
+			snc.logger.Warn("failed to initialize cross safe", "chain", id, "error", err)
+		}
+		if err := snc.db.UpdateLocalSafe(id, pair.DerivedFrom, pair.Derived); err != nil {
+			snc.logger.Warn("failed to initialize local safe", "chain", id, "error", err)
+		}
+		snc.logger.Debug("initialized chain database", "chain", id, "anchor", pair)
+	}
 }
 
 // DeriveFromL1 derives the L2 blocks from the L1 block reference for all the chains
@@ -51,9 +80,10 @@ func (snc *SyncNodesController) DeriveFromL1(ref eth.BlockRef) error {
 	wg := sync.WaitGroup{}
 	// for now this function just prints all the chain-ids of controlled nodes, as a placeholder
 	for _, chain := range snc.depSet.Chains() {
+		fmt.Println("AXELAXEL will ask snc to DeriveToEnd", chain, ref)
 		wg.Add(1)
 		go func() {
-			returns <- snc.DeriveToEnd(chain, ref)
+			returns <- snc.SignalNextL1(chain, ref)
 			wg.Done()
 		}()
 	}
@@ -74,27 +104,48 @@ func (snc *SyncNodesController) DeriveFromL1(ref eth.BlockRef) error {
 	return nil
 }
 
-// DeriveToEnd derives the L2 blocks from the L1 block reference for a single chain
-// it will continue to derive until no more blocks are derived
-func (snc *SyncNodesController) DeriveToEnd(id types.ChainID, ref eth.BlockRef) error {
+func (snc *SyncNodesController) SignalNextL1(id types.ChainID, fromL1 eth.BlockRef) error {
 	ctrl, ok := snc.controllers.Get(id)
 	if !ok {
-		snc.logger.Warn("missing controller for chain. Not attempting derivation", "chain", id)
-		return nil // maybe return an error?
+		return fmt.Errorf("missing controller for chain %v", id)
 	}
-	for {
-		derived, err := ctrl.TryDeriveNext(context.Background(), ref)
-		if err != nil {
-			return err
-		}
-		// if no more blocks are derived, we are done
-		// (or something? this exact behavior is yet to be defined by the node)
-		if derived == (eth.BlockRef{}) {
-			return nil
-		}
-		// record the new L2 to the local database
-		if err := snc.db.UpdateLocalSafe(id, ref, derived); err != nil {
-			return err
-		}
+	_, prevL2, err := snc.db.LocalSafeRef(id)
+	if err != nil {
+		return err
 	}
+	snc.logger.Debug("signaling next L1", "prevL2", prevL2, "fromL1", fromL1)
+	pair, err := ctrl.SignalNextL1(context.Background(), fromL1, prevL2)
+	if err != nil {
+		return err
+	}
+	if err := snc.db.UpdateLocalSafe(id, fromL1, pair.Derived); err != nil {
+		return err
+	}
+	return nil
 }
+
+// DeriveToEnd derives the L2 blocks from the L1 block reference for a single chain
+// it will continue to derive until no more blocks are derived
+//func (snc *SyncNodesController) DeriveToEnd(id types.ChainID, ref eth.BlockRef) error {
+//ctrl, ok := snc.controllers.Get(id)
+//if !ok {
+//snc.logger.Warn("missing controller for chain. Not attempting derivation", "chain", id)
+//return nil // maybe return an error?
+//}
+//for {
+//fmt.Println("AXELAXEL want to TryDeriveNext", ref, ctrl)
+//derived, err := ctrl.TryDeriveNext(context.Background(), ref)
+//if err != nil {
+//return err
+//}
+//// if no more blocks are derived, we are done
+//// (or something? this exact behavior is yet to be defined by the node)
+//if derived == (eth.BlockRef{}) {
+//return nil
+//}
+//// record the new L2 to the local database
+//if err := snc.db.UpdateLocalSafe(id, ref, derived); err != nil {
+//return err
+//}
+//}
+//}

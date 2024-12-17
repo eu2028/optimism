@@ -402,6 +402,8 @@ func (n *OpNode) initL2(ctx context.Context, cfg *Config) error {
 
 	if cfg.Rollup.InteropTime != nil {
 		sys, err := cfg.InteropConfig.Setup(ctx, n.log, &n.cfg.Rollup, n.l1Source, n.l2Source)
+		m := sys.(*managed.ManagedMode)
+		fmt.Println("AXELAXEL managed mode", m)
 		if err != nil {
 			return fmt.Errorf("failed to setup interop: %w", err)
 		}

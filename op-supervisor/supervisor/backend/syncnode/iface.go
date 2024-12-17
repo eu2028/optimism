@@ -7,6 +7,7 @@ import (
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/ethereum-optimism/optimism/op-node/rollup/interop/managed"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 )
@@ -29,7 +30,8 @@ type SyncSource interface {
 }
 
 type SyncControl interface {
-	TryDeriveNext(ctx context.Context, ref eth.BlockRef) (eth.BlockRef, error)
+	SignalNextL1(ctx context.Context, l1Ref eth.BlockRef, l2Ref eth.BlockRef) (managed.DerivedPair, error)
+	AnchorPoint(ctx context.Context) (managed.DerivedPair, error)
 }
 
 type SyncNode interface {

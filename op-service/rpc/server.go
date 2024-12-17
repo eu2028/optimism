@@ -166,10 +166,10 @@ func (b *Server) AddAPI(api rpc.API) {
 
 func (b *Server) Start() error {
 	srv := rpc.NewServer()
-	if err := node.RegisterApis(b.apis, nil, srv); err != nil {
-		return fmt.Errorf("error registering APIs: %w", err)
+	for _, api := range b.apis {
+		b.log.Info("registered API", "namespace", api.Namespace)
+		srv.RegisterName(api.Namespace, api.Service)
 	}
-
 	// rpc middleware
 	var nodeHdlr http.Handler = srv
 	for _, middleware := range b.middlewares {
@@ -184,6 +184,7 @@ func (b *Server) Start() error {
 	if b.wsEnabled {
 		wsHandler := node.NewWSHandlerStack(srv.WebsocketHandler(b.corsHosts), b.jwtSecret)
 		mux.Handle("/ws", wsHandler)
+		fmt.Println("AXELAXEL websocket enabled")
 	}
 
 	// http middleware

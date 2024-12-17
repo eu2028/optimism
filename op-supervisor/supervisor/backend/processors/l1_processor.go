@@ -2,6 +2,7 @@ package processors
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -149,6 +150,7 @@ func (p *L1Processor) work() error {
 		return err
 	}
 
+	fmt.Println("AXELAXEL got an L1 and now deriving on it", ref)
 	// send the new L1 block to the sync nodes for derivation
 	if err := p.snc.DeriveFromL1(ref); err != nil {
 		return err

@@ -132,12 +132,45 @@ func (db *ChainsDB) CrossUnsafe(chainID types.ChainID) (types.BlockSeal, error) 
 	return crossUnsafe, nil
 }
 
+// LocalSafe returns the latest local-safe block for the given chain. It proxies the request to the localDB.
 func (db *ChainsDB) LocalSafe(chainID types.ChainID) (derivedFrom types.BlockSeal, derived types.BlockSeal, err error) {
 	localDB, ok := db.localDBs.Get(chainID)
 	if !ok {
 		return types.BlockSeal{}, types.BlockSeal{}, types.ErrUnknownChain
 	}
 	return localDB.Latest()
+}
+
+// LocalSafeRef returns the latest local-safe block for the given chain, with parent block information attached.
+func (db *ChainsDB) LocalSafeRef(chainID types.ChainID) (derivedFrom eth.BlockRef, derived eth.BlockRef, err error) {
+	ldb, ok := db.localDBs.Get(chainID)
+	if !ok {
+		return eth.BlockRef{}, eth.BlockRef{}, types.ErrUnknownChain
+	}
+	df, d, err := ldb.Latest()
+	if err != nil {
+		return eth.BlockRef{}, eth.BlockRef{}, err
+	}
+
+	// get the parent block of the derived-from block
+	dfParent, err := ldb.PreviousDerivedFrom(df.ID())
+	if errors.Is(err, types.ErrPreviousToFirst) {
+		derivedFrom = df.ForceWithParent(eth.BlockID{})
+	} else if err != nil {
+		return eth.BlockRef{}, eth.BlockRef{}, err
+	}
+	derivedFrom = df.MustWithParent(dfParent.ID())
+
+	// get the parent block of the derived block
+	dParent, err := ldb.PreviousDerived(d.ID())
+	if errors.Is(err, types.ErrPreviousToFirst) {
+		derived = d.ForceWithParent(eth.BlockID{})
+	} else if err != nil {
+		return eth.BlockRef{}, eth.BlockRef{}, err
+	}
+	derived = d.MustWithParent(dParent.ID())
+
+	return derivedFrom, derived, nil
 }
 
 func (db *ChainsDB) CrossSafe(chainID types.ChainID) (derivedFrom types.BlockSeal, derived types.BlockSeal, err error) {

@@ -31,7 +31,7 @@ func (ib *InteropAPI) UpdateFinalized(ctx context.Context, ref eth.BlockRef) err
 	return ib.backend.UpdateFinalized(ctx, ref)
 }
 
-func (ib *InteropAPI) AnchorPoint(ctx context.Context) (l1, l2 eth.BlockRef, err error) {
+func (ib *InteropAPI) AnchorPoint(ctx context.Context) (DerivedPair, error) {
 	return ib.backend.AnchorPoint(ctx)
 }
 
@@ -39,8 +39,13 @@ func (ib *InteropAPI) Reset(ctx context.Context, unsafe, safe, finalized eth.Blo
 	return ib.Reset(ctx, unsafe, safe, finalized)
 }
 
-func (ib *InteropAPI) TryDeriveNext(ctx context.Context, prevL2 eth.BlockRef, fromL1 eth.BlockRef) (derived eth.BlockRef, derivedFrom eth.BlockRef, err error) {
-	return ib.backend.TryDeriveNext(ctx, prevL2, fromL1)
+type DerivedPair struct {
+	DerivedFrom eth.BlockRef
+	Derived     eth.BlockRef
+}
+
+func (ib *InteropAPI) SignalNextL1(ctx context.Context, prevL2 eth.BlockRef, fromL1 eth.BlockRef) (dp DerivedPair, err error) {
+	return ib.backend.SignalNextL1(ctx, prevL2, fromL1)
 }
 
 func (ib *InteropAPI) FetchReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error) {

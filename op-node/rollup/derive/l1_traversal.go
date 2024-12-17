@@ -86,10 +86,13 @@ func (l1t *L1Traversal) target(ctx context.Context) (eth.L1BlockRef, error) {
 	return l1t.checkForNextRef(ctx)
 }
 
-// AdvanceL1Block advances the internal state of L1 Traversal given a specific L1 block.
+// AdvanceL1Block advances the internal state of L1 Traversal to the next block.
 func (l1t *L1Traversal) AdvanceL1BLock(ctx context.Context) error {
 	origin := l1t.block
 	nextL1Origin, err := l1t.target(ctx)
+	if err != nil {
+		return NewTemporaryError(fmt.Errorf("failed to find next L1 block: %w", err))
+	}
 	// Parse L1 receipts of the given block and update the L1 system configuration
 	_, receipts, err := l1t.l1Blocks.FetchReceipts(ctx, nextL1Origin.Hash)
 	if err != nil {

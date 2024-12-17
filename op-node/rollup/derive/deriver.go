@@ -103,6 +103,9 @@ func (d *PipelineDeriver) OnEvent(ev event.Event) bool {
 	case rollup.ResetEvent:
 		d.pipeline.Reset()
 	case PipelineStepEvent:
+		//if interop {
+		//// do interop
+		//}
 		// Don't generate attributes if there are already attributes in-flight
 		if d.needAttributesConfirmation {
 			d.pipeline.log.Debug("Previously sent attributes are unconfirmed to be received")
