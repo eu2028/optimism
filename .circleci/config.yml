@@ -720,9 +720,14 @@ jobs:
           name: Pull artifacts
           command: bash scripts/ops/pull-artifacts.sh
           working_directory: packages/contracts-bedrock
+      - run:
+          name: Write pinned block number for cache key
+          command: just print-pinned-block-number > pinnedBlockNumber.txt
+          working_directory: packages/contracts-bedrock
       - restore_cache:
           name: Restore forked state
-          key: forked-state-contracts-bedrock-tests-upgrade
+          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "pinnedBlockNumber.txt" }}
+          working_directory: packages/contracts-bedrock
       - run:
           name: Run tests
           command: |
@@ -747,7 +752,9 @@ jobs:
             - "/root/.cache/go-build"
       - save_cache:
           name: Save forked state
-          key: forked-state-contracts-bedrock-tests-upgrade
+          working_directory: packages/contracts-bedrock
+          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "pinnedBlockNumber.txt" }}
+          when: always
           paths:
             - "/root/.foundry/cache"
       - notify-failures-on-develop

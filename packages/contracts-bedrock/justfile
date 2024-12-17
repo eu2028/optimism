@@ -56,6 +56,11 @@ test *ARGS: build-go-ffi
 test-dev *ARGS: build-go-ffi
   FOUNDRY_PROFILE=lite forge test {{ARGS}}
 
+# Default block number for the forked upgrade path.
+export pinnedBlockNumber := env_var_or_default('FORK_BLOCK_NUMBER', '21387830')
+print-pinned-block-number:
+  echo $pinnedBlockNumber
+
 # Runs upgrade path variant of contract tests.
 # Env Vars:
 # - ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL.
@@ -65,8 +70,8 @@ test-dev *ARGS: build-go-ffi
 #   when the L1 chain is upgraded.
 test-upgrade *ARGS: build-go-ffi
   #!/bin/bash
-  export PINNED_BLOCK_NUMBER="21387830"
-  export FORK_BLOCK_NUMBER=$(env FORK_BLOCK_NUMBER || echo $PINNED_BLOCK_NUMBER)
+  export FORK_BLOCK_NUMBER=$pinnedBlockNumber
+  export NMC="OptimismPortal2WithMockERC20_Test|OptimismPortal2_FinalizeWithdrawal_Test|AnchorStateRegistry_Initialize_Test|AnchorStateRegistry_TryUpdateAnchorState_Test|FaultDisputeGame_Test|FaultDispute_1v1_Actors_Test"
   FORK_RPC_URL=$ETH_RPC_URL \
     UPGRADE_TEST=true \
     forge test --match-path "test/{L1,dispute}/**" \
