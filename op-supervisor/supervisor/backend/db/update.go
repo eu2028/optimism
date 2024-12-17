@@ -99,9 +99,7 @@ func (db *ChainsDB) RecordNewL1(ref eth.BlockRef) error {
 		}
 		// get the latest derived and derivedFrom blocks
 		derivedFrom, derived, err := ldb.Latest()
-		if errors.Is(err, types.ErrFuture) {
-			db.logger.Warn("Empty DB, Recording first L1 block. IDK man, this seems a little funky.", "chain", chain, "err", err)
-		} else if err != nil {
+		if err != nil {
 			return fmt.Errorf("failed to get latest derivedFrom for chain %s: %w", chain, err)
 		}
 		// make a ref from the latest derived block
