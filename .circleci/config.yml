@@ -730,12 +730,10 @@ jobs:
           working_directory: packages/contracts-bedrock
       - run:
           name: Run tests
-          command: |
-              echo "Running upgrade tests"
-              export ETH_RPC_URL="https://ci-mainnet-l1-archive.optimism.io"
-              just test-upgrade
+          command: just test-upgrade
           environment:
             FOUNDRY_PROFILE: ci
+            ETH_RPC_URL: https://ci-mainnet-l1-archive.optimism.io
           working_directory: packages/contracts-bedrock
           no_output_timeout: 15m
       - run:
@@ -743,6 +741,7 @@ jobs:
           command: just test-upgrade-rerun
           environment:
             FOUNDRY_PROFILE: ci
+            ETH_RPC_URL: https://ci-mainnet-l1-archive.optimism.io
           working_directory: packages/contracts-bedrock
           when: on_fail
       - save_cache:
