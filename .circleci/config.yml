@@ -722,12 +722,14 @@ jobs:
           working_directory: packages/contracts-bedrock
       - run:
           name: Write pinned block number for cache key
-          command: just print-pinned-block-number > ./pinnedBlockNumber.txt
+          command: |
+            just print-pinned-block-number > ./pinnedBlockNumber.txt
+            cat pinnedBlockNumber.txt
+            pwd
           working_directory: packages/contracts-bedrock
       - restore_cache:
           name: Restore forked state
-          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "./pinnedBlockNumber.txt" }}
-          working_directory: packages/contracts-bedrock
+          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "packages/contracts-bedrock/pinnedBlockNumber.txt" }}
       - run:
           name: Run tests
           command: just test-upgrade
@@ -751,8 +753,7 @@ jobs:
             - "/root/.cache/go-build"
       - save_cache:
           name: Save forked state
-          working_directory: packages/contracts-bedrock
-          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "pinnedBlockNumber.txt" }}
+          key: forked-state-contracts-bedrock-tests-upgrade-{{ checksum "packages/contracts-bedrock/pinnedBlockNumber.txt" }}
           when: always
           paths:
             - "/root/.foundry/cache"
