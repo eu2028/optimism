@@ -321,7 +321,7 @@ func (s *interopE2ESystem) newNodeForL2(
 			SupervisorAddr:   s.supervisor.RPC(),
 			RPCAddr:          "127.0.0.1",
 			RPCPort:          0,
-			RPCJwtSecretPath: "",
+			RPCJwtSecretPath: "jwt-" + id,
 		},
 		P2P:                         nil, // disabled P2P setup for now
 		L1EpochPollInterval:         time.Second * 2,
@@ -553,6 +553,7 @@ func (s *interopE2ESystem) prepare(t *testing.T, w worldResourcePaths) {
 	ctx := context.Background()
 	for _, l2 := range s.l2s {
 		rpcEndpoint, secret := l2.opNode.InteropRPC()
+		s.logger.Info("Adding L2 RPC to supervisor", "chainID", l2.chainID, "rpcEndpoint", rpcEndpoint, "secret", secret)
 		err := s.SupervisorClient().AddL2RPC(ctx, rpcEndpoint, secret)
 		require.NoError(s.t, err, "failed to add L2 RPC to supervisor")
 	}
