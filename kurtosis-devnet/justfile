@@ -12,6 +12,7 @@ _contracts-build:
 
 _docker-build PROJECT_NAME:
     # TODO: just a stub, retagging the optimism-package image
+    docker pull us-docker.pkg.dev/oplabs-tools-artifacts/images/{{PROJECT_NAME}}:develop
     docker tag us-docker.pkg.dev/oplabs-tools-artifacts/images/{{PROJECT_NAME}}:develop {{IMAGE_TAG}}
 
 _kurtosis-run PACKAGE_NAME ARG_FILE ENCLAVE:
