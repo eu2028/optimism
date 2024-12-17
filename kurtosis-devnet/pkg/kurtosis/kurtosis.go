@@ -25,11 +25,18 @@ type Chain struct {
 	Addresses deployer.DeploymentAddresses `json:"addresses,omitempty"`
 }
 
+type Wallet struct {
+	Address    string `json:"address"`
+	PrivateKey string `json:"private_key,omitempty"`
+}
+
+type WalletMap map[string]Wallet
+
 // KurtosisEnvironment represents the output of a Kurtosis deployment
 type KurtosisEnvironment struct {
-	L1      *Chain              `json:"l1"`
-	L2      []*Chain            `json:"l2"`
-	Wallets deployer.WalletList `json:"wallets"`
+	L1      *Chain    `json:"l1"`
+	L2      []*Chain  `json:"l2"`
+	Wallets WalletMap `json:"wallets"`
 }
 
 // KurtosisDeployer handles deploying packages using Kurtosis
@@ -219,6 +226,17 @@ func (d *KurtosisDeployer) runKurtosisCommand(argFile string) error {
 	return nil
 }
 
+func (d *KurtosisDeployer) getWallets(wallets deployer.WalletList) WalletMap {
+	walletMap := make(WalletMap)
+	for _, wallet := range wallets {
+		walletMap[wallet.Name] = Wallet{
+			Address:    wallet.Address,
+			PrivateKey: wallet.PrivateKey,
+		}
+	}
+	return walletMap
+}
+
 // getEnvironmentInfo parses the input spec and inspect output to create KurtosisEnvironment
 func (d *KurtosisDeployer) getEnvironmentInfo(spec *spec.EnclaveSpec) (*KurtosisEnvironment, error) {
 	var inspectBuf bytes.Buffer
@@ -239,7 +257,7 @@ func (d *KurtosisDeployer) getEnvironmentInfo(spec *spec.EnclaveSpec) (*Kurtosis
 
 	env := &KurtosisEnvironment{
 		L2:      make([]*Chain, 0, len(spec.Chains)),
-		Wallets: deployerState.Wallets,
+		Wallets: d.getWallets(deployerState.Wallets),
 	}
 
 	// Find L1 endpoint
