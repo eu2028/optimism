@@ -245,10 +245,8 @@ contract MIPS2 is ISemver {
                     // timeout! Allow execution
                     return onWaitComplete(thread, true);
                 } else {
-                    uint32 mem = MIPSMemory.readMem(
-                        state.memRoot, thread.futexAddr & 0xFFffFFfc, MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1)
-                    );
-                    if (thread.futexVal == mem) {
+                    uint32 futexVal = getFutexValue(thread.futexAddr);
+                    if (thread.futexVal == futexVal) {
                         // still got expected value, continue sleeping, try next thread.
                         preemptThread(state, thread);
                         return outputState();
@@ -488,15 +486,14 @@ contract MIPS2 is ISemver {
                 return outputState();
             } else if (syscall_no == sys.SYS_FUTEX) {
                 // args: a0 = addr, a1 = op, a2 = val, a3 = timeout
-                uint32 effAddr = a0 & 0xFFffFFfc;
+                uint32 effFutexAddr = a0 & 0xFFffFFfc;
                 if (a1 == sys.FUTEX_WAIT_PRIVATE) {
-                    uint32 mem =
-                        MIPSMemory.readMem(state.memRoot, effAddr, MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1));
-                    if (mem != a2) {
+                    uint32 futexVal = getFutexValue(effFutexAddr);
+                    if (futexVal != a2) {
                         v0 = sys.SYS_ERROR_SIGNAL;
                         v1 = sys.EAGAIN;
                     } else {
-                        thread.futexAddr = effAddr;
+                        thread.futexAddr = effFutexAddr;
                         thread.futexVal = a2;
                         thread.futexTimeoutStep = a3 == 0 ? sys.FUTEX_NO_TIMEOUT : state.step + sys.FUTEX_TIMEOUT_STEPS;
                         // Leave cpu scalars as-is. This instruction will be completed by `onWaitComplete`
@@ -506,7 +503,7 @@ contract MIPS2 is ISemver {
                 } else if (a1 == sys.FUTEX_WAKE_PRIVATE) {
                     // Trigger thread traversal starting from the left stack until we find one waiting on the wakeup
                     // address
-                    state.wakeup = effAddr;
+                    state.wakeup = effFutexAddr;
                     // Don't indicate to the program that we've woken up a waiting thread, as there are no guarantees.
                     // The woken up thread should indicate this in userspace.
                     v0 = 0;
@@ -941,5 +938,17 @@ contract MIPS2 is ISemver {
         }
         // verify we have enough calldata
         require(s >= (THREAD_PROOF_OFFSET + 198), "insufficient calldata for thread witness"); // 166 + 32
+    }
+
+    /// @notice Loads a 32-bit futex value at _vAddr
+    function getFutexValue(uint32 _vAddr) internal pure returns (uint32 out_) {
+        State memory state;
+        assembly {
+            state := STATE_MEM_OFFSET
+        }
+
+        uint32 effAddr = _vAddr & 0xFFffFFfc;
+        uint256 memProofOffset = MIPSMemory.memoryProofOffset(MEM_PROOF_OFFSET, 1);
+        return MIPSMemory.readMem(state.memRoot, effAddr, memProofOffset);
     }
 }
