@@ -904,11 +904,15 @@ contract L1CrossDomainMessenger_ReinitReentryTest is CommonTest {
 
     /// @dev Tests that the upgrade function can only be called once due to initializer
     function test_upgrade_alreadyInitialized_reverts() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1CrossDomainMessenger_Test: upgrade function DNE on op mainnet");
         vm.expectRevert("Initializable: contract is already initialized");
         l1CrossDomainMessenger.upgrade();
     }
 
     function test_upgrade_succeeds() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("L1CrossDomainMessenger_Test: upgrade function DNE on op mainnet");
         // Wipe out the initialized slot so the proxy can be initialized again
         vm.store(address(l1CrossDomainMessenger), bytes32(0), bytes32(0));
         l1CrossDomainMessenger.upgrade();

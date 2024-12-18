@@ -43,12 +43,16 @@ contract AnchorStateRegistry_Initialize_Test is AnchorStateRegistry_Init {
 contract AnchorStateRegistry_Upgrade_Test is AnchorStateRegistry_Init {
     /// @dev Tests that the upgrade function can only be called once due to initializer
     function test_upgrade_alreadyInitialized_reverts() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("AnchorStateRegistry_Test: upgrade function DNE on op mainnet");
         vm.expectRevert("Initializable: contract is already initialized");
         anchorStateRegistry.upgrade();
     }
 
     /// @dev Tests that the upgrade function succeeds when properly initialized
     function test_upgrade_succeeds() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("AnchorStateRegistry_Test: upgrade function DNE on op mainnet");
         // Wipe out the initialized slot so the proxy can be initialized again
         vm.store(address(anchorStateRegistry), bytes32(0), bytes32(0));
         anchorStateRegistry.upgrade();
