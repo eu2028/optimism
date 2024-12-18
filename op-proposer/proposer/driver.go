@@ -296,7 +296,7 @@ func (l *L2OutputSubmitter) FetchDGFOutput(ctx context.Context) (*eth.OutputResp
 	}
 
 	if claim == common.Hash(output.OutputRoot) {
-		l.Log.Debug("Skipping proposal: output root unchanged since last porposed game", "last proposed claim", claim, "output_root", output.StateRoot)
+		l.Log.Debug("Skipping proposal: output root unchanged since last proposed game", "last_proposed_root", claim, "output_root", output.OutputRoot)
 		return nil, false, nil
 	}
 
