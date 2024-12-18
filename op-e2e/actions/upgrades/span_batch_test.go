@@ -368,6 +368,8 @@ func TestMixOfBatchesAfterHardfork(gt *testing.T) {
 		})
 		require.NoError(gt, seqEngCl.SendTransaction(t.Ctx(), tx))
 		txHashes[i] = tx.Hash()
+		txHashTerminalString := tx.Hash().TerminalString()
+		t.Log("tx", txHashTerminalString)
 
 		// Make L2 block
 		sequencer.ActL1HeadSignal(t)
@@ -410,6 +412,7 @@ func TestMixOfBatchesAfterHardfork(gt *testing.T) {
 	// Check that the tx from alice made it into the L2 chain
 	verifCl := verifEngine.EthClient()
 	for _, txHash := range txHashes {
+		t.Log("checking tx", txHash.String())
 		vTx, isPending, err := verifCl.TransactionByHash(t.Ctx(), txHash)
 		require.NoError(t, err)
 		require.False(t, isPending)
