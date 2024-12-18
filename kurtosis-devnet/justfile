@@ -3,9 +3,10 @@ set shell := ["/bin/bash", "-c"]
 CONTRACTS_BUNDLE := "contracts-bundle.tar.gz"
 
 # Internal recipes for kurtosis-devnet
-_contracts-build:
+_contracts-build BUNDLE='contracts-bundle.tar.gz':
     # TODO: just a stub, pointing to the optimism-package artifact
-    echo "https://storage.googleapis.com/oplabs-contract-artifacts/artifacts-v1-9af7366a7102f51e8dbe451dcfa22971131d89e218915c91f420a164cc48be65.tar.gz"
+    just ../packages/contracts-bedrock/forge-build
+    tar -czf {{BUNDLE}} -C ../packages/contracts-bedrock artifacts forge-artifacts cache
 
 _docker_build TAG TARGET='' CONTEXT='.' DOCKERFILE='Dockerfile':
     docker buildx build -t {{TAG}} \

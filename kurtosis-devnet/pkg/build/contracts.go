@@ -20,7 +20,7 @@ type ContractBuilder struct {
 }
 
 const (
-	contractsCmdTemplateStr = "just _contracts-build"
+	contractsCmdTemplateStr = "just _contracts-build {{.BundlePath}}"
 )
 
 var defaultContractTemplate *template.Template
@@ -71,17 +71,19 @@ type contractTemplateData struct {
 }
 
 // Build executes the contract build command
-func (b *ContractBuilder) Build(layer string) (string, error) {
-	log.Printf("Building contracts for layer: %s", layer)
+func (b *ContractBuilder) Build(layer string, bundlePath string) error {
+	log.Printf("Building contracts bundle: %s", bundlePath)
+
 	// Prepare template data
 	data := contractTemplateData{
-		Layer: layer,
+		Layer:      layer,
+		BundlePath: bundlePath,
 	}
 
 	// Execute template to get command string
 	var cmdBuf bytes.Buffer
 	if err := b.cmdTemplate.Execute(&cmdBuf, data); err != nil {
-		return "", fmt.Errorf("failed to execute command template: %w", err)
+		return fmt.Errorf("failed to execute command template: %w", err)
 	}
 
 	// Create command
@@ -89,19 +91,14 @@ func (b *ContractBuilder) Build(layer string) (string, error) {
 	cmd.Dir = b.baseDir
 
 	if b.dryRun {
-		return "url://contracts-bundle.tar.gz", nil
+		return nil
 	}
 
 	// Capture output and error
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("contract build command failed: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("contract build command failed: %w\nOutput: %s", err, string(output))
 	}
 
-	// Return the bundle path as confirmation of successful build
-	lines := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
-	if len(lines) == 0 {
-		return "", fmt.Errorf("no output from contract build command")
-	}
-	return string(lines[len(lines)-1]), nil
+	return nil
 }

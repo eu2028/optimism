@@ -60,7 +60,7 @@ type KurtosisDeployer struct {
 	enclave string
 }
 
-const cmdTemplateStr = "just _kurtosis-run {{.PackageName}} {{.ArgFile}} {{.Enclave}}"
+const cmdTemplateStr = "cat {{.ArgFile}}; just _kurtosis-run {{.PackageName}} {{.ArgFile}} {{.Enclave}}"
 
 var defaultCmdTemplate *template.Template
 
@@ -107,7 +107,7 @@ func NewKurtosisDeployer(opts ...KurtosisDeployerOptions) *KurtosisDeployer {
 		cmdTemplate: defaultCmdTemplate,
 		packageName: DefaultPackageName,
 		dryRun:      false,
-		enclave:     DefaultEnclave,
+		enclave:     "devnet",
 	}
 
 	for _, opt := range opts {

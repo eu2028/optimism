@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/build"
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis"
+	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/serve"
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/tmpl"
 )
 
@@ -30,6 +32,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// we will serve content from this tmpDir for the duration of the devnet creation
+	tmpDir, err := os.MkdirTemp("", "contracts-bundle")
+	if err != nil {
+		log.Fatalf("Error creating temporary directory: %v\n", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	server := serve.NewServer(tmpDir)
+	if err := server.Start(ctx); err != nil {
+		log.Fatalf("Error starting server: %v\n", err)
+	}
+	defer server.Stop(ctx)
+
 	baseDir := filepath.Dir(*templateFile)
 
 	dockerBuilder := build.NewDockerBuilder(
@@ -39,6 +57,11 @@ func main() {
 
 	imageTag := func(projectName string) string {
 		return fmt.Sprintf("%s:%s", projectName, *enclave)
+	}
+
+	contractsBundle := fmt.Sprintf("contracts-bundle-%s.tar.gz", *enclave)
+	contractsBundlePath := func(_ string) string {
+		return filepath.Join(tmpDir, contractsBundle)
 	}
 
 	contractBuilder := build.NewContractBuilder(
@@ -51,7 +74,13 @@ func main() {
 			return dockerBuilder.Build(projectName, imageTag(projectName))
 		}),
 		tmpl.WithFunction("localContractArtifacts", func(layer string) (string, error) {
-			return contractBuilder.Build(layer)
+			err := contractBuilder.Build(layer, contractsBundlePath(layer))
+			if err != nil {
+				return "", err
+			}
+			url := fmt.Sprintf("%s/%s", server.URL(), contractsBundle)
+			log.Printf("Contract artifacts available at: %s\n", url)
+			return url, nil
 		}),
 	}
 
@@ -78,11 +107,11 @@ func main() {
 	defer tmplFile.Close()
 
 	// Create template context
-	ctx := tmpl.NewTemplateContext(opts...)
+	tmplCtx := tmpl.NewTemplateContext(opts...)
 
 	// Process template
 	buf := bytes.NewBuffer(nil)
-	if err := ctx.InstantiateTemplate(tmplFile, buf); err != nil {
+	if err := tmplCtx.InstantiateTemplate(tmplFile, buf); err != nil {
 		log.Fatalf("Error processing template: %v\n", err)
 	}
 
