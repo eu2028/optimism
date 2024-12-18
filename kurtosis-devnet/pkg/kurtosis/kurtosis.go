@@ -15,7 +15,10 @@ import (
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/sources/spec"
 )
 
-const DefaultPackageName = "github.com/ethpandaops/optimism-package"
+const (
+	DefaultPackageName = "github.com/ethpandaops/optimism-package"
+	DefaultEnclave     = "devnet"
+)
 
 type EndpointMap map[string]string
 
@@ -104,7 +107,7 @@ func NewKurtosisDeployer(opts ...KurtosisDeployerOptions) *KurtosisDeployer {
 		cmdTemplate: defaultCmdTemplate,
 		packageName: DefaultPackageName,
 		dryRun:      false,
-		enclave:     "devnet",
+		enclave:     DefaultEnclave,
 	}
 
 	for _, opt := range opts {

@@ -19,7 +19,7 @@ func main() {
 	templateFile := flag.String("template", "", "Path to the template file (required)")
 	dataFile := flag.String("data", "", "Path to JSON data file (optional)")
 	kurtosisPackage := flag.String("kurtosis-package", kurtosis.DefaultPackageName, "Kurtosis package to deploy")
-	enclave := flag.String("enclave", "devnet", "Enclave name")
+	enclave := flag.String("enclave", kurtosis.DefaultEnclave, "Enclave name")
 	environment := flag.String("environment", "", "Path to JSON environment file output (optional)")
 	dryRun := flag.Bool("dry-run", false, "Dry run mode")
 	flag.Parse()
