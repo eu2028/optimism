@@ -49,8 +49,8 @@ contract DisputeGameFactory is OwnableUpgradeable, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.1-beta.5
-    string public constant version = "1.0.1-beta.5";
+    /// @custom:semver 1.0.1-beta.6
+    string public constant version = "1.0.1-beta.6";
 
     /// @notice `gameImpls` is a mapping that maps `GameType`s to their respective
     ///         `IDisputeGame` implementations.
@@ -160,7 +160,7 @@ contract DisputeGameFactory is OwnableUpgradeable, ISemver {
         // CWIA Calldata Layout:
         // ┌──────────────┬────────────────────────────────────┐
         // │    Bytes     │            Description             │
-        // ├──────────────┼────────────────────────────────────┤
+        // ├──────────────┼───────────────────────────────���────┤
         // │ [0, 20)      │ Game creator address               │
         // │ [20, 52)     │ Root claim                         │
         // │ [52, 84)     │ Parent block hash at creation time │
