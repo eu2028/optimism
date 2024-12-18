@@ -19,5 +19,6 @@ interface IL1CrossDomainMessenger is ICrossDomainMessenger {
     function systemConfig() external view returns (ISystemConfig);
     function version() external view returns (string memory);
 
+    function upgrade() external;
     function __constructor__() external;
 }

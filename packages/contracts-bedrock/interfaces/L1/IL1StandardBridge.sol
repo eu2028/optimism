@@ -73,5 +73,6 @@ interface IL1StandardBridge is IStandardBridge {
     function systemConfig() external view returns (ISystemConfig);
     function version() external view returns (string memory);
 
+    function upgrade() external;
     function __constructor__() external;
 }

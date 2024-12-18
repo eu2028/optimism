@@ -83,6 +83,7 @@ interface ISystemConfig {
     function transferOwnership(address newOwner) external; // nosemgrep
     function unsafeBlockSigner() external view returns (address addr_);
     function version() external pure returns (string memory);
+    function upgrade() external;
 
     function __constructor__() external;
 }

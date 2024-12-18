@@ -26,5 +26,6 @@ interface IProtocolVersions {
     function transferOwnership(address newOwner) external; // nosemgrep
     function version() external view returns (string memory);
 
+    function upgrade() external;
     function __constructor__() external;
 }

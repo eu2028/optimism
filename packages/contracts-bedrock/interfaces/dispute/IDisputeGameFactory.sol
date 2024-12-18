@@ -69,6 +69,7 @@ interface IDisputeGameFactory {
     function setInitBond(GameType _gameType, uint256 _initBond) external;
     function transferOwnership(address newOwner) external; // nosemgrep
     function version() external view returns (string memory);
+    function upgrade() external;
 
     function __constructor__() external;
 }

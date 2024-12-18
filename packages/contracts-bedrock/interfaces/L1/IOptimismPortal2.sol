@@ -114,5 +114,6 @@ interface IOptimismPortal2 {
     function systemConfig() external view returns (ISystemConfig);
     function version() external pure returns (string memory);
 
+    function upgrade() external;
     function __constructor__(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) external;
 }
