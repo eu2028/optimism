@@ -64,14 +64,9 @@
             "internalType": "bytes32",
             "name": "nonce",
             "type": "bytes32"
-          },
-          {
-            "internalType": "uint32",
-            "name": "gasLimit",
-            "type": "uint32"
           }
         ],
-        "internalType": "struct Faucet.DripParameters",
+        "internalType": "struct DripParameters",
         "name": "_params",
         "type": "tuple"
       },

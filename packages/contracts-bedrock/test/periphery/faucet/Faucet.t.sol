@@ -3,17 +3,18 @@ pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
 import { Faucet } from "src/periphery/faucet/Faucet.sol";
+import { DripParameters } from "src/periphery/faucet/FaucetTypes.sol";
 import { AdminFaucetAuthModule } from "src/periphery/faucet/authmodules/AdminFaucetAuthModule.sol";
 import { FaucetHelper } from "test/mocks/FaucetHelper.sol";
 
 /// @notice A contract that always reverts.
 contract RevertingContract {
     fallback() external payable {
-        revert("Always reverts");
+        revert("RevertingContract: Always reverts");
     }
 
     receive() external payable {
-        revert("Always reverts");
+        revert("RevertingContract: Always reverts");
     }
 }
 
@@ -149,7 +150,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.prank(nonAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(optimistNftFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
     }
@@ -172,7 +173,7 @@ contract FaucetTest is Faucet_Initializer {
         vm.prank(nonAdmin);
         vm.expectRevert("Faucet: drip parameters could not be verified by security module");
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(optimistNftFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
     }
@@ -195,7 +196,7 @@ contract FaucetTest is Faucet_Initializer {
         uint256 recipientBalanceBefore = address(fundsReceiver).balance;
         vm.prank(nonAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(optimistNftFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
         uint256 recipientBalanceAfter = address(fundsReceiver).balance;
@@ -220,7 +221,7 @@ contract FaucetTest is Faucet_Initializer {
         uint256 recipientBalanceBefore = address(fundsReceiver).balance;
         vm.prank(nonAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
         uint256 recipientBalanceAfter = address(fundsReceiver).balance;
@@ -247,7 +248,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.prank(nonAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
     }
@@ -269,7 +270,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.startPrank(faucetContractAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
 
@@ -277,7 +278,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.expectRevert("Faucet: provided auth module is not supported by this faucet");
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
         vm.stopPrank();
@@ -300,13 +301,13 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.startPrank(faucetContractAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
 
         vm.expectRevert("Faucet: nonce has already been used");
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce),
+            DripParameters(payable(fundsReceiver), data, nonce),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature)
         );
         vm.stopPrank();
@@ -329,7 +330,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.startPrank(faucetContractAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce0),
+            DripParameters(payable(fundsReceiver), data, nonce0),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature0)
         );
 
@@ -347,7 +348,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.expectRevert("Faucet: auth cannot be used yet because timeout has not elapsed");
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce1),
+            DripParameters(payable(fundsReceiver), data, nonce1),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature1)
         );
         vm.stopPrank();
@@ -370,7 +371,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.startPrank(faucetContractAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce0),
+            DripParameters(payable(fundsReceiver), data, nonce0),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature0)
         );
 
@@ -388,7 +389,7 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.warp(startingTimestamp + 1 days + 1 seconds);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), data, nonce1),
+            DripParameters(payable(fundsReceiver), data, nonce1),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature1)
         );
         vm.stopPrank();
@@ -440,15 +441,11 @@ contract FaucetTest is Faucet_Initializer {
 
         vm.prank(nonAdmin);
         faucet.drip(
-            Faucet.DripParameters(payable(fundsReceiver), validData, nonce0),
+            DripParameters(payable(fundsReceiver), validData, nonce0),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(fundsReceiver)), signature0)
         );
 
-        assertEq(
-            address(fundsReceiver).balance - balanceBefore,
-            0.05 ether,
-            "Balance should increase by 0.05 ETH"
-        );
+        assertEq(address(fundsReceiver).balance - balanceBefore, 0.05 ether, "Balance should increase by 0.05 ETH");
     }
 
     function test_drip_withFailedCall_reverts() external {
@@ -473,14 +470,10 @@ contract FaucetTest is Faucet_Initializer {
         vm.prank(nonAdmin);
         vm.expectRevert("Failed to execute SafeCall during drip to recipient");
         faucet.drip(
-            Faucet.DripParameters(payable(address(reverting)), data, nonce0),
+            DripParameters(payable(address(reverting)), data, nonce0),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(address(reverting))), signature0)
         );
 
-        assertEq(
-            address(reverting).balance,
-            balanceBefore,
-            "Balance should not change"
-        );
+        assertEq(address(reverting).balance, balanceBefore, "Balance should not change");
     }
 }

@@ -5,9 +5,11 @@ pragma solidity 0.8.15;
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
+// Libraries
+import { DripParameters } from "src/periphery/faucet/FaucetTypes.sol";
+
 // Interfaces
 import { IFaucetAuthModule } from "src/periphery/faucet/authmodules/IFaucetAuthModule.sol";
-import { Faucet } from "src/periphery/faucet/Faucet.sol";
 
 /// @title  AdminFaucetAuthModule
 /// @notice FaucetAuthModule that allows an admin to sign off on a given faucet drip. Takes an admin
@@ -38,7 +40,7 @@ contract AdminFaucetAuthModule is IFaucetAuthModule, EIP712 {
 
     /// @inheritdoc IFaucetAuthModule
     function verify(
-        Faucet.DripParameters memory _params,
+        DripParameters memory _params,
         bytes32 _id,
         bytes memory _proof
     )

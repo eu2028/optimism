@@ -3,7 +3,7 @@ pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
 import { AdminFaucetAuthModule } from "src/periphery/faucet/authmodules/AdminFaucetAuthModule.sol";
-import { Faucet } from "src/periphery/faucet/Faucet.sol";
+import { DripParameters } from "src/periphery/faucet/FaucetTypes.sol";
 import { FaucetHelper } from "test/mocks/FaucetHelper.sol";
 
 /// @title  AdminFaucetAuthModuleTest
@@ -97,9 +97,7 @@ contract AdminFaucetAuthModuleTest is Test {
         vm.prank(nonAdmin);
         assertEq(
             adminFam.verify(
-                Faucet.DripParameters(payable(fundsReceiver), data, nonce),
-                keccak256(abi.encodePacked(fundsReceiver)),
-                proof
+                DripParameters(payable(fundsReceiver), data, nonce), keccak256(abi.encodePacked(fundsReceiver)), proof
             ),
             true
         );
@@ -124,9 +122,7 @@ contract AdminFaucetAuthModuleTest is Test {
         vm.prank(admin);
         assertEq(
             adminFam.verify(
-                Faucet.DripParameters(payable(fundsReceiver), data, nonce),
-                keccak256(abi.encodePacked(fundsReceiver)),
-                proof
+                DripParameters(payable(fundsReceiver), data, nonce), keccak256(abi.encodePacked(fundsReceiver)), proof
             ),
             false
         );
@@ -153,9 +149,7 @@ contract AdminFaucetAuthModuleTest is Test {
         vm.prank(admin);
         assertEq(
             adminFam.verify(
-                Faucet.DripParameters(payable(fundsReceiver), data, nonce),
-                keccak256(abi.encodePacked(randomAddress)),
-                proof
+                DripParameters(payable(fundsReceiver), data, nonce), keccak256(abi.encodePacked(randomAddress)), proof
             ),
             false
         );

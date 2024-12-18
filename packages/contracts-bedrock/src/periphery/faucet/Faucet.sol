@@ -6,6 +6,7 @@ import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
 import { SafeCall } from "src/libraries/SafeCall.sol";
+import { DripParameters } from "src/periphery/faucet/FaucetTypes.sol";
 
 // Interfaces
 import { IFaucetAuthModule } from "src/periphery/faucet/authmodules/IFaucetAuthModule.sol";
@@ -19,13 +20,6 @@ contract Faucet {
     /// @param amount     The amount of funds sent.
     /// @param recipient  The recipient of the drip.
     event Drip(string indexed authModule, bytes32 indexed userId, uint256 amount, address indexed recipient);
-
-    /// @notice Parameters for a drip.
-    struct DripParameters {
-        address payable recipient;
-        bytes data;
-        bytes32 nonce;
-    }
 
     /// @notice Parameters for authentication.
     struct AuthParameters {
@@ -123,7 +117,7 @@ contract Faucet {
 
         // Execute transfer of ETH to the recipient account without gas limit
         bool success = SafeCall.call(_params.recipient, 0, config.amount, _params.data);
-        require(success, "Failed to execute SafeCall during drip to recipient");
+        require(success, "Faucet: Failed to execute SafeCall during drip to recipient");
 
         emit Drip(config.name, _auth.id, config.amount, _params.recipient);
     }
