@@ -109,7 +109,7 @@ func (m *InstrumentedState) handleSyscall() error {
 		return nil
 	case arch.SysFutex:
 		// args: a0 = addr, a1 = op, a2 = val, a3 = timeout
-		// Futex value is 32-bit, so mask out the lower 2 bits
+		// Futex value is 32-bit, so clear the lower 2 bits to get an effective address targeting a 4-byte value
 		effFutexAddr := a0 & ^Word(0x3)
 		switch a1 {
 		case exec.FutexWaitPrivate:
