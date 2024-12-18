@@ -21,7 +21,7 @@ import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
 ///         It differs from MIPS.sol in that it supports MIPS64 instructions and multi-tasking.
 contract MIPS64 is ISemver {
     /// @notice The thread context.
-    ///         Total state size: 8 + 1 + 1 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 32 * 8 = 322 bytes
+    ///         Total state size: 8 + 1 + 1 + 8 + 4 + 8 + 8 + 8 + 8 + 8 + 32 * 8 = 318 bytes
     struct ThreadState {
         // metadata
         uint64 threadID;
@@ -29,7 +29,7 @@ contract MIPS64 is ISemver {
         bool exited;
         // state
         uint64 futexAddr;
-        uint64 futexVal;
+        uint32 futexVal;
         uint64 futexTimeoutStep;
         uint64 pc;
         uint64 nextPC;
@@ -38,7 +38,7 @@ contract MIPS64 is ISemver {
         uint64[32] registers;
     }
 
-    uint32 internal constant PACKED_THREAD_STATE_SIZE = 322;
+    uint32 internal constant PACKED_THREAD_STATE_SIZE = 318;
 
     uint8 internal constant LL_STATUS_NONE = 0;
     uint8 internal constant LL_STATUS_ACTIVE_32_BIT = 0x1;
@@ -254,8 +254,7 @@ contract MIPS64 is ISemver {
                     return onWaitComplete(thread, true);
                 } else {
                     uint32 futexVal = getFutexValue(thread.futexAddr);
-                    // TODO: Change futexVal field to 32-bit
-                    if (uint32(thread.futexVal) == futexVal) {
+                    if (thread.futexVal == futexVal) {
                         // still got expected value, continue sleeping, try next thread.
                         preemptThread(state, thread);
                         return outputState();
@@ -537,8 +536,7 @@ contract MIPS64 is ISemver {
                         v1 = sys.EAGAIN;
                     } else {
                         thread.futexAddr = effFutexAddr;
-                        // TODO: Change FutexVal field to 32-bit
-                        thread.futexVal = uint64(targetVal);
+                        thread.futexVal = targetVal;
                         thread.futexTimeoutStep = a3 == 0 ? sys.FUTEX_NO_TIMEOUT : state.step + sys.FUTEX_TIMEOUT_STEPS;
                         // Leave cpu scalars as-is. This instruction will be completed by `onWaitComplete`
                         updateCurrentThreadRoot();
@@ -895,7 +893,7 @@ contract MIPS64 is ISemver {
             from, to := copyMem(from, to, 1) // exitCode
             from, to := copyMem(from, to, 1) // exited
             from, to := copyMem(from, to, 8) // futexAddr
-            from, to := copyMem(from, to, 8) // futexVal
+            from, to := copyMem(from, to, 4) // futexVal
             from, to := copyMem(from, to, 8) // futexTimeoutStep
             from, to := copyMem(from, to, 8) // pc
             from, to := copyMem(from, to, 8) // nextPC
@@ -958,7 +956,7 @@ contract MIPS64 is ISemver {
                 c, m := putField(c, m, 1) // exitCode
                 c, m := putField(c, m, 1) // exited
                 c, m := putField(c, m, 8) // futexAddr
-                c, m := putField(c, m, 8) // futexVal
+                c, m := putField(c, m, 4) // futexVal
                 c, m := putField(c, m, 8) // futexTimeoutStep
                 c, m := putField(c, m, 8) // pc
                 c, m := putField(c, m, 8) // nextPC

@@ -534,7 +534,7 @@ func TestEVM_SysFutex_WaitPrivate(t *testing.T) {
 			} else {
 				// PC and return registers should not update on success, updates happen when wait completes
 				expected.ActiveThread().FutexAddr = Word(c.effAddr)
-				expected.ActiveThread().FutexVal = Word(c.targetValue)
+				expected.ActiveThread().FutexVal = c.targetValue
 				expected.ActiveThread().FutexTimeoutStep = exec.FutexNoTimeout
 				if c.shouldSetTimeout {
 					expected.ActiveThread().FutexTimeoutStep = step + exec.FutexTimeoutSteps + 1
@@ -1063,7 +1063,7 @@ func TestEVM_NormalTraversalStep_HandleWaitingThread(t *testing.T) {
 
 				activeThread := state.GetCurrentThread()
 				activeThread.FutexAddr = c.futexAddr
-				activeThread.FutexVal = Word(c.targetValue)
+				activeThread.FutexVal = c.targetValue
 				activeThread.FutexTimeoutStep = c.timeoutStep
 				testutil.SetMemoryUint32(state.GetMemory(), c.effAddr, c.actualValue, int64(i+11))
 
@@ -1159,12 +1159,12 @@ func TestEVM_NormalTraversal_Full(t *testing.T) {
 
 func TestEVM_WakeupTraversalStep(t *testing.T) {
 	addr := Word(0x1234)
-	wakeupVal := Word(0x999)
+	wakeupVal := uint32(0x999)
 	cases := []struct {
 		name              string
 		wakeupAddr        Word
 		futexAddr         Word
-		targetVal         Word
+		targetVal         uint32
 		traverseRight     bool
 		activeStackSize   int
 		otherStackSize    int
@@ -1202,7 +1202,8 @@ func TestEVM_WakeupTraversalStep(t *testing.T) {
 			step := state.Step
 
 			state.Wakeup = c.wakeupAddr
-			state.GetMemory().SetWord(c.wakeupAddr&arch.AddressMask, wakeupVal)
+			effWakeupAddr := ^Word(3) & c.wakeupAddr
+			testutil.SetMemoryUint32(state.GetMemory(), effWakeupAddr, wakeupVal, int64(i+1000))
 			activeThread := state.GetCurrentThread()
 			activeThread.FutexAddr = c.futexAddr
 			activeThread.FutexVal = c.targetVal
@@ -1285,13 +1286,13 @@ func TestEVM_WakeupTraversal_Full(t *testing.T) {
 }
 
 func TestEVM_WakeupTraversal_WithExitedThreads(t *testing.T) {
-	addr := Word(0x1234)
-	wakeupVal := Word(0x999)
+	addr := Word(0x1230)
+	wakeupVal := uint32(0x999)
 	cases := []struct {
 		name                  string
 		wakeupAddr            Word
 		futexAddr             Word
-		targetVal             Word
+		targetVal             uint32
 		traverseRight         bool
 		activeStackSize       int
 		otherStackSize        int
@@ -1299,7 +1300,7 @@ func TestEVM_WakeupTraversal_WithExitedThreads(t *testing.T) {
 		shouldClearWakeup     bool
 		shouldPreempt         bool
 		activeThreadFutexAddr Word
-		activeThreadFutexVal  Word
+		activeThreadFutexVal  uint32
 	}{
 		{name: "Wakeable thread exists among exited threads", wakeupAddr: addr, futexAddr: addr, targetVal: wakeupVal + 1, traverseRight: false, activeStackSize: 3, otherStackSize: 1, exitedThreadIdx: []int{2}, shouldClearWakeup: false, shouldPreempt: true, activeThreadFutexAddr: addr + 8, activeThreadFutexVal: wakeupVal + 2},
 		{name: "All threads exited", wakeupAddr: addr, futexAddr: addr, targetVal: wakeupVal, traverseRight: false, activeStackSize: 3, otherStackSize: 0, exitedThreadIdx: []int{1, 2}, shouldClearWakeup: false, shouldPreempt: true, activeThreadFutexAddr: addr + 16, activeThreadFutexVal: wakeupVal + 3},
@@ -1315,7 +1316,8 @@ func TestEVM_WakeupTraversal_WithExitedThreads(t *testing.T) {
 			step := state.Step
 
 			state.Wakeup = c.wakeupAddr
-			state.GetMemory().SetWord(c.wakeupAddr&arch.AddressMask, wakeupVal)
+			effWakeupAddr := ^Word(3) & c.wakeupAddr
+			testutil.SetMemoryUint32(state.GetMemory(), effWakeupAddr, wakeupVal, int64(i+1111))
 
 			threads := mttestutil.GetAllThreads(state)
 			for idx, thread := range threads {

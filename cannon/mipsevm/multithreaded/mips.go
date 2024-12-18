@@ -120,8 +120,7 @@ func (m *InstrumentedState) handleSyscall() error {
 				v1 = exec.MipsEAGAIN
 			} else {
 				thread.FutexAddr = effFutexAddr
-				// TODO: Change FutexVal field to 32-bit
-				thread.FutexVal = Word(targetVal)
+				thread.FutexVal = targetVal
 				if a3 == 0 {
 					thread.FutexTimeoutStep = exec.FutexNoTimeout
 				} else {
@@ -286,8 +285,7 @@ func (m *InstrumentedState) doMipsStep() error {
 			return nil
 		} else {
 			futexVal := m.getFutexValue(thread.FutexAddr)
-			// TODO: Change FutexVal field to 32-bit
-			if uint32(thread.FutexVal) == futexVal {
+			if thread.FutexVal == futexVal {
 				// still got expected value, continue sleeping, try next thread.
 				m.preemptThread(thread)
 				m.statsTracker.trackWakeupFail()
