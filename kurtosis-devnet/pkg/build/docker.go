@@ -18,7 +18,7 @@ type DockerBuilder struct {
 	dryRun bool
 }
 
-const cmdTemplateStr = "just IMAGE_TAG={{.ImageTag}} _docker-build {{.ProjectName}}"
+const cmdTemplateStr = "just {{.ProjectName}}-image {{.ImageTag}}"
 
 var defaultCmdTemplate *template.Template
 

@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/build"
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis"
@@ -39,8 +38,7 @@ func main() {
 	)
 
 	imageTag := func(projectName string) string {
-		timestamp := fmt.Sprintf("%d", time.Now().UnixNano()/1e6)
-		return fmt.Sprintf("%s:kurtosis-%s", projectName, timestamp)
+		return fmt.Sprintf("%s:%s", projectName, *enclave)
 	}
 
 	contractBuilder := build.NewContractBuilder(
