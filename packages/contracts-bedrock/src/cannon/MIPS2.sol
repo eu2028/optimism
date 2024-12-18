@@ -489,12 +489,13 @@ contract MIPS2 is ISemver {
                 uint32 effFutexAddr = a0 & 0xFFffFFfc;
                 if (a1 == sys.FUTEX_WAIT_PRIVATE) {
                     uint32 futexVal = getFutexValue(effFutexAddr);
-                    if (futexVal != a2) {
+                    uint32 targetValue = a2;
+                    if (futexVal != targetValue) {
                         v0 = sys.SYS_ERROR_SIGNAL;
                         v1 = sys.EAGAIN;
                     } else {
                         thread.futexAddr = effFutexAddr;
-                        thread.futexVal = a2;
+                        thread.futexVal = targetValue;
                         thread.futexTimeoutStep = a3 == 0 ? sys.FUTEX_NO_TIMEOUT : state.step + sys.FUTEX_TIMEOUT_STEPS;
                         // Leave cpu scalars as-is. This instruction will be completed by `onWaitComplete`
                         updateCurrentThreadRoot();

@@ -526,7 +526,7 @@ contract MIPS64 is ISemver {
                 return outputState();
             } else if (syscall_no == sys.SYS_FUTEX) {
                 // args: a0 = addr, a1 = op, a2 = val, a3 = timeout
-                // Futex value is 32-bit, so mask out the lower 2 bits
+                // Futex value is 32-bit, so clear the lower 2 bits to get an effective address targeting a 4-byte value
                 uint64 effFutexAddr = a0 & 0xFFFFFFFFFFFFFFFC;
                 if (a1 == sys.FUTEX_WAIT_PRIVATE) {
                     uint32 futexVal = getFutexValue(effFutexAddr);
