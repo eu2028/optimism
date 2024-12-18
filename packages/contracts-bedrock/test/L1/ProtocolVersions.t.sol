@@ -66,6 +66,19 @@ contract ProtocolVersions_Initialize_Test is ProtocolVersions_Init {
             )
         );
     }
+
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        protocolVersions.upgrade();
+    }
+
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(protocolVersions), bytes32(0), bytes32(0));
+        protocolVersions.upgrade();
+    }
 }
 
 contract ProtocolVersions_Setters_TestFail is ProtocolVersions_Init {

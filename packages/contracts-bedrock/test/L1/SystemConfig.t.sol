@@ -670,3 +670,20 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         assertEq(systemConfig.eip1559Elasticity(), _elasticity);
     }
 }
+
+contract SystemConfig_Upgrade_TestFail is SystemConfig_Init {
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        systemConfig.upgrade();
+    }
+}
+
+contract SystemConfig_Upgrade_Test is SystemConfig_Init {
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(systemConfig), bytes32(0), bytes32(0));
+
+        systemConfig.upgrade();
+    }
+}

@@ -1677,6 +1677,19 @@ contract OptimismPortal2_Upgradeable_Test is CommonTest {
         bytes32 slot21Expected = NextImpl(address(optimismPortal2)).slot21Init();
         assertEq(slot21Expected, slot21After);
     }
+
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        optimismPortal2.upgrade();
+    }
+
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(optimismPortal2), bytes32(0), bytes32(0));
+        optimismPortal2.upgrade();
+    }
 }
 
 /// @title OptimismPortal2_ResourceFuzz_Test

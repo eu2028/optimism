@@ -324,6 +324,19 @@ contract L1ERC721Bridge_Test is CommonTest {
         vm.expectRevert("L1ERC721Bridge: Token ID is not escrowed in the L1 Bridge");
         l1ERC721Bridge.finalizeBridgeERC721(address(localToken), address(remoteToken), alice, alice, tokenId, hex"5678");
     }
+
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        l1ERC721Bridge.upgrade();
+    }
+
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(l1ERC721Bridge), bytes32(0), bytes32(0));
+        l1ERC721Bridge.upgrade();
+    }
 }
 
 contract L1ERC721Bridge_Pause_Test is CommonTest {

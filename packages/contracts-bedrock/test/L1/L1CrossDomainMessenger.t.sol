@@ -901,4 +901,16 @@ contract L1CrossDomainMessenger_ReinitReentryTest is CommonTest {
         // The balance of the messenger contract is unchanged.
         assertEq(address(l1CrossDomainMessenger).balance, balanceBeforeMessenger);
     }
+
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        l1CrossDomainMessenger.upgrade();
+    }
+
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(l1CrossDomainMessenger), bytes32(0), bytes32(0));
+        l1CrossDomainMessenger.upgrade();
+    }
 }

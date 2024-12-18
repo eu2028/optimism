@@ -385,6 +385,21 @@ contract DelayedWETH_Hold_Test is DelayedWETH_Init {
     }
 }
 
+contract DelayedWETH_Upgrade_Test is DelayedWETH_Init {
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        delayedWeth.upgrade();
+    }
+
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(delayedWeth), bytes32(0), bytes32(0));
+        delayedWeth.upgrade();
+    }
+}
+
 /// @title FallbackGasUser
 /// @notice Contract that burns gas in the fallback function.
 contract FallbackGasUser {

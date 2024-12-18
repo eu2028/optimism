@@ -47,6 +47,19 @@ contract SuperchainConfig_Init_Test is CommonTest {
         assertTrue(ISuperchainConfig(address(newProxy)).paused());
         assertEq(ISuperchainConfig(address(newProxy)).guardian(), deploy.cfg().superchainConfigGuardian());
     }
+
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        superchainConfig.upgrade();
+    }
+
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(superchainConfig), bytes32(0), bytes32(0));
+        superchainConfig.upgrade();
+    }
 }
 
 contract SuperchainConfig_Pause_TestFail is CommonTest {
