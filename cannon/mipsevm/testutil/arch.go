@@ -44,9 +44,8 @@ func SetMemoryUint64(t require.TestingT, mem *memory.Memory, addr Word, value ui
 	require.Equal(t, Word(value), actual)
 }
 
-// SetMemoryUint32 writes a 4-byte value to memory.
-// Also, randomizes the rest of the Word containing the uint32
-func SetMemoryUint32(mem *memory.Memory, addr Word, val uint32, randomizeWordSeed int64) {
+// RandomizeWordAndSetUint32 writes a uint32 value and randomizes the rest of the Word containing the uint32 in memory
+func RandomizeWordAndSetUint32(mem *memory.Memory, addr Word, val uint32, randomizeWordSeed int64) {
 	if addr&0x3 != 0 {
 		panic(fmt.Errorf("unaligned memory access: %x", addr))
 	}

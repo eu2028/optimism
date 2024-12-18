@@ -514,7 +514,7 @@ func TestEVM_SysFutex_WaitPrivate(t *testing.T) {
 			step := state.GetStep()
 
 			testutil.StoreInstruction(state.Memory, state.GetPC(), syscallInsn)
-			testutil.SetMemoryUint32(state.GetMemory(), Word(c.effAddr), c.actualValue, int64(i+22))
+			testutil.RandomizeWordAndSetUint32(state.GetMemory(), Word(c.effAddr), c.actualValue, int64(i+22))
 			state.GetRegistersRef()[2] = arch.SysFutex // Set syscall number
 			state.GetRegistersRef()[4] = Word(c.addressParam)
 			state.GetRegistersRef()[5] = exec.FutexWaitPrivate
@@ -1065,7 +1065,7 @@ func TestEVM_NormalTraversalStep_HandleWaitingThread(t *testing.T) {
 				activeThread.FutexAddr = c.futexAddr
 				activeThread.FutexVal = c.targetValue
 				activeThread.FutexTimeoutStep = c.timeoutStep
-				testutil.SetMemoryUint32(state.GetMemory(), c.effAddr, c.actualValue, int64(i+11))
+				testutil.RandomizeWordAndSetUint32(state.GetMemory(), c.effAddr, c.actualValue, int64(i+11))
 
 				// Set up post-state expectations
 				expected := mttestutil.NewExpectedMTState(state)
@@ -1203,7 +1203,7 @@ func TestEVM_WakeupTraversalStep(t *testing.T) {
 
 			state.Wakeup = c.wakeupAddr
 			effWakeupAddr := ^Word(3) & c.wakeupAddr
-			testutil.SetMemoryUint32(state.GetMemory(), effWakeupAddr, wakeupVal, int64(i+1000))
+			testutil.RandomizeWordAndSetUint32(state.GetMemory(), effWakeupAddr, wakeupVal, int64(i+1000))
 			activeThread := state.GetCurrentThread()
 			activeThread.FutexAddr = c.futexAddr
 			activeThread.FutexVal = c.targetVal
@@ -1317,7 +1317,7 @@ func TestEVM_WakeupTraversal_WithExitedThreads(t *testing.T) {
 
 			state.Wakeup = c.wakeupAddr
 			effWakeupAddr := ^Word(3) & c.wakeupAddr
-			testutil.SetMemoryUint32(state.GetMemory(), effWakeupAddr, wakeupVal, int64(i+1111))
+			testutil.RandomizeWordAndSetUint32(state.GetMemory(), effWakeupAddr, wakeupVal, int64(i+1111))
 
 			threads := mttestutil.GetAllThreads(state)
 			for idx, thread := range threads {
