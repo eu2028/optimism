@@ -509,6 +509,7 @@ func TestEVM_SysFutex_WaitPrivate(t *testing.T) {
 	}
 	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			rand := testutil.NewRandHelper(int64(i * 33))
 			goVm, state, contracts := setup(t, i*1234, nil, testutil.WithPCAndNextPC(0x04))
 			step := state.GetStep()
 
@@ -517,7 +518,8 @@ func TestEVM_SysFutex_WaitPrivate(t *testing.T) {
 			state.GetRegistersRef()[2] = arch.SysFutex // Set syscall number
 			state.GetRegistersRef()[4] = Word(c.addressParam)
 			state.GetRegistersRef()[5] = exec.FutexWaitPrivate
-			state.GetRegistersRef()[6] = Word(c.targetValue)
+			// Randomize upper bytes of futex target
+			state.GetRegistersRef()[6] = (rand.Word() & ^Word(0xFF_FF_FF_FF)) | Word(c.targetValue)
 			state.GetRegistersRef()[7] = Word(c.timeout)
 
 			// Setup expectations
