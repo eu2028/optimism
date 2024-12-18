@@ -46,8 +46,9 @@ contract CommonTest is Test, Setup, Events {
     IOptimismMintableERC20Full RemoteL1Token;
 
     function setUp() public virtual override {
-        // Because Setup.setup() may create a forked network, all cheatcodes must be run prior to any
-        // state modifying cheat codes.
+        // Setup.setup() may switch the tests over to a newly forked network. Therefore
+        // state modifying cheatcodes must be run after Setup.setup(), otherwise the
+        // changes will not be persisted into the new network.
         Setup.setUp();
 
         alice = makeAddr("alice");
