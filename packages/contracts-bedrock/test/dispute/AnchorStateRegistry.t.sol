@@ -40,6 +40,21 @@ contract AnchorStateRegistry_Initialize_Test is AnchorStateRegistry_Init {
     }
 }
 
+contract AnchorStateRegistry_Upgrade_Test is AnchorStateRegistry_Init {
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        anchorStateRegistry.upgrade();
+    }
+
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(anchorStateRegistry), bytes32(0), bytes32(0));
+        anchorStateRegistry.upgrade();
+    }
+}
+
 contract AnchorStateRegistry_TryUpdateAnchorState_Test is AnchorStateRegistry_Init {
     /// @dev Tests that updating the anchor state succeeds when the game state is valid and newer.
     function test_tryUpdateAnchorState_validNewerState_succeeds() public {

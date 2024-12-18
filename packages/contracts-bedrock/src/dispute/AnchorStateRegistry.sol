@@ -48,6 +48,11 @@ contract AnchorStateRegistry is Initializable, ISemver {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializes the contract.
     /// @param _startingAnchorRoots An array of starting anchor roots.
     /// @param _superchainConfig The address of the SuperchainConfig contract.

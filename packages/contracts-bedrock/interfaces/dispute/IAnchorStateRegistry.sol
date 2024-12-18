@@ -29,6 +29,7 @@ interface IAnchorStateRegistry {
     function superchainConfig() external view returns (ISuperchainConfig);
     function tryUpdateAnchorState() external;
     function version() external view returns (string memory);
+    function upgrade() external;
 
     function __constructor__(IDisputeGameFactory _disputeGameFactory) external;
 }
