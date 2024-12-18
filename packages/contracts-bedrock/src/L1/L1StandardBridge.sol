@@ -89,6 +89,11 @@ contract L1StandardBridge is StandardBridge, ISemver {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializer.
     /// @param _messenger        Contract for the CrossDomainMessenger on this network.
     /// @param _superchainConfig Contract for the SuperchainConfig on this network.

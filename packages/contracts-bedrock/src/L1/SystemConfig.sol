@@ -150,6 +150,11 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializer.
     ///         The resource config must be set before the require check.
     /// @param _owner             Initial owner of the contract.

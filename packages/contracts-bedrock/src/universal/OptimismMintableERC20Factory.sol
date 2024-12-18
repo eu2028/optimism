@@ -59,6 +59,11 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializes the contract.
     /// @param _bridge Address of the StandardBridge on this chain.
     function initialize(address _bridge) external initializer {

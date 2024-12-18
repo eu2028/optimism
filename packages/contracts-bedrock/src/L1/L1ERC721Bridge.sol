@@ -36,6 +36,11 @@ contract L1ERC721Bridge is ERC721Bridge, ISemver {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializes the contract.
     /// @param _messenger   Contract of the CrossDomainMessenger on this network.
     /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.

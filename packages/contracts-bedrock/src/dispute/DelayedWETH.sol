@@ -50,6 +50,11 @@ contract DelayedWETH is OwnableUpgradeable, WETH98, ISemver {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializes the contract.
     /// @param _owner The address of the owner.
     /// @param _config Address of the SuperchainConfig contract.

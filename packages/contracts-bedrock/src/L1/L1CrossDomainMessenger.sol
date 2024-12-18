@@ -38,6 +38,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializes the contract.
     /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
     /// @param _portal Contract of the OptimismPortal contract on this network.

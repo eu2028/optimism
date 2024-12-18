@@ -33,6 +33,7 @@ interface IOptimismMintableERC20Factory {
     function deployments(address) external view returns (address);
     function initialize(address _bridge) external;
     function version() external view returns (string memory);
+    function upgrade() external;
 
     function __constructor__() external;
 }

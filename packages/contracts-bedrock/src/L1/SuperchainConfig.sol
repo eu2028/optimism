@@ -49,6 +49,11 @@ contract SuperchainConfig is Initializable, ISemver {
         _disableInitializers();
     }
 
+    /// @notice Upgrade method used to set new values (if any) during an upgrade.
+    ///         If no new values are set, the implementation should be left empty.
+    ///         This function MUST have the initializer modifier.
+    function upgrade() external initializer { }
+
     /// @notice Initializer.
     /// @param _guardian    Address of the guardian, can pause the OptimismPortal.
     /// @param _paused      Initial paused status.
