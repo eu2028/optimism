@@ -253,8 +253,9 @@ contract MIPS64 is ISemver {
                     // timeout! Allow execution
                     return onWaitComplete(thread, true);
                 } else {
-                    uint64 futexVal = getFutexValue(thread.futexAddr);
-                    if (thread.futexVal == futexVal) {
+                    uint32 futexVal = getFutexValue(thread.futexAddr);
+                    // TODO: Change futexVal field to 32-bit
+                    if (uint32(thread.futexVal) == futexVal) {
                         // still got expected value, continue sleeping, try next thread.
                         preemptThread(state, thread);
                         return outputState();
@@ -529,13 +530,15 @@ contract MIPS64 is ISemver {
                 // Futex value is 32-bit, so mask out the lower 2 bits
                 uint64 effFutexAddr = a0 & 0xFFFFFFFFFFFFFFFC;
                 if (a1 == sys.FUTEX_WAIT_PRIVATE) {
-                    uint64 futexVal = getFutexValue(effFutexAddr);
-                    if (futexVal != a2) {
+                    uint32 futexVal = getFutexValue(effFutexAddr);
+                    uint32 targetVal = uint32(a2);
+                    if (futexVal != targetVal) {
                         v0 = sys.SYS_ERROR_SIGNAL;
                         v1 = sys.EAGAIN;
                     } else {
                         thread.futexAddr = effFutexAddr;
-                        thread.futexVal = a2;
+                        // TODO: Change FutexVal field to 32-bit
+                        thread.futexVal = uint64(targetVal);
                         thread.futexTimeoutStep = a3 == 0 ? sys.FUTEX_NO_TIMEOUT : state.step + sys.FUTEX_TIMEOUT_STEPS;
                         // Leave cpu scalars as-is. This instruction will be completed by `onWaitComplete`
                         updateCurrentThreadRoot();
@@ -983,12 +986,13 @@ contract MIPS64 is ISemver {
     }
 
     /// @notice Loads a 32-bit futex value at _vAddr
-    function getFutexValue(uint64 _vAddr) internal pure returns (uint64 out_) {
+    function getFutexValue(uint64 _vAddr) internal pure returns (uint32 out_) {
         State memory state;
         assembly {
             state := STATE_MEM_OFFSET
         }
 
-        return loadSubWord(state, _vAddr, 4, false);
+        uint64 subword = loadSubWord(state, _vAddr, 4, false);
+        return uint32(subword);
     }
 }

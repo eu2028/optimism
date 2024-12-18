@@ -114,12 +114,14 @@ func (m *InstrumentedState) handleSyscall() error {
 		switch a1 {
 		case exec.FutexWaitPrivate:
 			futexVal := m.getFutexValue(effFutexAddr)
-			if futexVal != a2 {
+			targetVal := uint32(a2)
+			if futexVal != targetVal {
 				v0 = exec.SysErrorSignal
 				v1 = exec.MipsEAGAIN
 			} else {
 				thread.FutexAddr = effFutexAddr
-				thread.FutexVal = a2
+				// TODO: Change FutexVal field to 32-bit
+				thread.FutexVal = Word(targetVal)
 				if a3 == 0 {
 					thread.FutexTimeoutStep = exec.FutexNoTimeout
 				} else {
@@ -284,7 +286,8 @@ func (m *InstrumentedState) doMipsStep() error {
 			return nil
 		} else {
 			futexVal := m.getFutexValue(thread.FutexAddr)
-			if thread.FutexVal == futexVal {
+			// TODO: Change FutexVal field to 32-bit
+			if uint32(thread.FutexVal) == futexVal {
 				// still got expected value, continue sleeping, try next thread.
 				m.preemptThread(thread)
 				m.statsTracker.trackWakeupFail()
@@ -487,6 +490,7 @@ func (m *InstrumentedState) lastThreadRemaining() bool {
 	return m.state.ThreadCount() == 1
 }
 
-func (m *InstrumentedState) getFutexValue(vAddr Word) Word {
-	return exec.LoadSubWord(m.state.GetMemory(), vAddr, Word(4), false, m.memoryTracker)
+func (m *InstrumentedState) getFutexValue(vAddr Word) uint32 {
+	subword := exec.LoadSubWord(m.state.GetMemory(), vAddr, Word(4), false, m.memoryTracker)
+	return uint32(subword)
 }
