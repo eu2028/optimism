@@ -118,7 +118,7 @@ contract Setup {
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
 
     /// @dev Deploys either the Deploy.s.sol or Upgrade.s.sol contract, by fetching the bytecode dynamically using
-    ///      `vm.getCode()` and etching it into the state. This enables us to avoid including the bytecode of those
+    ///      `vm.getDeployedCode()` and etching it into the state. This enables us to avoid including the bytecode of those
     ///      contracts in the bytecode of this contract.
     ///      If the bytecode of those contracts was included in this contract, then it will double
     ///      the compile time and bloat all of the test contract artifacts since they
