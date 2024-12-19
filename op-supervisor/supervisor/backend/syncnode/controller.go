@@ -2,31 +2,101 @@ package syncnode
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/locks"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
+	gethevent "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type chainsDB interface {
+	LocalSafe(types.ChainID) (types.BlockSeal, types.BlockSeal, error)
 	UpdateLocalSafe(types.ChainID, eth.BlockRef, eth.BlockRef) error
+	UpdateCrossSafe(types.ChainID, eth.BlockRef, eth.BlockRef) error
+	SubscribeCrossSafe(chainID types.ChainID, c chan<- types.DerivedPair) (gethevent.Subscription, error)
+	SubscribeFinalized(chainID types.ChainID, c chan<- eth.BlockID) (gethevent.Subscription, error)
 }
 
-// SyncNodeController handles the sync node operations across multiple sync nodes
+type ManagedNode struct {
+	log                 log.Logger
+	Node                SyncControl
+	chainID             types.ChainID
+	crossSafeUpdateChan chan types.DerivedPair
+	finalizedUpdateChan chan eth.BlockID
+	subscriptions       []gethevent.Subscription
+	cancel              chan struct{}
+}
+
+func NewManagedNode(log log.Logger, id types.ChainID, node SyncControl, db chainsDB) *ManagedNode {
+	m := &ManagedNode{
+		log:     log,
+		Node:    node,
+		chainID: id,
+		cancel:  make(chan struct{}),
+	}
+	m.SubscribeToDBEvents(id, db)
+	return m
+}
+
+func (m *ManagedNode) SubscribeToDBEvents(id types.ChainID, db chainsDB) {
+	m.crossSafeUpdateChan = make(chan types.DerivedPair, 10)
+	m.finalizedUpdateChan = make(chan eth.BlockID, 10)
+	sub, err := db.SubscribeCrossSafe(id, m.crossSafeUpdateChan)
+	if err != nil {
+		m.log.Warn("failed to subscribe to cross safe", "chain", id, "error", err)
+	} else {
+		m.subscriptions = append(m.subscriptions, sub)
+	}
+	if err != nil {
+		m.log.Warn("failed to subscribe to finalized", "chain", id, "error", err)
+	} else {
+		m.subscriptions = append(m.subscriptions, sub)
+	}
+}
+
+func (m *ManagedNode) Start() {
+	go func() {
+		for {
+			select {
+			case <-m.cancel:
+				return
+			case pair := <-m.crossSafeUpdateChan:
+				m.log.Debug("updating cross safe", "chain", m.chainID, "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
+				m.Node.UpdateCrossSafe(context.Background(), pair.Derived.ID(), pair.DerivedFrom.ID())
+			case id := <-m.finalizedUpdateChan:
+				m.log.Debug("updating finalized", "chain", m.chainID, "id", id)
+				m.Node.UpdateFinalized(context.Background(), id)
+			}
+		}
+	}()
+}
+
+func (m *ManagedNode) Close() error {
+	for _, sub := range m.subscriptions {
+		sub.Unsubscribe()
+	}
+	m.cancel <- struct{}{}
+	return nil
+}
+
+// SyncNodesController manages a collection of active sync nodes.
+// Sync nodes are used to sync the supervisor,
+// and subject to the canonical chain view as followed by the supervisor.
 type SyncNodesController struct {
-	logger      log.Logger
-	controllers locks.RWMap[types.ChainID, SyncControl]
+	logger log.Logger
+
+	controllers locks.RWMap[types.ChainID, *locks.RWMap[*ManagedNode, struct{}]]
 
 	db chainsDB
 
 	depSet depset.DependencySet
 }
 
-// NewSyncNodeController creates a new SyncNodeController
+// NewSyncNodesController creates a new SyncNodeController
 func NewSyncNodesController(l log.Logger, depset depset.DependencySet, db chainsDB) *SyncNodesController {
 	return &SyncNodesController{
 		logger: l,
@@ -39,62 +109,37 @@ func (snc *SyncNodesController) AttachNodeController(id types.ChainID, ctrl Sync
 	if !snc.depSet.HasChain(id) {
 		return fmt.Errorf("chain %v not in dependency set", id)
 	}
-	snc.controllers.Set(id, ctrl)
+	// lazy init the controllers map for this chain
+	if !snc.controllers.Has(id) {
+		snc.controllers.Set(id, &locks.RWMap[*ManagedNode, struct{}]{})
+	}
+	controllersForChain, _ := snc.controllers.Get(id)
+	node := NewManagedNode(snc.logger, id, ctrl, snc.db)
+	controllersForChain.Set(node, struct{}{})
+	snc.maybeInitSafeDB(id, ctrl)
+	node.Start()
 	return nil
 }
 
-// DeriveFromL1 derives the L2 blocks from the L1 block reference for all the chains
-// if any chain fails to derive, the first error is returned
-func (snc *SyncNodesController) DeriveFromL1(ref eth.BlockRef) error {
-	snc.logger.Debug("deriving from L1", "ref", ref)
-	returns := make(chan error, len(snc.depSet.Chains()))
-	wg := sync.WaitGroup{}
-	// for now this function just prints all the chain-ids of controlled nodes, as a placeholder
-	for _, chain := range snc.depSet.Chains() {
-		wg.Add(1)
-		go func() {
-			returns <- snc.DeriveToEnd(chain, ref)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	// collect all errors
-	errors := []error{}
-	for i := 0; i < len(snc.depSet.Chains()); i++ {
-		err := <-returns
+// maybeInitSafeDB initializes the chain database if it is not already initialized
+// it checks if the Local Safe database is empty, and loads it with the Anchor Point if so
+func (snc *SyncNodesController) maybeInitSafeDB(id types.ChainID, ctrl SyncControl) {
+	_, _, err := snc.db.LocalSafe(id)
+	if errors.Is(err, types.ErrFuture) {
+		snc.logger.Debug("initializing chain database", "chain", id)
+		pair, err := ctrl.AnchorPoint(context.Background())
 		if err != nil {
-			errors = append(errors, err)
+			snc.logger.Warn("failed to get anchor point", "chain", id, "error", err)
+			return
 		}
-	}
-	// log all errors, but only return the first one
-	if len(errors) > 0 {
-		snc.logger.Warn("sync nodes failed to derive from L1", "errors", errors)
-		return errors[0]
-	}
-	return nil
-}
-
-// DeriveToEnd derives the L2 blocks from the L1 block reference for a single chain
-// it will continue to derive until no more blocks are derived
-func (snc *SyncNodesController) DeriveToEnd(id types.ChainID, ref eth.BlockRef) error {
-	ctrl, ok := snc.controllers.Get(id)
-	if !ok {
-		snc.logger.Warn("missing controller for chain. Not attempting derivation", "chain", id)
-		return nil // maybe return an error?
-	}
-	for {
-		derived, err := ctrl.TryDeriveNext(context.Background(), ref)
-		if err != nil {
-			return err
+		if err := snc.db.UpdateCrossSafe(id, pair.Derived, pair.Derived); err != nil {
+			snc.logger.Warn("failed to initialize cross safe", "chain", id, "error", err)
 		}
-		// if no more blocks are derived, we are done
-		// (or something? this exact behavior is yet to be defined by the node)
-		if derived == (eth.BlockRef{}) {
-			return nil
+		if err := snc.db.UpdateLocalSafe(id, pair.DerivedFrom, pair.Derived); err != nil {
+			snc.logger.Warn("failed to initialize local safe", "chain", id, "error", err)
 		}
-		// record the new L2 to the local database
-		if err := snc.db.UpdateLocalSafe(id, ref, derived); err != nil {
-			return err
-		}
+		snc.logger.Debug("initialized chain database", "chain", id, "anchor", pair)
+	} else {
+		snc.logger.Debug("chain database already initialized", "chain", id)
 	}
 }
