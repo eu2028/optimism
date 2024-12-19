@@ -1,16 +1,17 @@
 # Use a base image with necessary tools
 FROM ubuntu:20.04
+FROM golang:1.22
 
 ARG REV
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
-    git \
-    bash \
-    curl \
-    build-essential \
-    jq \
-    && rm -rf /var/lib/apt/lists/*
+  git \
+  bash \
+  curl \
+  build-essential \
+  jq \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -37,6 +38,7 @@ WORKDIR /app
 
 # Clone the repository, only at the target revision
 RUN git clone --branch $REV --depth 1 https://github.com/ethereum-optimism/optimism.git .
+RUN go mod download
 
 # Set the working directory to the root of the monorepo
 WORKDIR /app
@@ -59,8 +61,9 @@ RUN forge script ./scripts/upgrades/holocene/DeployUpgrade.s.sol || true
 # Set the working directory to where upgrade.sh is located
 WORKDIR /app/packages/contracts-bedrock/scripts/upgrades/holocene
 
-# allows to use modified local scripts
+# allows to use modified local scripts and templates
 COPY scripts/*.sh ./scripts/
+COPY templates/ ./templates/
 
 # Set the entrypoint to the main.sh script
 ENTRYPOINT ["./scripts/main.sh"]

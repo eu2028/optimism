@@ -8,6 +8,13 @@ SCRIPT_DIR=$(dirname "$0")
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/common.sh"
 
+NETWORK="${NETWORK:?NETWORK must be set}"
+RELEASE=${OP_CONTRACTS_RELEASE:?OP_CONTRACTS_RELEASE must be set}
+echo "NETWORK: $NETWORK"
+echo "RELEASE: $RELEASE"
+SYSTEM_CONFIG_IMPL=${SYSTEM_CONFIG_IMPL_ADDR:-$(fetch_standard_address "$NETWORK" "$RELEASE" "system_config")}
+echo "SYSTEM_CONFIG_IMPL: $SYSTEM_CONFIG_IMPL"
+
 # Check required environment variables
 reqenv "OUTPUT_FOLDER_PATH"
 reqenv "SYSTEM_CONFIG_IMPL"
@@ -26,6 +33,7 @@ msup render -i "$TASK_DIR/input.json" -o "$TASK_DIR/OVERVIEW.md"
 
 # Generate the README
 sed -i "s/\$SYSTEM_CONFIG_IMPL/$SYSTEM_CONFIG_IMPL/g" "$TASK_DIR/README.md"
+sed -i "s/\$OP_CONTRACTS_RELEASE/$OP_CONTRACTS_RELEASE/g" "$TASK_DIR/README.md"
 
 # Generate the validation doc
 OLD_SYS_CFG=$(cast impl "$SYSTEM_CONFIG_PROXY_ADDR")
