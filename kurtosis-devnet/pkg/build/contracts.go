@@ -90,14 +90,11 @@ func (b *ContractBuilder) Build(layer string, bundlePath string) error {
 	cmd := exec.Command("sh", "-c", cmdBuf.String())
 	cmd.Dir = b.baseDir
 
-	if b.dryRun {
-		return nil
-	}
-
-	// Capture output and error
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("contract build command failed: %w\nOutput: %s", err, string(output))
+	if !b.dryRun {
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("contract build command failed: %w\nOutput: %s", err, string(output))
+		}
 	}
 
 	return nil

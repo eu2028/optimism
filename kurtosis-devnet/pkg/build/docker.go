@@ -86,14 +86,11 @@ func (b *DockerBuilder) Build(projectName, imageTag string) (string, error) {
 	cmd := exec.Command("sh", "-c", cmdBuf.String())
 	cmd.Dir = b.baseDir
 
-	if b.dryRun {
-		return imageTag, nil
-	}
-
-	// Capture output and error
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("build command failed: %w\nOutput: %s", err, string(output))
+	if !b.dryRun {
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return "", fmt.Errorf("build command failed: %w\nOutput: %s", err, string(output))
+		}
 	}
 
 	// Return the image tag as confirmation of successful build
