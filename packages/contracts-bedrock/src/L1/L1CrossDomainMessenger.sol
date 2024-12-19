@@ -11,7 +11,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { IOptimismPortal } from "interfaces/L1/IOptimismPortal.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @custom:proxied true
 /// @title L1CrossDomainMessenger
@@ -24,7 +24,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Contract of the OptimismPortal.
     /// @custom:network-specific
-    IOptimismPortal public portal;
+    IOptimismPortal2 public portal;
 
     /// @notice Address of the SystemConfig contract.
     ISystemConfig public systemConfig;
@@ -44,7 +44,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @param _systemConfig Contract of the SystemConfig contract on this network.
     function initialize(
         ISuperchainConfig _superchainConfig,
-        IOptimismPortal _portal,
+        IOptimismPortal2 _portal,
         ISystemConfig _systemConfig
     )
         external
@@ -65,7 +65,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     ///         Public getter is legacy and will be removed in the future. Use `portal()` instead.
     /// @return Contract of the OptimismPortal on this chain.
     /// @custom:legacy
-    function PORTAL() external view returns (IOptimismPortal) {
+    function PORTAL() external view returns (IOptimismPortal2) {
         return portal;
     }
 

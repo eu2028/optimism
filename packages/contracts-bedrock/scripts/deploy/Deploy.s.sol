@@ -37,9 +37,7 @@ import { GameType, Claim, GameTypes, OutputRoot, Hash } from "src/dispute/lib/Ty
 // Interfaces
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-import { IOptimismPortal } from "interfaces/L1/IOptimismPortal.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
-import { IL2OutputOracle } from "interfaces/L1/IL2OutputOracle.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IDataAvailabilityChallenge } from "interfaces/L1/IDataAvailabilityChallenge.sol";
@@ -221,13 +219,11 @@ contract Deploy is Deployer {
         } else {
             // The L2OutputOracle is not deployed by the OPCM, we deploy the proxy and initialize it here.
             deployERC1967Proxy("L2OutputOracleProxy");
-            initializeL2OutputOracle();
 
             // The OptimismPortalProxy contract is used both with and without Fault Proofs enabled, and is deployed by
             // deployOPChain. If Fault Proofs are disabled, then we need to reinitialize the OptimismPortalProxy
             // as the legacy OptimismPortal.
             resetInitializedProxy("OptimismPortal");
-            initializeOptimismPortal();
         }
 
         if (cfg.useCustomGasToken()) {
@@ -319,12 +315,6 @@ contract Deploy is Deployer {
             di = DeployImplementations(new DeployImplementationsInterop());
         }
         di.run(dii, dio);
-
-        // Temporary patch for legacy system
-        if (!cfg.useFaultProofs()) {
-            deployOptimismPortal();
-            deployL2OutputOracle();
-        }
 
         save("L1CrossDomainMessenger", address(dio.l1CrossDomainMessengerImpl()));
         save("OptimismMintableERC20Factory", address(dio.optimismMintableERC20FactoryImpl()));
@@ -492,52 +482,6 @@ contract Deploy is Deployer {
     //             Implementation Deployment Functions            //
     ////////////////////////////////////////////////////////////////
 
-    /// @notice Deploy the OptimismPortal
-    function deployOptimismPortal() public broadcast returns (address addr_) {
-        require(!cfg.useFaultProofs(), "Deploy: FaultProofs OptimismPortal is deployed by OPCM");
-        require(!cfg.useInterop(), "Deploy: The legacy OptimismPortal does not support interop");
-
-        addr_ = DeployUtils.create2AndSave({
-            _save: this,
-            _salt: _implSalt(),
-            _name: "OptimismPortal",
-            _args: DeployUtils.encodeConstructor(abi.encodeCall(IOptimismPortal.__constructor__, ()))
-        });
-
-        // Override the `OptimismPortal` contract to the deployed implementation. This is necessary
-        // to check the `OptimismPortal` implementation alongside dependent contracts, which
-        // are always proxies.
-        Types.ContractSet memory contracts = _proxies();
-        contracts.OptimismPortal = addr_;
-        ChainAssertions.checkOptimismPortal({ _contracts: contracts, _cfg: cfg, _isProxy: false });
-    }
-
-    /// @notice Deploy the L2OutputOracle
-    function deployL2OutputOracle() public broadcast returns (address addr_) {
-        IL2OutputOracle oracle = IL2OutputOracle(
-            DeployUtils.create2AndSave({
-                _save: this,
-                _salt: _implSalt(),
-                _name: "L2OutputOracle",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL2OutputOracle.__constructor__, ()))
-            })
-        );
-
-        // Override the `L2OutputOracle` contract to the deployed implementation. This is necessary
-        // to check the `L2OutputOracle` implementation alongside dependent contracts, which
-        // are always proxies.
-        Types.ContractSet memory contracts = _proxies();
-        contracts.L2OutputOracle = address(oracle);
-        ChainAssertions.checkL2OutputOracle({
-            _contracts: contracts,
-            _cfg: cfg,
-            _l2OutputOracleStartingTimestamp: 0,
-            _isProxy: false
-        });
-
-        addr_ = address(oracle);
-    }
-
     /// @notice Deploy the DataAvailabilityChallenge
     function deployDataAvailabilityChallenge() public broadcast returns (address addr_) {
         IDataAvailabilityChallenge dac = IDataAvailabilityChallenge(
@@ -601,73 +545,6 @@ contract Deploy is Deployer {
         console.log("SystemConfig version: %s", version);
 
         ChainAssertions.checkSystemConfig({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
-    }
-
-    /// @notice Initialize the L2OutputOracle
-    function initializeL2OutputOracle() public broadcast {
-        console.log("Upgrading and initializing L2OutputOracle proxy");
-        address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
-        address l2OutputOracle = mustGetAddress("L2OutputOracle");
-
-        IProxyAdmin proxyAdmin = IProxyAdmin(payable(mustGetAddress("ProxyAdmin")));
-        proxyAdmin.upgradeAndCall({
-            _proxy: payable(l2OutputOracleProxy),
-            _implementation: l2OutputOracle,
-            _data: abi.encodeCall(
-                IL2OutputOracle.initialize,
-                (
-                    cfg.l2OutputOracleSubmissionInterval(),
-                    cfg.l2BlockTime(),
-                    cfg.l2OutputOracleStartingBlockNumber(),
-                    cfg.l2OutputOracleStartingTimestamp(),
-                    cfg.l2OutputOracleProposer(),
-                    cfg.l2OutputOracleChallenger(),
-                    cfg.finalizationPeriodSeconds()
-                )
-            )
-        });
-
-        IL2OutputOracle oracle = IL2OutputOracle(l2OutputOracleProxy);
-        string memory version = oracle.version();
-        console.log("L2OutputOracle version: %s", version);
-
-        ChainAssertions.checkL2OutputOracle({
-            _contracts: _proxies(),
-            _cfg: cfg,
-            _l2OutputOracleStartingTimestamp: cfg.l2OutputOracleStartingTimestamp(),
-            _isProxy: true
-        });
-    }
-
-    /// @notice Initialize the OptimismPortal
-    function initializeOptimismPortal() public broadcast {
-        console.log("Upgrading and initializing OptimismPortal proxy");
-        require(!cfg.useFaultProofs(), "Deploy: FaultProofs OptimismPortal is initialized by OPCM");
-        address optimismPortalProxy = mustGetAddress("OptimismPortalProxy");
-        address systemConfigProxy = mustGetAddress("SystemConfigProxy");
-        address superchainConfigProxy = mustGetAddress("SuperchainConfigProxy");
-        address optimismPortal = mustGetAddress("OptimismPortal");
-        address l2OutputOracleProxy = mustGetAddress("L2OutputOracleProxy");
-
-        IProxyAdmin proxyAdmin = IProxyAdmin(payable(mustGetAddress("ProxyAdmin")));
-        proxyAdmin.upgradeAndCall({
-            _proxy: payable(optimismPortalProxy),
-            _implementation: optimismPortal,
-            _data: abi.encodeCall(
-                IOptimismPortal.initialize,
-                (
-                    IL2OutputOracle(l2OutputOracleProxy),
-                    ISystemConfig(systemConfigProxy),
-                    ISuperchainConfig(superchainConfigProxy)
-                )
-            )
-        });
-
-        IOptimismPortal portal = IOptimismPortal(payable(optimismPortalProxy));
-        string memory version = portal.version();
-        console.log("OptimismPortal version: %s", version);
-
-        ChainAssertions.checkOptimismPortal({ _contracts: _proxies(), _cfg: cfg, _isProxy: true });
     }
 
     /// @notice Initialize the DataAvailabilityChallenge
