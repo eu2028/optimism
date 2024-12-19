@@ -51,19 +51,18 @@ contract OptimismMintableTokenFactory_Test is CommonTest {
         assertEq(slot21Expected, slot21After);
     }
 
-        /// @dev Tests that the upgrade function can only be called once due to initializer
-        function test_upgrade_alreadyInitialized_reverts() external {
-            vm.expectRevert("Initializable: contract is already initialized");
-            l1OptimismMintableERC20Factory.upgrade();
-        }
+    /// @dev Tests that the upgrade function can only be called once due to initializer
+    function test_upgrade_alreadyInitialized_reverts() external {
+        vm.expectRevert("Initializable: contract is already initialized");
+        l1OptimismMintableERC20Factory.upgrade();
+    }
 
-        /// @dev Tests that the upgrade function succeeds when properly initialized
-        function test_upgrade_succeeds() external {
-            // Wipe out the initialized slot so the proxy can be initialized again
+    /// @dev Tests that the upgrade function succeeds when properly initialized
+    function test_upgrade_succeeds() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
         vm.store(address(l1OptimismMintableERC20Factory), bytes32(0), bytes32(0));
         l1OptimismMintableERC20Factory.upgrade();
-        }
-
+    }
 
     /// @notice Test that calling `createStandardL2Token` with valid parameters succeeds.
     function test_createStandardL2Token_succeeds(
