@@ -76,20 +76,19 @@ func NewSupervisorBackend(ctx context.Context, logger log.Logger, m Metrics, cfg
 	// create initial per-chain resources
 	chainsDBs := db.NewChainsDB(logger, depSet)
 
-	// create node controller
-	controllers := syncnode.NewSyncNodesController(logger, depSet, chainsDBs)
-
 	// create the supervisor backend
 	super := &SupervisorBackend{
-		logger:              logger,
-		m:                   m,
-		dataDir:             cfg.Datadir,
-		depSet:              depSet,
-		chainDBs:            chainsDBs,
-		syncNodesController: controllers,
+		logger:   logger,
+		m:        m,
+		dataDir:  cfg.Datadir,
+		depSet:   depSet,
+		chainDBs: chainsDBs,
 		// For testing we can avoid running the processors.
 		synchronousProcessors: cfg.SynchronousProcessors,
 	}
+
+	// create node controller
+	super.syncNodesController = syncnode.NewSyncNodesController(logger, depSet, chainsDBs, super)
 
 	// Initialize the resources of the supervisor backend.
 	// Stop the supervisor if any of the resources fails to be initialized.

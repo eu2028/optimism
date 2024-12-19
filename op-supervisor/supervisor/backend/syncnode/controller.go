@@ -7,12 +7,13 @@ import (
 	"sync"
 	"time"
 
+	gethevent "github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/locks"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
-	gethevent "github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type chainsDB interface {
@@ -24,9 +25,14 @@ type chainsDB interface {
 }
 
 type backend interface {
-	UpdateLocalSafe(chainID types.ChainID, derivedFrom eth.BlockRef, lastDerived eth.BlockRef) error
-	OnNewUnsafeBlock(id types.ChainID, ref eth.BlockRef) error
+	UpdateLocalSafe(ctx context.Context, chainID types.ChainID, derivedFrom eth.BlockRef, lastDerived eth.BlockRef) error
+	UpdateLocalUnsafe(ctx context.Context, chainID types.ChainID, head eth.BlockRef) error
 }
+
+const (
+	dbTimeout   = time.Second * 30
+	nodeTimeout = time.Second * 10
+)
 
 type ManagedNode struct {
 	log     log.Logger
@@ -54,10 +60,11 @@ type ManagedNode struct {
 	wg     sync.WaitGroup
 }
 
-func NewManagedNode(log log.Logger, id types.ChainID, node SyncControl, db chainsDB) *ManagedNode {
+func NewManagedNode(log log.Logger, id types.ChainID, node SyncControl, db chainsDB, backend backend) *ManagedNode {
 	ctx, cancel := context.WithCancel(context.Background())
 	m := &ManagedNode{
 		log:     log.New("chain", id),
+		backend: backend,
 		Node:    node,
 		chainID: id,
 		ctx:     ctx,
@@ -115,51 +122,75 @@ func (m *ManagedNode) Start() {
 				m.log.Info("Exiting node syncing")
 				return
 			case pair := <-m.crossSafeUpdateChan:
-				m.log.Debug("updating cross safe", "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
-				ctx, cancel := context.WithCancel(m.ctx)
-				err := m.Node.UpdateCrossSafe(ctx, pair.Derived.ID(), pair.DerivedFrom.ID())
-				cancel()
-				if err != nil {
-					m.log.Warn("Node failed cross-safe updating", "err", err)
-				}
+				m.onCrossSafeUpdate(pair)
 			case id := <-m.finalizedUpdateChan:
-				ctx, cancel := context.WithCancel(m.ctx)
-				err := m.Node.UpdateFinalized(ctx, id)
-				cancel()
-				m.log.Debug("updating finalized", "finalized", id)
-				if err != nil {
-					m.log.Warn("Node failed finality updating", "err", err)
-				}
+				m.onFinalizedL1(id)
 			case unsafeRef := <-m.unsafeBlocks:
-				m.log.Info("Node has new unsafe block", "unsafeBlock", unsafeRef)
-				if err := m.backend.OnNewUnsafeBlock(m.chainID, unsafeRef); err != nil {
-					m.log.Warn("Backend failed to pick up on new unsafe block", "unsafeBlock", unsafeRef, "err", err)
-					// TODO: if conflict error -> send reset to drop
-					// TODO: if future error -> send reset to rewind
-					// TODO: if out of order -> warn, just old data
-				}
+				m.onUnsafeBlock(unsafeRef)
 			case pair := <-m.derivationUpdates:
-				m.log.Info("Node derived new block", "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
-				if err := m.backend.UpdateLocalSafe(m.chainID, pair.DerivedFrom, pair.Derived); err != nil {
-					m.log.Warn("Backend failed to process local-safe update",
-						"derived", pair.Derived, "derivedFrom", pair.DerivedFrom, "err", err)
-					// TODO: if conflict error -> send reset to drop
-					// TODO: if future error -> send reset to rewind
-					// TODO: if out of order -> warn, just old data
-				}
+				m.onDerivationUpdate(pair)
 			case completed := <-m.exhaustL1Events:
-				m.log.Info("Node completed syncing", "l2", completed.Derived, "l1", completed.DerivedFrom)
-				nextL1 := eth.BlockRef{} // TODO: block-by-number call, with parent-hash conistency check
-				ctx, cancel := context.WithCancel(m.ctx)
-				err := m.Node.ProvideL1(ctx, nextL1)
-				cancel()
-				if err != nil {
-					m.log.Warn("Node needs next L1, but is not accepting suggested next L1 block", "err", err)
-					// TODO maybe reset the node
-				}
+				m.onExhaustL1Event(completed)
 			}
 		}
 	}()
+}
+
+func (m *ManagedNode) onCrossSafeUpdate(pair types.DerivedPair) {
+	m.log.Debug("updating cross safe", "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
+	ctx, cancel := context.WithTimeout(m.ctx, nodeTimeout)
+	defer cancel()
+	err := m.Node.UpdateCrossSafe(ctx, pair.Derived.ID(), pair.DerivedFrom.ID())
+	if err != nil {
+		m.log.Warn("Node failed cross-safe updating", "err", err)
+	}
+}
+
+func (m *ManagedNode) onFinalizedL1(id eth.BlockID) {
+	m.log.Debug("updating finalized", "finalized", id)
+	ctx, cancel := context.WithTimeout(m.ctx, nodeTimeout)
+	defer cancel()
+	err := m.Node.UpdateFinalized(ctx, id)
+	if err != nil {
+		m.log.Warn("Node failed finality updating", "err", err)
+	}
+}
+
+func (m *ManagedNode) onUnsafeBlock(unsafeRef eth.BlockRef) {
+	m.log.Info("Node has new unsafe block", "unsafeBlock", unsafeRef)
+	ctx, cancel := context.WithTimeout(m.ctx, dbTimeout)
+	defer cancel()
+	if err := m.backend.UpdateLocalUnsafe(ctx, m.chainID, unsafeRef); err != nil {
+		m.log.Warn("Backend failed to pick up on new unsafe block", "unsafeBlock", unsafeRef, "err", err)
+		// TODO: if conflict error -> send reset to drop
+		// TODO: if future error -> send reset to rewind
+		// TODO: if out of order -> warn, just old data
+	}
+}
+
+func (m *ManagedNode) onDerivationUpdate(pair types.DerivedPair) {
+	m.log.Info("Node derived new block", "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
+	ctx, cancel := context.WithTimeout(m.ctx, dbTimeout)
+	defer cancel()
+	if err := m.backend.UpdateLocalSafe(ctx, m.chainID, pair.DerivedFrom, pair.Derived); err != nil {
+		m.log.Warn("Backend failed to process local-safe update",
+			"derived", pair.Derived, "derivedFrom", pair.DerivedFrom, "err", err)
+		// TODO: if conflict error -> send reset to drop
+		// TODO: if future error -> send reset to rewind
+		// TODO: if out of order -> warn, just old data
+	}
+}
+
+func (m *ManagedNode) onExhaustL1Event(completed types.DerivedPair) {
+	m.log.Info("Node completed syncing", "l2", completed.Derived, "l1", completed.DerivedFrom)
+	nextL1 := eth.BlockRef{} // TODO: block-by-number call, with parent-hash conistency check
+	ctx, cancel := context.WithTimeout(m.ctx, nodeTimeout)
+	defer cancel()
+	err := m.Node.ProvideL1(ctx, nextL1)
+	if err != nil {
+		m.log.Warn("Node needs next L1, but is not accepting suggested next L1 block", "err", err)
+		// TODO maybe reset the node
+	}
 }
 
 func (m *ManagedNode) Close() error {
@@ -181,17 +212,19 @@ type SyncNodesController struct {
 
 	controllers locks.RWMap[types.ChainID, *locks.RWMap[*ManagedNode, struct{}]]
 
-	db chainsDB
+	backend backend
+	db      chainsDB
 
 	depSet depset.DependencySet
 }
 
 // NewSyncNodesController creates a new SyncNodeController
-func NewSyncNodesController(l log.Logger, depset depset.DependencySet, db chainsDB) *SyncNodesController {
+func NewSyncNodesController(l log.Logger, depset depset.DependencySet, db chainsDB, backend backend) *SyncNodesController {
 	return &SyncNodesController{
-		logger: l,
-		depSet: depset,
-		db:     db,
+		logger:  l,
+		depSet:  depset,
+		db:      db,
+		backend: backend,
 	}
 }
 
@@ -204,7 +237,7 @@ func (snc *SyncNodesController) AttachNodeController(id types.ChainID, ctrl Sync
 		snc.controllers.Set(id, &locks.RWMap[*ManagedNode, struct{}]{})
 	}
 	controllersForChain, _ := snc.controllers.Get(id)
-	node := NewManagedNode(snc.logger, id, ctrl, snc.db)
+	node := NewManagedNode(snc.logger, id, ctrl, snc.db, snc.backend)
 	controllersForChain.Set(node, struct{}{})
 	snc.maybeInitSafeDB(id, ctrl)
 	node.Start()
