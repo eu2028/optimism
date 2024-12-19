@@ -6,7 +6,6 @@ import { Vm } from "forge-std/Vm.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
-import { Types } from "src/libraries/Types.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
