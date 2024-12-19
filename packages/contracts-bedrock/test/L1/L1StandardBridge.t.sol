@@ -40,13 +40,14 @@ contract L1StandardBridge_Initialize_Test is CommonTest {
     function test_constructor_succeeds() external virtual {
         IL1StandardBridge impl = IL1StandardBridge(deploy.mustGetAddress("L1StandardBridge"));
         assertEq(address(impl.superchainConfig()), address(0));
+
+        // The constructor now uses _disableInitializers, whereas OP Mainnet has these values in storage
+        returnIfForkTest("L1StandardBridge_Initialize_Test: impl storage differs on forked network");
         assertEq(address(impl.MESSENGER()), address(0));
         assertEq(address(impl.messenger()), address(0));
         assertEq(address(impl.OTHER_BRIDGE()), address(0));
         assertEq(address(impl.otherBridge()), address(0));
         assertEq(address(l2StandardBridge), Predeploys.L2_STANDARD_BRIDGE);
-
-        returnIfForkTest("L1StandardBridge_Initialize_Test: systemConfig() getter DNE on op mainnet");
         assertEq(address(impl.systemConfig()), address(0));
     }
 

@@ -33,6 +33,9 @@ contract L1CrossDomainMessenger_Test is CommonTest {
         assertEq(address(impl.superchainConfig()), address(0));
         assertEq(address(impl.PORTAL()), address(0));
         assertEq(address(impl.portal()), address(0));
+
+        // The constructor now uses _disableInitializers, whereas OP Mainnet has the other messenger in storage
+        returnIfForkTest("L1CrossDomainMessenger_Test: impl storage differs on forked network");
         assertEq(address(impl.OTHER_MESSENGER()), address(0));
         assertEq(address(impl.otherMessenger()), address(0));
     }
