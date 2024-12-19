@@ -109,6 +109,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "DataAvailabilityChallenge", _sel: IDataAvailabilityChallenge.unlockBond.selector });
 
         // L1CrossDomainMessenger
+        _addSpec({ _name: "L1CrossDomainMessenger", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "L1CrossDomainMessenger", _sel: _getSel("MESSAGE_VERSION()") });
         _addSpec({ _name: "L1CrossDomainMessenger", _sel: _getSel("MIN_GAS_CALLDATA_OVERHEAD()") });
         _addSpec({ _name: "L1CrossDomainMessenger", _sel: _getSel("MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR()") });
@@ -139,6 +140,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "L1CrossDomainMessenger", _sel: _getSel("xDomainMessageSender()") });
 
         // L1ERC721Bridge
+        _addSpec({ _name: "L1ERC721Bridge", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "L1ERC721Bridge", _sel: _getSel("MESSENGER()") });
         _addSpec({ _name: "L1ERC721Bridge", _sel: _getSel("OTHER_BRIDGE()") });
         _addSpec({ _name: "L1ERC721Bridge", _sel: _getSel("bridgeERC721(address,address,uint256,uint32,bytes)") });
@@ -160,6 +162,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "L1ERC721Bridge", _sel: _getSel("initialize(address,address)") });
 
         // L1StandardBridge
+        _addSpec({ _name: "L1StandardBridge", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("MESSENGER()") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("OTHER_BRIDGE()") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("bridgeERC20(address,address,uint256,uint32,bytes)") });
@@ -335,8 +338,10 @@ contract Specification_Test is CommonTest {
             _sel: IOptimismPortalInterop.setConfig.selector,
             _auth: Role.SYSTEMCONFIGOWNER
         });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("upgrade()") });
 
         // OptimismPortal2
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("donateETH()") });
         _addSpec({
@@ -386,6 +391,7 @@ contract Specification_Test is CommonTest {
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("REQUIRED_SLOT()") });
+        _addSpec({ _name: "ProtocolVersions", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("VERSION()") });
         _addSpec({ _name: "ProtocolVersions", _sel: IProtocolVersions.initialize.selector });
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("owner()") });
@@ -409,6 +415,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "ResourceMetering", _sel: _getSel("params()") });
 
         // SuperchainConfig
+        _addSpec({ _name: "SuperchainConfig", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("GUARDIAN_SLOT()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("PAUSED_SLOT()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("guardian()") });
@@ -419,6 +426,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("version()") });
 
         // SystemConfig
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("UNSAFE_BLOCK_SIGNER_SLOT()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("START_BLOCK_SLOT()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("VERSION()") });
@@ -474,6 +482,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfig", _sel: _getSel("maximumGasLimit()") });
 
         // SystemConfigInterop
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("UNSAFE_BLOCK_SIGNER_SLOT()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("START_BLOCK_SLOT()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("VERSION()") });
@@ -636,6 +645,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "MintManager", _sel: _getSel("upgrade(address)"), _auth: Role.MINTMANAGEROWNER });
 
         // AnchorStateRegistry
+        _addSpec({ _name: "AnchorStateRegistry", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "AnchorStateRegistry", _sel: _getSel("anchors(uint32)") });
         _addSpec({ _name: "AnchorStateRegistry", _sel: _getSel("disputeGameFactory()") });
         _addSpec({ _name: "AnchorStateRegistry", _sel: _getSel("initialize((uint32,(bytes32,uint256))[],address)") });
@@ -764,6 +774,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "FaultDisputeGame", _sel: _getSel("weth()") });
 
         // DisputeGameFactory
+        _addSpec({ _name: "DisputeGameFactory", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "DisputeGameFactory", _sel: _getSel("create(uint32,bytes32,bytes)") });
         _addSpec({ _name: "DisputeGameFactory", _sel: _getSel("findLatestGames(uint32,uint256,uint256)") });
         _addSpec({ _name: "DisputeGameFactory", _sel: _getSel("gameAtIndex(uint256)") });
@@ -797,6 +808,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "DisputeGameFactory", _sel: _getSel("version()") });
 
         // DelayedWETH
+        _addSpec({ _name: "DelayedWETH", _sel: _getSel("upgrade()") });
         _addSpec({ _name: "DelayedWETH", _sel: _getSel("allowance(address,address)") });
         _addSpec({ _name: "DelayedWETH", _sel: _getSel("approve(address,uint256)") });
         _addSpec({ _name: "DelayedWETH", _sel: _getSel("balanceOf(address)") });
