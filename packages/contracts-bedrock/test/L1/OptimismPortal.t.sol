@@ -543,6 +543,8 @@ contract OptimismPortal_Test is CommonTest {
     }
 
     function test_depositERC20Transaction_balanceOverflow_reverts() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
+        skipIfForkTest("OptimismPortal_Test: custom gas token DNE on op mainnet");
         vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.gasPayingToken, ()), abi.encode(address(42), 18));
 
         // The balance slot
@@ -1341,6 +1343,7 @@ contract OptimismPortal_FinalizeWithdrawal_Test is CommonTest {
 contract OptimismPortalUpgradeable_Test is CommonTest {
     /// @dev Tests that the proxy is initialized correctly.
     function test_params_initValuesOnProxy_succeeds() external {
+        // TODO(opcm upgrades): remove skip once upgrade path is implemented
         skipIfForkTest("OptimismPortal_Test: resource config varies on mainnet");
         (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum) = optimismPortal.params();
         IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();

@@ -8,7 +8,6 @@ import { stdJson } from "forge-std/StdJson.sol";
 import { Deployer } from "scripts/deploy/Deployer.sol";
 
 // Libraries
-import { Constants } from "src/libraries/Constants.sol";
 import { GameTypes } from "src/dispute/lib/Types.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
@@ -69,10 +68,9 @@ contract Upgrade is Deployer {
         // Bridge contracts
         address optimismPortal = vm.parseTomlAddress(opToml, ".addresses.OptimismPortalProxy");
         save("OptimismPortalProxy", optimismPortal);
-        save(
-            "OptimismPortal", address(uint160(uint256(vm.load(optimismPortal, Constants.PROXY_IMPLEMENTATION_ADDRESS))))
-        );
-        save("OptimismPortal2", optimismPortal);
+        save("OptimismPortal", EIP1967Helper.getImplementation(optimismPortal));
+        save("OptimismPortal2", EIP1967Helper.getImplementation(optimismPortal));
+
         address addressManager = vm.parseTomlAddress(opToml, ".addresses.AddressManager");
         save("AddressManager", addressManager);
         save("L1CrossDomainMessenger", IAddressManager(addressManager).getAddress("OVM_L1CrossDomainMessenger"));
