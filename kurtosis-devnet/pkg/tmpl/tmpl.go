@@ -57,8 +57,10 @@ func (ctx *TemplateContext) InstantiateTemplate(reader io.Reader, writer io.Writ
 		funcMap[name] = fn
 	}
 
-	// Create template with helper functions
-	tmpl := template.New("template").Funcs(funcMap)
+	// Create template with helper functions and option to error on missing fields
+	tmpl := template.New("template").
+		Funcs(funcMap).
+		Option("missingkey=error")
 
 	// Parse template
 	tmpl, err = tmpl.Parse(string(templateBytes))
