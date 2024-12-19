@@ -121,8 +121,7 @@ contract Deploy is Deployer {
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETHProxy"),
             AnchorStateRegistry: getAddress("AnchorStateRegistryProxy"),
             OptimismMintableERC20Factory: getAddress("OptimismMintableERC20FactoryProxy"),
-            OptimismPortal: getAddress("OptimismPortalProxy"),
-            OptimismPortal2: getAddress("OptimismPortalProxy"),
+            OptimismPortal2: getAddress("OptimismPortal2Proxy"),
             SystemConfig: getAddress("SystemConfigProxy"),
             L1ERC721Bridge: getAddress("L1ERC721BridgeProxy"),
             ProtocolVersions: getAddress("ProtocolVersionsProxy"),
@@ -141,7 +140,6 @@ contract Deploy is Deployer {
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETH"),
             AnchorStateRegistry: getAddress("AnchorStateRegistry"),
             OptimismMintableERC20Factory: getAddress("OptimismMintableERC20Factory"),
-            OptimismPortal: getAddress("OptimismPortal"),
             OptimismPortal2: getAddress("OptimismPortal2"),
             SystemConfig: getAddress("SystemConfig"),
             L1ERC721Bridge: getAddress("L1ERC721Bridge"),
@@ -212,18 +210,10 @@ contract Deploy is Deployer {
         // Apply modifications for non-standard configurations not supported by the OPCM deployment
         if (cfg.useFaultProofs()) {
             vm.startPrank(ISuperchainConfig(mustGetAddress("SuperchainConfigProxy")).guardian());
-            IOptimismPortal2(mustGetAddress("OptimismPortalProxy")).setRespectedGameType(
+            IOptimismPortal2(mustGetAddress("OptimismPortal2Proxy")).setRespectedGameType(
                 GameType.wrap(uint32(cfg.respectedGameType()))
             );
             vm.stopPrank();
-        } else {
-            // The L2OutputOracle is not deployed by the OPCM, we deploy the proxy and initialize it here.
-            deployERC1967Proxy("L2OutputOracleProxy");
-
-            // The OptimismPortalProxy contract is used both with and without Fault Proofs enabled, and is deployed by
-            // deployOPChain. If Fault Proofs are disabled, then we need to reinitialize the OptimismPortalProxy
-            // as the legacy OptimismPortal.
-            resetInitializedProxy("OptimismPortal");
         }
 
         if (cfg.useCustomGasToken()) {
@@ -389,7 +379,7 @@ contract Deploy is Deployer {
         save("AnchorStateRegistryProxy", address(deployOutput.anchorStateRegistryProxy));
         save("AnchorStateRegistry", address(deployOutput.anchorStateRegistryImpl));
         save("PermissionedDisputeGame", address(deployOutput.permissionedDisputeGame));
-        save("OptimismPortalProxy", address(deployOutput.optimismPortalProxy));
+        save("OptimismPortal2Proxy", address(deployOutput.optimismPortalProxy));
 
         // Check if the permissionless game implementation is already set
         IDisputeGameFactory factory = IDisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
@@ -532,7 +522,7 @@ contract Deploy is Deployer {
                         l1ERC721Bridge: mustGetAddress("L1ERC721BridgeProxy"),
                         l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
-                        optimismPortal: mustGetAddress("OptimismPortalProxy"),
+                        optimismPortal: mustGetAddress("OptimismPortal2Proxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
                         gasPayingToken: customGasTokenAddress
                     })
