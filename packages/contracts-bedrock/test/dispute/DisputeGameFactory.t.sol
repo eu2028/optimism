@@ -325,7 +325,7 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
         assertEq(games.length, 0);
 
         // Forked network will have an indefinite, but very large number of games, so we skip this test when forking.
-        if (!isForkTest) {
+        if (!isForkTest()) {
             games = disputeGameFactory.findLatestGames(GameType.wrap(1), gameCount - 1, 5);
             assertEq(games.length, 2);
             assertEq(games[0].index, 1);
