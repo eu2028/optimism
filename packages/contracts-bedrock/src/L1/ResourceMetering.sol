@@ -13,7 +13,7 @@ import { Arithmetic } from "src/libraries/Arithmetic.sol";
 /// @title ResourceMetering
 /// @notice ResourceMetering implements an EIP-1559 style resource metering system where pricing
 ///         updates automatically based on current demand.
-abstract contract ResourceMetering is Initializable {
+abstract contract ResourceMetering {
     /// @notice Error returned when too much gas resource is consumed.
     error OutOfGas();
 
@@ -165,7 +165,7 @@ abstract contract ResourceMetering is Initializable {
     /// @notice Sets initial resource parameter values.
     ///         This function must either be called by the initializer function of an upgradeable
     ///         child contract.
-    function __ResourceMetering_init() internal onlyInitializing {
+    function __ResourceMetering_init() internal {
         if (params.prevBlockNum == 0) {
             params = ResourceParams({ prevBaseFee: 1 gwei, prevBoughtGas: 0, prevBlockNum: uint64(block.number) });
         }
