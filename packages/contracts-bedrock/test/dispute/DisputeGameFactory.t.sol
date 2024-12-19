@@ -172,7 +172,7 @@ contract DisputeGameFactory_SetInitBond_Test is DisputeGameFactory_Init {
     /// @dev Tests that the `setInitBond` function properly sets the init bond for a given `GameType`.
     function test_setInitBond_succeeds() public {
         // There should be no init bond for the `GameTypes.CANNON` enum value, it has not been set.
-        if (!isForkTest) {
+        if (!isForkTest()) {
             assertEq(disputeGameFactory.initBonds(GameTypes.CANNON), 0);
         }
 

@@ -71,7 +71,7 @@ contract CommonTest is Test, Setup, Events {
             deploy.cfg().setUseInterop(true);
         }
 
-        if (isForkTest) {
+        if (isForkTest()) {
             // Skip any test suite which uses a nonstandard configuration.
             if (useAltDAOverride || useLegacyContracts || customGasToken != address(0) || useInteropOverride) {
                 vm.skip(true);
@@ -122,7 +122,7 @@ contract CommonTest is Test, Setup, Events {
         );
         vm.label(address(LegacyL2Token), "LegacyMintableERC20");
 
-        if (isForkTest) {
+        if (isForkTest()) {
             console.log("CommonTest: fork test detected, skipping L2 setup");
             L2Token = IOptimismMintableERC20Full(makeAddr("L2Token"));
         } else {

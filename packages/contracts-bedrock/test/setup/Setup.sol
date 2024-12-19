@@ -74,7 +74,7 @@ contract Setup {
     Fork l2Fork = LATEST_FORK;
 
     /// @notice Indicates whether a test is running against a forked production network.
-    bool isForkTest;
+    bool private _isForkTest;
 
     // L1 contracts
     IDisputeGameFactory disputeGameFactory;
@@ -117,10 +117,14 @@ contract Setup {
     IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
 
+    /// @notice Indicates whether a test is running against a forked production network.
+    function isForkTest() public view returns (bool) {
+        return _isForkTest;
+    }
+
     /// @dev Deploys either the Deploy.s.sol or Upgrade.s.sol contract, by fetching the bytecode dynamically using
-    ///      `vm.getDeployedCode()` and etching it into the state. This enables us to avoid including the bytecode of
-    /// those
-    ///      contracts in the bytecode of this contract.
+    ///      `vm.getDeployedCode()` and etching it into the state.
+    ///      This enables us to avoid including the bytecode of those contracts in the bytecode of this contract.
     ///      If the bytecode of those contracts was included in this contract, then it will double
     ///      the compile time and bloat all of the test contract artifacts since they
     ///      will also need to include the bytecode for the Deploy contract.
@@ -129,7 +133,7 @@ contract Setup {
         console.log("Setup: L1 setup start!");
         if (vm.envOr("UPGRADE_TEST", false)) {
             string memory forkUrl = vm.envString("FORK_RPC_URL");
-            isForkTest = true;
+            _isForkTest = true;
             vm.createSelectFork(forkUrl, vm.envUint("FORK_BLOCK_NUMBER"));
             require(
                 block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
@@ -146,7 +150,7 @@ contract Setup {
 
         console.log("Setup: L1 setup done!");
 
-        if (isForkTest) {
+        if (_isForkTest) {
             console.log("Setup: fork test detected, skipping L2 setup");
         } else {
             console.log("Setup: L2 setup start!");
@@ -159,7 +163,7 @@ contract Setup {
 
     /// @dev Skips tests when running against a forked production network.
     function skipIfForkTest(string memory message) public {
-        if (isForkTest) {
+        if (_isForkTest) {
             vm.skip(true);
             console.log(string.concat("Skipping fork test: ", message));
         }
@@ -168,7 +172,7 @@ contract Setup {
     /// @dev Returns early when running against a forked production network. Useful for allowing a portion of a test
     ///      to run.
     function returnIfForkTest(string memory message) public view {
-        if (isForkTest) {
+        if (_isForkTest) {
             console.log(string.concat("Returning early from fork test: ", message));
             return;
         }
@@ -242,7 +246,7 @@ contract Setup {
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
         // Fork tests focus on L1 contracts so there is no need to do all the work of setting up L2.
-        if (isForkTest) {
+        if (_isForkTest) {
             console.log("Setup: fork test detected, skipping L2 setup");
             return;
         }
