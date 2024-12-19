@@ -42,7 +42,10 @@ func main() {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	server := serve.NewServer(tmpDir)
+	server := serve.NewServer(
+		serve.WithStaticDir(tmpDir),
+		serve.WithHostname("host.docker.internal"),
+	)
 	if err := server.Start(ctx); err != nil {
 		log.Fatalf("Error starting server: %v\n", err)
 	}

@@ -12,21 +12,40 @@ type Server struct {
 	server   *http.Server
 	listener net.Listener
 	url      string
+	hostname string
+}
+
+type ServerOption func(*Server)
+
+func WithStaticDir(staticDir string) ServerOption {
+	return func(s *Server) {
+		mux := http.NewServeMux()
+		fileServer := http.FileServer(http.Dir(staticDir))
+		mux.Handle("/", fileServer)
+		s.server.Handler = mux
+	}
+}
+
+func WithHostname(hostname string) ServerOption {
+	return func(s *Server) {
+		s.hostname = hostname
+	}
 }
 
 // NewServer creates a new static file server
-func NewServer(staticDir string) *Server {
-	mux := http.NewServeMux()
-	fileServer := http.FileServer(http.Dir(staticDir))
-	mux.Handle("/", fileServer)
-
-	srv := &http.Server{
-		Handler: mux,
+func NewServer(opts ...ServerOption) *Server {
+	server := &Server{
+		server: &http.Server{
+			Handler: http.NewServeMux(),
+		},
+		hostname: "localhost",
 	}
 
-	return &Server{
-		server: srv,
+	for _, opt := range opts {
+		opt(server)
 	}
+
+	return server
 }
 
 // Start begins serving files in a goroutine and returns when the server is ready
@@ -40,7 +59,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	// Get the actual address
 	addr := listener.Addr().(*net.TCPAddr)
-	s.url = fmt.Sprintf("http://localhost:%d", addr.Port)
+	s.url = fmt.Sprintf("http://%s:%d", s.hostname, addr.Port)
 
 	// Channel to signal server is ready to accept connections
 	ready := make(chan struct{})
