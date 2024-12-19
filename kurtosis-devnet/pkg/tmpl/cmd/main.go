@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/tmpl"
+	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/tmpl/fake"
 )
 
 func main() {
@@ -40,14 +40,7 @@ func main() {
 	enclave := base + "-devnet"
 
 	// Create template context
-	ctx := tmpl.NewTemplateContext(
-		tmpl.WithFunction("localDockerImage", func(image string) (string, error) {
-			return fmt.Sprintf("%s:%s", image, enclave), nil
-		}),
-		tmpl.WithFunction("localContractArtifacts", func(layer string) (string, error) {
-			return fmt.Sprintf("http://host.docker.internal:0/contracts-bundle-%s.tar.gz", enclave), nil
-		}),
-	)
+	ctx := fake.NewFakeTemplateContext(enclave)
 
 	// Process template and write to stdout
 	if err := ctx.InstantiateTemplate(f, os.Stdout); err != nil {
