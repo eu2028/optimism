@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/locks"
@@ -14,72 +16,160 @@ import (
 )
 
 type chainsDB interface {
-	LocalSafe(types.ChainID) (types.BlockSeal, types.BlockSeal, error)
-	UpdateLocalSafe(types.ChainID, eth.BlockRef, eth.BlockRef) error
-	UpdateCrossSafe(types.ChainID, eth.BlockRef, eth.BlockRef) error
+	LocalSafe(chainID types.ChainID) (derivedFrom types.BlockSeal, derived types.BlockSeal, err error)
+	UpdateLocalSafe(chainID types.ChainID, derivedFrom eth.BlockRef, lastDerived eth.BlockRef) error
+	UpdateCrossSafe(chainID types.ChainID, l1View eth.BlockRef, lastCrossDerived eth.BlockRef) error
 	SubscribeCrossSafe(chainID types.ChainID, c chan<- types.DerivedPair) (gethevent.Subscription, error)
 	SubscribeFinalized(chainID types.ChainID, c chan<- eth.BlockID) (gethevent.Subscription, error)
 }
 
+type backend interface {
+	UpdateLocalSafe(chainID types.ChainID, derivedFrom eth.BlockRef, lastDerived eth.BlockRef) error
+	OnNewUnsafeBlock(id types.ChainID, ref eth.BlockRef) error
+}
+
 type ManagedNode struct {
-	log                 log.Logger
-	Node                SyncControl
-	chainID             types.ChainID
+	log     log.Logger
+	Node    SyncControl
+	chainID types.ChainID
+
+	backend backend
+
+	// when the supervisor has a cross-safe update for the node
 	crossSafeUpdateChan chan types.DerivedPair
+	// when the supervisor has a finality update for the node
 	finalizedUpdateChan chan eth.BlockID
-	subscriptions       []gethevent.Subscription
-	cancel              chan struct{}
+
+	// new L2 blocks from the node
+	unsafeBlocks chan eth.BlockRef
+	// new local-safe L2 blocks from the node
+	derivationUpdates chan types.DerivedPair
+	// when the node needs new L1 blocks
+	exhaustL1Events chan types.DerivedPair
+
+	subscriptions []gethevent.Subscription
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 func NewManagedNode(log log.Logger, id types.ChainID, node SyncControl, db chainsDB) *ManagedNode {
+	ctx, cancel := context.WithCancel(context.Background())
 	m := &ManagedNode{
-		log:     log,
+		log:     log.New("chain", id),
 		Node:    node,
 		chainID: id,
-		cancel:  make(chan struct{}),
+		ctx:     ctx,
+		cancel:  cancel,
 	}
-	m.SubscribeToDBEvents(id, db)
+	m.SubscribeToDBEvents(db)
+	m.SubscribeToNodeEvents()
 	return m
 }
 
-func (m *ManagedNode) SubscribeToDBEvents(id types.ChainID, db chainsDB) {
+func (m *ManagedNode) SubscribeToDBEvents(db chainsDB) {
 	m.crossSafeUpdateChan = make(chan types.DerivedPair, 10)
 	m.finalizedUpdateChan = make(chan eth.BlockID, 10)
-	sub, err := db.SubscribeCrossSafe(id, m.crossSafeUpdateChan)
+	sub, err := db.SubscribeCrossSafe(m.chainID, m.crossSafeUpdateChan)
 	if err != nil {
-		m.log.Warn("failed to subscribe to cross safe", "chain", id, "error", err)
+		m.log.Warn("failed to subscribe to cross safe", "err", err)
 	} else {
 		m.subscriptions = append(m.subscriptions, sub)
 	}
 	if err != nil {
-		m.log.Warn("failed to subscribe to finalized", "chain", id, "error", err)
+		m.log.Warn("failed to subscribe to finalized", "err", err)
 	} else {
 		m.subscriptions = append(m.subscriptions, sub)
 	}
 }
 
+func (m *ManagedNode) SubscribeToNodeEvents() {
+	m.unsafeBlocks = make(chan eth.BlockRef)
+	m.derivationUpdates = make(chan types.DerivedPair)
+	m.exhaustL1Events = make(chan types.DerivedPair)
+
+	// For each of these, we want to resubscribe on error. Since the RPC subscription might fail intermittently.
+	m.subscriptions = append(m.subscriptions, gethevent.ResubscribeErr(time.Second*10,
+		func(ctx context.Context, err error) (gethevent.Subscription, error) {
+			return m.Node.SubscribeUnsafeBlocks(ctx, m.unsafeBlocks)
+		}))
+	m.subscriptions = append(m.subscriptions, gethevent.ResubscribeErr(time.Second*10,
+		func(ctx context.Context, err error) (gethevent.Subscription, error) {
+			return m.Node.SubscribeDerivationUpdates(ctx, m.derivationUpdates)
+		}))
+	m.subscriptions = append(m.subscriptions, gethevent.ResubscribeErr(time.Second*10,
+		func(ctx context.Context, err error) (gethevent.Subscription, error) {
+			return m.Node.SubscribeExhaustL1Events(ctx, m.exhaustL1Events)
+		}))
+}
+
 func (m *ManagedNode) Start() {
+	m.wg.Add(1)
 	go func() {
+		defer m.wg.Done()
+
 		for {
 			select {
-			case <-m.cancel:
+			case <-m.ctx.Done():
+				m.log.Info("Exiting node syncing")
 				return
 			case pair := <-m.crossSafeUpdateChan:
-				m.log.Debug("updating cross safe", "chain", m.chainID, "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
-				m.Node.UpdateCrossSafe(context.Background(), pair.Derived.ID(), pair.DerivedFrom.ID())
+				m.log.Debug("updating cross safe", "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
+				ctx, cancel := context.WithCancel(m.ctx)
+				err := m.Node.UpdateCrossSafe(ctx, pair.Derived.ID(), pair.DerivedFrom.ID())
+				cancel()
+				if err != nil {
+					m.log.Warn("Node failed cross-safe updating", "err", err)
+				}
 			case id := <-m.finalizedUpdateChan:
-				m.log.Debug("updating finalized", "chain", m.chainID, "id", id)
-				m.Node.UpdateFinalized(context.Background(), id)
+				ctx, cancel := context.WithCancel(m.ctx)
+				err := m.Node.UpdateFinalized(ctx, id)
+				cancel()
+				m.log.Debug("updating finalized", "finalized", id)
+				if err != nil {
+					m.log.Warn("Node failed finality updating", "err", err)
+				}
+			case unsafeRef := <-m.unsafeBlocks:
+				m.log.Info("Node has new unsafe block", "unsafeBlock", unsafeRef)
+				if err := m.backend.OnNewUnsafeBlock(m.chainID, unsafeRef); err != nil {
+					m.log.Warn("Backend failed to pick up on new unsafe block", "unsafeBlock", unsafeRef, "err", err)
+					// TODO: if conflict error -> send reset to drop
+					// TODO: if future error -> send reset to rewind
+					// TODO: if out of order -> warn, just old data
+				}
+			case pair := <-m.derivationUpdates:
+				m.log.Info("Node derived new block", "derived", pair.Derived, "derivedFrom", pair.DerivedFrom)
+				if err := m.backend.UpdateLocalSafe(m.chainID, pair.DerivedFrom, pair.Derived); err != nil {
+					m.log.Warn("Backend failed to process local-safe update",
+						"derived", pair.Derived, "derivedFrom", pair.DerivedFrom, "err", err)
+					// TODO: if conflict error -> send reset to drop
+					// TODO: if future error -> send reset to rewind
+					// TODO: if out of order -> warn, just old data
+				}
+			case completed := <-m.exhaustL1Events:
+				m.log.Info("Node completed syncing", "l2", completed.Derived, "l1", completed.DerivedFrom)
+				nextL1 := eth.BlockRef{} // TODO: block-by-number call, with parent-hash conistency check
+				ctx, cancel := context.WithCancel(m.ctx)
+				err := m.Node.ProvideL1(ctx, nextL1)
+				cancel()
+				if err != nil {
+					m.log.Warn("Node needs next L1, but is not accepting suggested next L1 block", "err", err)
+					// TODO maybe reset the node
+				}
 			}
 		}
 	}()
 }
 
 func (m *ManagedNode) Close() error {
+	m.cancel()
+	m.wg.Wait() // wait for work to complete
+
+	// Now close all subscriptions, since we don't use them anymore.
 	for _, sub := range m.subscriptions {
 		sub.Unsubscribe()
 	}
-	m.cancel <- struct{}{}
 	return nil
 }
 
