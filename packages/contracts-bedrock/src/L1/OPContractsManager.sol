@@ -25,10 +25,10 @@ import { ISuperchainConfig } from "src/L1/interfaces/ISuperchainConfig.sol";
 import { IProtocolVersions } from "src/L1/interfaces/IProtocolVersions.sol";
 import { IOptimismPortal2 } from "src/L1/interfaces/IOptimismPortal2.sol";
 import { ISystemConfig } from "src/L1/interfaces/ISystemConfig.sol";
-import { IL1CrossDomainMessenger } from "src/L1/interfaces/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "src/L1/interfaces/IL1ERC721Bridge.sol";
-import { IL1StandardBridge } from "src/L1/interfaces/IL1StandardBridge.sol";
+import { IL1StandardBridgeV160 } from "src/L1/interfaces/IL1StandardBridgeV160.sol";
 import { IOptimismMintableERC20Factory } from "src/universal/interfaces/IOptimismMintableERC20Factory.sol";
+import { IL1CrossDomainMessengerV160 } from "src/L1/interfaces/IL1CrossDomainMessengerV160.sol";
 
 contract OPContractsManager is ISemver {
     // -------- Structs --------
@@ -71,8 +71,8 @@ contract OPContractsManager is ISemver {
         IL1ERC721Bridge l1ERC721BridgeProxy;
         ISystemConfig systemConfigProxy;
         IOptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
-        IL1StandardBridge l1StandardBridgeProxy;
-        IL1CrossDomainMessenger l1CrossDomainMessengerProxy;
+        IL1StandardBridgeV160 l1StandardBridgeProxy;
+        IL1CrossDomainMessengerV160 l1CrossDomainMessengerProxy;
         // Fault proof contracts below.
         IOptimismPortal2 optimismPortalProxy;
         IDisputeGameFactory disputeGameFactoryProxy;
@@ -233,12 +233,12 @@ contract OPContractsManager is ISemver {
             IAnchorStateRegistry(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "AnchorStateRegistry"));
 
         // Deploy legacy proxied contracts.
-        output.l1StandardBridgeProxy = IL1StandardBridge(
+        output.l1StandardBridgeProxy = IL1StandardBridgeV160(
             payable(Blueprint.deployFrom(blueprint.l1ChugSplashProxy, salt, abi.encode(output.opChainProxyAdmin)))
         );
         output.opChainProxyAdmin.setProxyType(address(output.l1StandardBridgeProxy), IProxyAdmin.ProxyType.CHUGSPLASH);
         string memory contractName = "OVM_L1CrossDomainMessenger";
-        output.l1CrossDomainMessengerProxy = IL1CrossDomainMessenger(
+        output.l1CrossDomainMessengerProxy = IL1CrossDomainMessengerV160(
             Blueprint.deployFrom(blueprint.resolvedDelegateProxy, salt, abi.encode(output.addressManager, contractName))
         );
         output.opChainProxyAdmin.setProxyType(
@@ -297,7 +297,7 @@ contract OPContractsManager is ISemver {
             data
         );
 
-        data = encodeL1CrossDomainMessengerInitializer(IL1CrossDomainMessenger.initialize.selector, output);
+        data = encodeL1CrossDomainMessengerInitializer(IL1CrossDomainMessengerV160.initialize.selector, output);
         upgradeAndCall(
             output.opChainProxyAdmin,
             address(output.l1CrossDomainMessengerProxy),
@@ -305,7 +305,7 @@ contract OPContractsManager is ISemver {
             data
         );
 
-        data = encodeL1StandardBridgeInitializer(IL1StandardBridge.initialize.selector, output);
+        data = encodeL1StandardBridgeInitializer(IL1StandardBridgeV160.initialize.selector, output);
         upgradeAndCall(
             output.opChainProxyAdmin, address(output.l1StandardBridgeProxy), implementation.l1StandardBridgeImpl, data
         );
@@ -477,8 +477,7 @@ contract OPContractsManager is ISemver {
         virtual
         returns (bytes memory)
     {
-        return
-            abi.encodeWithSelector(_selector, superchainConfig, _output.optimismPortalProxy, _output.systemConfigProxy);
+        return abi.encodeWithSelector(_selector, superchainConfig, _output.optimismPortalProxy);
     }
 
     /// @notice Helper method for encoding the L1StandardBridge initializer data.
@@ -491,9 +490,7 @@ contract OPContractsManager is ISemver {
         virtual
         returns (bytes memory)
     {
-        return abi.encodeWithSelector(
-            _selector, _output.l1CrossDomainMessengerProxy, superchainConfig, _output.systemConfigProxy
-        );
+        return abi.encodeWithSelector(_selector, _output.l1CrossDomainMessengerProxy, superchainConfig);
     }
 
     function encodeDisputeGameFactoryInitializer(
