@@ -116,7 +116,7 @@ contract Faucet {
         nonces[_auth.id][_params.nonce] = true;
 
         // Execute transfer of ETH to the recipient account without gas limit
-        bool success = SafeCall.call(_params.recipient, 0, config.amount, _params.data);
+        bool success = SafeCall.call(_params.recipient, config.amount, _params.data);
         require(success, "Faucet: Failed to execute SafeCall during drip to recipient");
 
         emit Drip(config.name, _auth.id, config.amount, _params.recipient);

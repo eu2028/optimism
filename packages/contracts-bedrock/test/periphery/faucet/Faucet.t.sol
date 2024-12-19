@@ -468,7 +468,7 @@ contract FaucetTest is Faucet_Initializer {
         uint256 balanceBefore = address(reverting).balance;
 
         vm.prank(nonAdmin);
-        vm.expectRevert("Failed to execute SafeCall during drip to recipient");
+        vm.expectRevert("Faucet: Failed to execute SafeCall during drip to recipient");
         faucet.drip(
             DripParameters(payable(address(reverting)), data, nonce0),
             Faucet.AuthParameters(githubFam, keccak256(abi.encodePacked(address(reverting))), signature0)
