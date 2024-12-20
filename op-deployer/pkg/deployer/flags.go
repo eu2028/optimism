@@ -21,6 +21,7 @@ const (
 	PrivateKeyFlagName         = "private-key"
 	DeploymentStrategyFlagName = "deployment-strategy"
 	IntentConfigTypeFlagName   = "intent-config-type"
+	OutfileFlagName            = "outfile"
 )
 
 var (
@@ -51,6 +52,11 @@ var (
 		Aliases: []string{
 			OutdirFlagName,
 		},
+	}
+	OutfileFlag = &cli.StringFlag{
+		Name:  OutfileFlagName,
+		Usage: "Output file. Set to - to use stdout.",
+		Value: "-",
 	}
 	PrivateKeyFlag = &cli.StringFlag{
 		Name:    PrivateKeyFlagName,

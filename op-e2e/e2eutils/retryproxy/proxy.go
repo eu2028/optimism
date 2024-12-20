@@ -3,7 +3,6 @@ package retryproxy
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -13,10 +12,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum/go-ethereum/log"
 )
-
-type jsonRPCReq struct {
-	Method string `json:"method"`
-}
 
 var copyHeaders = []string{
 	"Content-Type",
@@ -148,13 +143,12 @@ func (p *RetryProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var jReq jsonRPCReq
-	if err := json.Unmarshal(reqBody, &jReq); err != nil {
-		p.lgr.Warn("failed to unmarshal request", "err", err)
-		return
-	}
-
-	p.lgr.Debug("proxied request", "method", jReq.Method, "dur", time.Since(start))
+	p.lgr.Debug(
+		"proxied request",
+		"requestBody", string(reqBody),
+		"responseBody", string(resBody),
+		"duration", time.Since(start),
+	)
 }
 
 func (p *RetryProxy) doProxyReq(ctx context.Context, body []byte) (*http.Response, error) {

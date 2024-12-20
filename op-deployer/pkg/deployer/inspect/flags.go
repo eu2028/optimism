@@ -11,21 +11,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const (
-	OutfileFlagName = "outfile"
-)
-
-var (
-	FlagOutfile = &cli.StringFlag{
-		Name:  OutfileFlagName,
-		Usage: "output file. set to - to use stdout",
-		Value: "-",
-	}
-)
-
 var Flags = []cli.Flag{
 	deployer.WorkdirFlag,
-	FlagOutfile,
+	deployer.OutfileFlag,
 }
 
 var Commands = []*cli.Command{
@@ -88,7 +76,7 @@ type cliConfig struct {
 func readConfig(cliCtx *cli.Context) (cliConfig, error) {
 	var cfg cliConfig
 
-	outfile := cliCtx.String(OutfileFlagName)
+	outfile := cliCtx.String(deployer.OutfileFlagName)
 	if outfile == "" {
 		return cfg, fmt.Errorf("outfile flag is required")
 	}
@@ -110,7 +98,7 @@ func readConfig(cliCtx *cli.Context) (cliConfig, error) {
 
 	return cliConfig{
 		Workdir: cliCtx.String(deployer.WorkdirFlagName),
-		Outfile: cliCtx.String(OutfileFlagName),
+		Outfile: cliCtx.String(deployer.OutfileFlagName),
 		ChainID: chainID,
 	}, nil
 }

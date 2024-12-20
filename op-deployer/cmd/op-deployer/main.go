@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/report"
+
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/manage"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
@@ -58,6 +60,11 @@ func main() {
 			Name:        "manage",
 			Usage:       "performs individual operations on a chain",
 			Subcommands: manage.Commands,
+		},
+		{
+			Name:        "report",
+			Usage:       "generates reports for chains that have already been deployed",
+			Subcommands: report.Commands,
 		},
 	}
 	app.Writer = os.Stdout
