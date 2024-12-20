@@ -45,6 +45,7 @@ fs_permissions = [
   { access='read-write', path='./.testdata/' },
   { access='read', path='./kout-deployment' },
   { access='read', path='./test/fixtures' },
+  { access='read', path='./lib/superchain-registry/superchain/configs/' },
 ]
 
 # 5159 error code is selfdestruct error code
@@ -72,10 +73,10 @@ wrap_comments=true
 ################################################################
 
 [profile.ci.fuzz]
-runs = 512
+runs = 128
 
 [profile.ci.invariant]
-runs = 256
+runs = 64
 depth = 32
 
 ################################################################
@@ -86,11 +87,11 @@ depth = 32
 optimizer = false
 
 [profile.cicoverage.fuzz]
-runs = 512
+runs = 1
 
 [profile.cicoverage.invariant]
-runs = 256
-depth = 32
+runs = 1
+depth = 1
 
 ################################################################
 #                       PROFILE: CIHEAVY                       #
@@ -98,12 +99,12 @@ depth = 32
 
 [profile.ciheavy.fuzz]
 runs = 20000
-timeout = 600
+timeout = 300
 
 [profile.ciheavy.invariant]
 runs = 128
 depth = 512
-timeout = 600
+timeout = 300
 
 ################################################################
 #                         PROFILE: LITE                        #

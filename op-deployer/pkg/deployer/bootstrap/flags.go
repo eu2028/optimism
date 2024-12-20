@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	OutfileFlagName                         = "outfile"
 	ArtifactsLocatorFlagName                = "artifacts-locator"
 	WithdrawalDelaySecondsFlagName          = "withdrawal-delay-seconds"
 	MinProposalSizeBytesFlagName            = "min-proposal-size-bytes"
@@ -34,9 +35,22 @@ const (
 	ReleaseFlagName                         = "release"
 	DelayedWethProxyFlagName                = "delayed-weth-proxy"
 	DelayedWethImplFlagName                 = "delayed-weth-impl"
+	ProxyOwnerFlagName                      = "proxy-owner"
+	SuperchainProxyAdminOwnerFlagName       = "superchain-proxy-admin-owner"
+	ProtocolVersionsOwnerFlagName           = "protocol-versions-owner"
+	GuardianFlagName                        = "guardian"
+	PausedFlagName                          = "paused"
+	RequiredProtocolVersionFlagName         = "required-protocol-version"
+	RecommendedProtocolVersionFlagName      = "recommended-protocol-version"
 )
 
 var (
+	OutfileFlag = &cli.StringFlag{
+		Name:    OutfileFlagName,
+		Usage:   "Output file. Use - for stdout.",
+		EnvVars: deployer.PrefixEnvVar("OUTFILE"),
+		Value:   "-",
+	}
 	ArtifactsLocatorFlag = &cli.StringFlag{
 		Name:    ArtifactsLocatorFlagName,
 		Usage:   "Locator for artifacts.",
@@ -50,13 +64,13 @@ var (
 	}
 	MinProposalSizeBytesFlag = &cli.Uint64Flag{
 		Name:    MinProposalSizeBytesFlagName,
-		Usage:   "Minimum proposal size in bytes.",
+		Usage:   "PreimageOracle minimum proposal size in bytes.",
 		EnvVars: deployer.PrefixEnvVar("MIN_PROPOSAL_SIZE_BYTES"),
 		Value:   standard.MinProposalSizeBytes,
 	}
 	ChallengePeriodSecondsFlag = &cli.Uint64Flag{
 		Name:    ChallengePeriodSecondsFlagName,
-		Usage:   "Challenge period in seconds.",
+		Usage:   "PreimageOracle challenge period in seconds.",
 		EnvVars: deployer.PrefixEnvVar("CHALLENGE_PERIOD_SECONDS"),
 		Value:   standard.ChallengePeriodSeconds,
 	}
@@ -167,6 +181,46 @@ var (
 		Name:    ReleaseFlagName,
 		Usage:   "Release to deploy.",
 		EnvVars: deployer.PrefixEnvVar("RELEASE"),
+		Value:   common.Address{}.Hex(),
+	}
+	ProxyOwnerFlag = &cli.StringFlag{
+		Name:    ProxyOwnerFlagName,
+		Usage:   "Proxy owner address.",
+		EnvVars: deployer.PrefixEnvVar("PROXY_OWNER"),
+		Value:   common.Address{}.Hex(),
+	}
+	SuperchainProxyAdminOwnerFlag = &cli.StringFlag{
+		Name:    SuperchainProxyAdminOwnerFlagName,
+		Usage:   "Owner address for the superchain proxy admin",
+		EnvVars: deployer.PrefixEnvVar("SUPERCHAIN_PROXY_ADMIN_OWNER"),
+		Value:   common.Address{}.Hex(),
+	}
+	ProtocolVersionsOwnerFlag = &cli.StringFlag{
+		Name:    ProtocolVersionsOwnerFlagName,
+		Usage:   "Owner address for protocol versions",
+		EnvVars: deployer.PrefixEnvVar("PROTOCOL_VERSIONS_OWNER"),
+		Value:   common.Address{}.Hex(),
+	}
+	GuardianFlag = &cli.StringFlag{
+		Name:    GuardianFlagName,
+		Usage:   "Guardian address",
+		EnvVars: deployer.PrefixEnvVar("GUARDIAN"),
+		Value:   common.Address{}.Hex(),
+	}
+	PausedFlag = &cli.BoolFlag{
+		Name:    PausedFlagName,
+		Usage:   "Initial paused state",
+		EnvVars: deployer.PrefixEnvVar("PAUSED"),
+	}
+	RequiredProtocolVersionFlag = &cli.StringFlag{
+		Name:    RequiredProtocolVersionFlagName,
+		Usage:   "Required protocol version (semver)",
+		EnvVars: deployer.PrefixEnvVar("REQUIRED_PROTOCOL_VERSION"),
+	}
+	RecommendedProtocolVersionFlag = &cli.StringFlag{
+		Name:    RecommendedProtocolVersionFlagName,
+		Usage:   "Recommended protocol version (semver)",
+		EnvVars: deployer.PrefixEnvVar("RECOMMENDED_PROTOCOL_VERSION"),
 	}
 )
 
@@ -174,6 +228,7 @@ var OPCMFlags = []cli.Flag{
 	deployer.L1RPCURLFlag,
 	deployer.PrivateKeyFlag,
 	ReleaseFlag,
+	OutfileFlag,
 }
 
 var ImplementationsFlags = []cli.Flag{
@@ -188,6 +243,7 @@ var ImplementationsFlags = []cli.Flag{
 var DelayedWETHFlags = []cli.Flag{
 	deployer.L1RPCURLFlag,
 	deployer.PrivateKeyFlag,
+	OutfileFlag,
 	ArtifactsLocatorFlag,
 	DelayedWethImplFlag,
 }
@@ -195,9 +251,8 @@ var DelayedWETHFlags = []cli.Flag{
 var DisputeGameFlags = []cli.Flag{
 	deployer.L1RPCURLFlag,
 	deployer.PrivateKeyFlag,
+	OutfileFlag,
 	ArtifactsLocatorFlag,
-	MinProposalSizeBytesFlag,
-	ChallengePeriodSecondsFlag,
 	VmFlag,
 	GameKindFlag,
 	GameTypeFlag,
@@ -216,6 +271,7 @@ var DisputeGameFlags = []cli.Flag{
 var BaseFPVMFlags = []cli.Flag{
 	deployer.L1RPCURLFlag,
 	deployer.PrivateKeyFlag,
+	OutfileFlag,
 	ArtifactsLocatorFlag,
 	PreimageOracleFlag,
 }
@@ -223,6 +279,27 @@ var BaseFPVMFlags = []cli.Flag{
 var MIPSFlags = append(BaseFPVMFlags, MIPSVersionFlag)
 
 var AsteriscFlags = BaseFPVMFlags
+
+var ProxyFlags = []cli.Flag{
+	deployer.L1RPCURLFlag,
+	deployer.PrivateKeyFlag,
+	OutfileFlag,
+	ArtifactsLocatorFlag,
+	ProxyOwnerFlag,
+}
+
+var SuperchainFlags = []cli.Flag{
+	deployer.L1RPCURLFlag,
+	deployer.PrivateKeyFlag,
+	OutfileFlag,
+	ArtifactsLocatorFlag,
+	SuperchainProxyAdminOwnerFlag,
+	ProtocolVersionsOwnerFlag,
+	GuardianFlag,
+	PausedFlag,
+	RequiredProtocolVersionFlag,
+	RecommendedProtocolVersionFlag,
+}
 
 var Commands = []*cli.Command{
 	{
@@ -263,5 +340,17 @@ var Commands = []*cli.Command{
 		Usage:  "Bootstrap an instance of Asterisc.",
 		Flags:  cliapp.ProtectFlags(AsteriscFlags),
 		Action: AsteriscCLI,
+	},
+	{
+		Name:   "proxy",
+		Usage:  "Bootstrap a ERC-1967 Proxy without an implementation set.",
+		Flags:  cliapp.ProtectFlags(ProxyFlags),
+		Action: ProxyCLI,
+	},
+	{
+		Name:   "superchain",
+		Usage:  "Bootstrap the Superchain configuration",
+		Flags:  cliapp.ProtectFlags(SuperchainFlags),
+		Action: SuperchainCLI,
 	},
 }

@@ -7,8 +7,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/script"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/script/forking"
 	artifacts2 "github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
@@ -73,6 +71,7 @@ func DelayedWETHCLI(cliCtx *cli.Context) error {
 	l := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
 	oplog.SetGlobalLogHandler(l.Handler())
 
+	outfile := cliCtx.String(OutfileFlagName)
 	config, err := NewDelayedWETHConfigFromClI(cliCtx, l)
 	if err != nil {
 		return err
@@ -80,7 +79,15 @@ func DelayedWETHCLI(cliCtx *cli.Context) error {
 
 	ctx := ctxinterrupt.WithCancelOnInterrupt(cliCtx.Context)
 
-	return DelayedWETH(ctx, config)
+	dwo, err := DelayedWETH(ctx, config)
+	if err != nil {
+		return fmt.Errorf("failed to deploy DelayedWETH: %w", err)
+	}
+
+	if err := jsonutil.WriteJSON(dwo, ioutil.ToStdOutOrFileOrNoop(outfile, 0o755)); err != nil {
+		return fmt.Errorf("failed to write output: %w", err)
+	}
+	return nil
 }
 
 func NewDelayedWETHConfigFromClI(cliCtx *cli.Context, l log.Logger) (DelayedWETHConfig, error) {
@@ -102,9 +109,10 @@ func NewDelayedWETHConfigFromClI(cliCtx *cli.Context, l log.Logger) (DelayedWETH
 	return config, nil
 }
 
-func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
+func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) (opcm.DeployDelayedWETHOutput, error) {
+	var dwo opcm.DeployDelayedWETHOutput
 	if err := cfg.Check(); err != nil {
-		return fmt.Errorf("invalid config for DelayedWETH: %w", err)
+		return dwo, fmt.Errorf("invalid config for DelayedWETH: %w", err)
 	}
 
 	lgr := cfg.Logger
@@ -114,7 +122,7 @@ func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
 
 	artifactsFS, cleanup, err := artifacts2.Download(ctx, cfg.ArtifactsLocator, progressor)
 	if err != nil {
-		return fmt.Errorf("failed to download artifacts: %w", err)
+		return dwo, fmt.Errorf("failed to download artifacts: %w", err)
 	}
 	defer func() {
 		if err := cleanup(); err != nil {
@@ -124,26 +132,26 @@ func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
 
 	l1Client, err := ethclient.Dial(cfg.L1RPCUrl)
 	if err != nil {
-		return fmt.Errorf("failed to connect to L1 RPC: %w", err)
+		return dwo, fmt.Errorf("failed to connect to L1 RPC: %w", err)
 	}
 
 	chainID, err := l1Client.ChainID(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get chain ID: %w", err)
+		return dwo, fmt.Errorf("failed to get chain ID: %w", err)
 	}
 	chainIDU64 := chainID.Uint64()
 
 	superCfg, err := standard.SuperchainFor(chainIDU64)
 	if err != nil {
-		return fmt.Errorf("error getting superchain config: %w", err)
+		return dwo, fmt.Errorf("error getting superchain config: %w", err)
 	}
-	proxyAdmin, err := standard.ManagerOwnerAddrFor(chainIDU64)
+	proxyAdmin, err := standard.SuperchainProxyAdminAddrFor(chainIDU64)
 	if err != nil {
-		return fmt.Errorf("error getting superchain proxy admin: %w", err)
+		return dwo, fmt.Errorf("error getting superchain proxy admin: %w", err)
 	}
 	delayedWethOwner, err := standard.SystemOwnerAddrFor(chainIDU64)
 	if err != nil {
-		return fmt.Errorf("error getting superchain system owner: %w", err)
+		return dwo, fmt.Errorf("error getting superchain system owner: %w", err)
 	}
 
 	signer := opcrypto.SignerFnFromBind(opcrypto.PrivateKeySignerFn(cfg.privateKeyECDSA, chainID))
@@ -157,41 +165,24 @@ func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
 		From:    chainDeployer,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create broadcaster: %w", err)
+		return dwo, fmt.Errorf("failed to create broadcaster: %w", err)
 	}
 
 	l1RPC, err := rpc.Dial(cfg.L1RPCUrl)
 	if err != nil {
-		return fmt.Errorf("failed to connect to L1 RPC: %w", err)
+		return dwo, fmt.Errorf("failed to connect to L1 RPC: %w", err)
 	}
 
-	host, err := env.DefaultScriptHost(
+	host, err := env.DefaultForkedScriptHost(
+		ctx,
 		bcaster,
 		lgr,
 		chainDeployer,
 		artifactsFS,
-		script.WithForkHook(func(cfg *script.ForkConfig) (forking.ForkSource, error) {
-			src, err := forking.RPCSourceByNumber(cfg.URLOrAlias, l1RPC, *cfg.BlockNumber)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create RPC fork source: %w", err)
-			}
-			return forking.Cache(src), nil
-		}),
+		l1RPC,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create script host: %w", err)
-	}
-
-	latest, err := l1Client.HeaderByNumber(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get latest block: %w", err)
-	}
-
-	if _, err := host.CreateSelectFork(
-		script.ForkWithURLOrAlias("main"),
-		script.ForkWithBlockNumberU256(latest.Number),
-	); err != nil {
-		return fmt.Errorf("failed to select fork: %w", err)
+		return dwo, fmt.Errorf("failed to create script host: %w", err)
 	}
 
 	var release string
@@ -205,7 +196,7 @@ func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
 
 	superchainConfigAddr := common.Address(*superCfg.Config.SuperchainConfigAddr)
 
-	dwo, err := opcm.DeployDelayedWETH(
+	dwo, err = opcm.DeployDelayedWETH(
 		host,
 		opcm.DeployDelayedWETHInput{
 			Release:               release,
@@ -217,17 +208,13 @@ func DelayedWETH(ctx context.Context, cfg DelayedWETHConfig) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error deploying DelayedWETH: %w", err)
+		return dwo, fmt.Errorf("error deploying DelayedWETH: %w", err)
 	}
 
 	if _, err := bcaster.Broadcast(ctx); err != nil {
-		return fmt.Errorf("failed to broadcast: %w", err)
+		return dwo, fmt.Errorf("failed to broadcast: %w", err)
 	}
 
 	lgr.Info("deployed DelayedWETH")
-
-	if err := jsonutil.WriteJSON(dwo, ioutil.ToStdOut()); err != nil {
-		return fmt.Errorf("failed to write output: %w", err)
-	}
-	return nil
+	return dwo, nil
 }

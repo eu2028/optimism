@@ -17,7 +17,7 @@ import (
 
 var networks = []string{"mainnet", "sepolia"}
 
-var versions = []string{"v1.8.0-rc.3"}
+var versions = []string{"v1.8.0-rc.3", "v1.6.0"}
 
 func TestOPCMLiveChain(t *testing.T) {
 	for _, network := range networks {
@@ -25,6 +25,10 @@ func TestOPCMLiveChain(t *testing.T) {
 			t.Run(network+"-"+version, func(t *testing.T) {
 				if version == "v1.8.0-rc.3" && network == "mainnet" {
 					t.Skip("v1.8.0-rc.3 not supported on mainnet yet")
+				}
+
+				if version == "v1.6.0" {
+					t.Skip("v1.6.0 not supported")
 				}
 
 				envVar := strings.ToUpper(network) + "_RPC_URL"
