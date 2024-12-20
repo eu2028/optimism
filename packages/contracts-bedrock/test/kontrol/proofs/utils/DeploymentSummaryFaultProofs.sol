@@ -17,5 +17,5 @@ contract DeploymentSummaryFaultProofs is DeploymentSummaryFaultProofsCode {
     address superchainConfigProxyAddress;
     address l1ERC721BridgeProxyAddress;
     address l1StandardBridgeProxyAddress;
-    address optimismPortalProxyAddress;
+    address optimismPortal2ProxyAddress;
 }
