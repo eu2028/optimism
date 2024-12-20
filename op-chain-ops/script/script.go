@@ -543,7 +543,7 @@ func (h *Host) onExit(depth int, output []byte, gasUsed uint64, err error, rever
 
 // onFault is a trace-hook, catches things more generic than regular EVM reverts.
 func (h *Host) onFault(pc uint64, op byte, gas, cost uint64, scope tracing.OpContext, depth int, err error) {
-	h.log.Warn("Fault", "addr", scope.Address(), "err", err, "depth", depth)
+	h.log.Warn("Fault", "addr", scope.Address(), "label", h.labels[scope.Address()], "err", err, "depth", depth)
 }
 
 // unwindCallstack is a helper to remove call-stack entries.
