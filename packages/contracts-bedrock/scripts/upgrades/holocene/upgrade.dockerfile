@@ -1,6 +1,5 @@
 # Use a base image with necessary tools
 FROM ubuntu:20.04
-FROM golang:1.22
 
 ARG REV
 
@@ -38,12 +37,12 @@ WORKDIR /app
 
 # Clone the repository, only at the target revision
 RUN git clone --branch $REV --depth 1 https://github.com/ethereum-optimism/optimism.git .
-RUN go mod download
 
 # Set the working directory to the root of the monorepo
 WORKDIR /app
 
 # Install correct foundry version
+COPY ./install-foundry.sh /app/ops/scripts/install-foundry.sh
 RUN just update-foundry
 
 # Set the working directory to the root of the contracts package
@@ -64,6 +63,7 @@ WORKDIR /app/packages/contracts-bedrock/scripts/upgrades/holocene
 # allows to use modified local scripts and templates
 COPY scripts/*.sh ./scripts/
 COPY templates/ ./templates/
+COPY ecotone-scalar ./ecotone-scalar
 
 # Set the entrypoint to the main.sh script
 ENTRYPOINT ["./scripts/main.sh"]
