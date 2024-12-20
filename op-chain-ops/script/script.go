@@ -531,9 +531,9 @@ func (h *Host) onExit(depth int, output []byte, gasUsed uint64, err error, rever
 	if reverted {
 		h.LogCallStack()
 		if msg, revertInspectErr := abi.UnpackRevert(output); revertInspectErr == nil {
-			h.log.Warn("Revert", "addr", addr, "err", err, "revertMsg", msg, "depth", depth)
+			h.log.Warn("Revert", "addr", addr, "label", h.labels[addr], "err", err, "revertMsg", msg, "depth", depth)
 		} else {
-			h.log.Warn("Revert", "addr", addr, "err", err, "revertData", hexutil.Bytes(output), "depth", depth)
+			h.log.Warn("Revert", "addr", addr, "label", h.labels[addr], "err", err, "revertData", hexutil.Bytes(output), "depth", depth)
 		}
 	}
 
