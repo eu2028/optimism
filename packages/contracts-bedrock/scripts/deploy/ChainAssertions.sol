@@ -94,7 +94,7 @@ library ChainAssertions {
             require(config.l1ERC721Bridge() == _contracts.L1ERC721Bridge, "CHECK-SCFG-170");
             require(config.l1StandardBridge() == _contracts.L1StandardBridge, "CHECK-SCFG-180");
             require(config.disputeGameFactory() == _contracts.DisputeGameFactory, "CHECK-SCFG-190");
-            require(config.optimismPortal() == _contracts.OptimismPortal2, "CHECK-SCFG-200");
+            require(config.optimismPortal() == _contracts.OptimismPortal, "CHECK-SCFG-200");
             require(config.optimismMintableERC20Factory() == _contracts.OptimismMintableERC20Factory, "CHECK-SCFG-210");
         } else {
             require(config.owner() == address(0), "CHECK-SCFG-220");
@@ -166,8 +166,8 @@ library ChainAssertions {
         if (_isProxy) {
             require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-20");
             require(address(messenger.otherMessenger()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-30");
-            require(address(messenger.PORTAL()) == _contracts.OptimismPortal2, "CHECK-L1XDM-40");
-            require(address(messenger.portal()) == _contracts.OptimismPortal2, "CHECK-L1XDM-50");
+            require(address(messenger.PORTAL()) == _contracts.OptimismPortal, "CHECK-L1XDM-40");
+            require(address(messenger.portal()) == _contracts.OptimismPortal, "CHECK-L1XDM-50");
             require(address(messenger.superchainConfig()) == _contracts.SuperchainConfig, "CHECK-L1XDM-60");
             bytes32 xdmSenderSlot = _vm.load(address(messenger), bytes32(uint256(204)));
             require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER, "CHECK-L1XDM-70");
@@ -369,7 +369,7 @@ library ChainAssertions {
         internal
         view
     {
-        IOptimismPortal2 portal = IOptimismPortal2(payable(_contracts.OptimismPortal2));
+        IOptimismPortal2 portal = IOptimismPortal2(payable(_contracts.OptimismPortal));
         console.log(
             "Running chain assertions on the OptimismPortal2 %s at %s",
             _isProxy ? "proxy" : "implementation",
@@ -496,7 +496,7 @@ library ChainAssertions {
         // Ensure that the OPCM impls are correctly saved
         OPContractsManager.Implementations memory impls = _opcm.implementations();
         require(impls.l1ERC721BridgeImpl == _contracts.L1ERC721Bridge, "CHECK-OPCM-50");
-        require(impls.optimismPortalImpl == _contracts.OptimismPortal2, "CHECK-OPCM-60");
+        require(impls.optimismPortalImpl == _contracts.OptimismPortal, "CHECK-OPCM-60");
         require(impls.systemConfigImpl == _contracts.SystemConfig, "CHECK-OPCM-70");
         require(impls.optimismMintableERC20FactoryImpl == _contracts.OptimismMintableERC20Factory, "CHECK-OPCM-80");
         require(impls.l1CrossDomainMessengerImpl == _contracts.L1CrossDomainMessenger, "CHECK-OPCM-90");

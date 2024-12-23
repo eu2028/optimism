@@ -15,7 +15,7 @@ contract OptimismPortal2Kontrol is DeploymentSummaryFaultProofs, KontrolUtils {
     /// @dev Inlined setUp function for faster Kontrol performance
     ///      Tracking issue: https://github.com/runtimeverification/kontrol/issues/282
     function setUpInlined() public {
-        optimismPortal = OptimismPortal(payable(optimismPortal2ProxyAddress));
+        optimismPortal = OptimismPortal(payable(optimismPortalProxyAddress));
         superchainConfig = SuperchainConfig(superchainConfigProxyAddress);
     }
 

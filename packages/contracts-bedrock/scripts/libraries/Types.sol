@@ -13,7 +13,7 @@ library Types {
         address PermissionedDelayedWETH;
         address AnchorStateRegistry;
         address OptimismMintableERC20Factory;
-        address OptimismPortal2;
+        address OptimismPortal;
         address SystemConfig;
         address L1ERC721Bridge;
         address ProtocolVersions;

@@ -121,7 +121,7 @@ contract Deploy is Deployer {
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETHProxy"),
             AnchorStateRegistry: getAddress("AnchorStateRegistryProxy"),
             OptimismMintableERC20Factory: getAddress("OptimismMintableERC20FactoryProxy"),
-            OptimismPortal2: getAddress("OptimismPortal2Proxy"),
+            OptimismPortal: getAddress("OptimismPortalProxy"),
             SystemConfig: getAddress("SystemConfigProxy"),
             L1ERC721Bridge: getAddress("L1ERC721BridgeProxy"),
             ProtocolVersions: getAddress("ProtocolVersionsProxy"),
@@ -140,7 +140,7 @@ contract Deploy is Deployer {
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETH"),
             AnchorStateRegistry: getAddress("AnchorStateRegistry"),
             OptimismMintableERC20Factory: getAddress("OptimismMintableERC20Factory"),
-            OptimismPortal2: getAddress("OptimismPortal2"),
+            OptimismPortal: getAddress("OptimismPortal2"),
             SystemConfig: getAddress("SystemConfig"),
             L1ERC721Bridge: getAddress("L1ERC721Bridge"),
             ProtocolVersions: getAddress("ProtocolVersions"),
@@ -210,7 +210,7 @@ contract Deploy is Deployer {
         // Apply modifications for non-standard configurations not supported by the OPCM deployment
         if (cfg.useFaultProofs()) {
             vm.startPrank(ISuperchainConfig(mustGetAddress("SuperchainConfigProxy")).guardian());
-            IOptimismPortal2(mustGetAddress("OptimismPortal2Proxy")).setRespectedGameType(
+            IOptimismPortal2(mustGetAddress("OptimismPortalProxy")).setRespectedGameType(
                 GameType.wrap(uint32(cfg.respectedGameType()))
             );
             vm.stopPrank();
@@ -379,7 +379,7 @@ contract Deploy is Deployer {
         save("AnchorStateRegistryProxy", address(deployOutput.anchorStateRegistryProxy));
         save("AnchorStateRegistry", address(deployOutput.anchorStateRegistryImpl));
         save("PermissionedDisputeGame", address(deployOutput.permissionedDisputeGame));
-        save("OptimismPortal2Proxy", address(deployOutput.optimismPortalProxy));
+        save("OptimismPortalProxy", address(deployOutput.optimismPortalProxy));
 
         // Check if the permissionless game implementation is already set
         IDisputeGameFactory factory = IDisputeGameFactory(mustGetAddress("DisputeGameFactoryProxy"));
@@ -522,7 +522,7 @@ contract Deploy is Deployer {
                         l1ERC721Bridge: mustGetAddress("L1ERC721BridgeProxy"),
                         l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
-                        optimismPortal: mustGetAddress("OptimismPortal2Proxy"),
+                        optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
                         gasPayingToken: customGasTokenAddress
                     })

@@ -197,7 +197,7 @@ contract Setup {
         deploy.run();
         console.log("Setup: completed L1 deployment, registering addresses now");
 
-        optimismPortal2 = IOptimismPortal2(deploy.mustGetAddress("OptimismPortal2Proxy"));
+        optimismPortal2 = IOptimismPortal2(deploy.mustGetAddress("OptimismPortalProxy"));
         disputeGameFactory = IDisputeGameFactory(deploy.mustGetAddress("DisputeGameFactoryProxy"));
         delayedWeth = IDelayedWETH(deploy.mustGetAddress("DelayedWETHProxy"));
         systemConfig = ISystemConfig(deploy.mustGetAddress("SystemConfigProxy"));
@@ -211,7 +211,7 @@ contract Setup {
         superchainConfig = ISuperchainConfig(deploy.mustGetAddress("SuperchainConfigProxy"));
         anchorStateRegistry = IAnchorStateRegistry(deploy.mustGetAddress("AnchorStateRegistryProxy"));
 
-        vm.label(deploy.mustGetAddress("OptimismPortal2Proxy"), "OptimismPortal2Proxy");
+        vm.label(deploy.mustGetAddress("OptimismPortalProxy"), "OptimismPortalProxy");
         vm.label(address(disputeGameFactory), "DisputeGameFactory");
         vm.label(deploy.mustGetAddress("DisputeGameFactoryProxy"), "DisputeGameFactoryProxy");
         vm.label(address(delayedWeth), "DelayedWETH");
