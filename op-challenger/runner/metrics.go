@@ -88,12 +88,24 @@ func (m *Metrics) RecordVmMemoryUsed(vmType string, memoryUsed uint64) {
 
 func (m *Metrics) RecordSuccess(vmType string) {
 	m.successTotal.WithLabelValues(vmType).Inc()
+
+	// Ensure the other counters have at least 0 if they haven't yet been incremented.
+	m.failuresTotal.WithLabelValues(vmType).Add(0)
+	m.invalidTotal.WithLabelValues(vmType).Add(0)
 }
 
 func (m *Metrics) RecordFailure(vmType string) {
 	m.failuresTotal.WithLabelValues(vmType).Inc()
+
+	// Ensure the other counters have at least 0 if they haven't yet been incremented.
+	m.successTotal.WithLabelValues(vmType).Add(0)
+	m.invalidTotal.WithLabelValues(vmType).Add(0)
 }
 
 func (m *Metrics) RecordInvalid(vmType string) {
 	m.invalidTotal.WithLabelValues(vmType).Inc()
+
+	// Ensure the other counters have at least 0 if they haven't yet been incremented.
+	m.successTotal.WithLabelValues(vmType).Add(0)
+	m.failuresTotal.WithLabelValues(vmType).Add(0)
 }
