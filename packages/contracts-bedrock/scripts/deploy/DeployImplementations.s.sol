@@ -666,7 +666,7 @@ contract DeployImplementations is Script {
     // | DelayedWETH             | Yes     | Two bespoke (one per DisputeGame) | Yes *️⃣     |
     // | PreimageOracle          | No      | Shared                            | N/A        |
     // | MIPS                    | No      | Shared                            | N/A        |
-    // | OptimismPortal2         | Yes     | Shared                            | Yes *️⃣     |
+    // | OptimismPortal          | Yes     | Shared                            | Yes *️⃣     |
     //
     // - *️⃣ These contracts have immutable values which are intended to be constant for all contracts within a
     //   Superchain, and are therefore MCP ready for any chain using the Standard Configuration.
@@ -677,7 +677,7 @@ contract DeployImplementations is Script {
     // here we deploy:
     //
     //   - DisputeGameFactory (implementation)
-    //   - OptimismPortal2 (implementation)
+    //   - OptimismPortal (implementation)
     //   - DelayedWETH (implementation)
     //   - PreimageOracle (singleton)
     //   - MIPS (singleton)
@@ -689,7 +689,7 @@ contract DeployImplementations is Script {
     // - FaultDisputeGame (not proxied)
     // - PermissionedDisputeGame (not proxied)
     // - DelayedWeth (proxies only)
-    // - OptimismPortal2 (proxies only)
+    // - OptimismPortal (proxies only)
 
     function deployOptimismPortalImpl(
         DeployImplementationsInput _dii,

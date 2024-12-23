@@ -240,7 +240,7 @@ contract L1CrossDomainMessenger_Test is CommonTest {
     }
 
     /// @dev Tests that relayMessage reverts if attempting to relay a message
-    ///      with optimismPortal2 as the target
+    ///      with optimismPortal as the target
     function test_relayMessage_toOptimismPortal_reverts() external {
         address sender = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
         bytes memory message = hex"1111";

@@ -382,7 +382,7 @@ contract DeployOPChain is Script {
         vm.label(address(deployOutput.optimismMintableERC20FactoryProxy), "optimismMintableERC20FactoryProxy");
         vm.label(address(deployOutput.l1StandardBridgeProxy), "l1StandardBridgeProxy");
         vm.label(address(deployOutput.l1CrossDomainMessengerProxy), "l1CrossDomainMessengerProxy");
-        vm.label(address(deployOutput.optimismPortalProxy), "OptimismPortal2Proxy");
+        vm.label(address(deployOutput.optimismPortalProxy), "optimismPortalProxy");
         vm.label(address(deployOutput.disputeGameFactoryProxy), "disputeGameFactoryProxy");
         vm.label(address(deployOutput.anchorStateRegistryProxy), "anchorStateRegistryProxy");
         vm.label(address(deployOutput.anchorStateRegistryImpl), "anchorStateRegistryImpl");

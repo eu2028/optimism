@@ -360,7 +360,7 @@ library ChainAssertions {
         }
     }
 
-    /// @notice Asserts the OptimismPortal2 is setup correctly
+    /// @notice Asserts the OptimismPortal is setup correctly
     function checkOptimismPortal2(
         Types.ContractSet memory _contracts,
         DeployConfig _cfg,

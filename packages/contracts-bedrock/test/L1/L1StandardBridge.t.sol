@@ -289,7 +289,7 @@ contract L1StandardBridge_DepositETH_Test is PreBridgeETH {
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      Only EOA can call depositETH.
-    ///      ETH ends up in the optimismPortal2.
+    ///      ETH ends up in the optimismPortal.
     function test_depositETH_succeeds() external {
         _preBridgeETH({ isLegacy: true, value: 500 });
         uint256 balanceBefore = address(optimismPortal2).balance;
@@ -326,7 +326,7 @@ contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      Only EOA can call bridgeETH.
-    ///      ETH ends up in the optimismPortal2.
+    ///      ETH ends up in the optimismPortal.
     function test_bridgeETH_succeeds() external {
         _preBridgeETH({ isLegacy: false, value: 500 });
         uint256 balanceBefore = address(optimismPortal2).balance;
@@ -422,7 +422,7 @@ contract L1StandardBridge_DepositETHTo_Test is PreBridgeETHTo {
     ///      Emits ETHDepositInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      EOA or contract can call depositETHTo.
-    ///      ETH ends up in the optimismPortal2.
+    ///      ETH ends up in the optimismPortal.
     function test_depositETHTo_succeeds() external {
         _preBridgeETHTo({ isLegacy: true, value: 600 });
         uint256 balanceBefore = address(optimismPortal2).balance;
@@ -459,7 +459,7 @@ contract L1StandardBridge_BridgeETHTo_Test is PreBridgeETHTo {
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      Only EOA can call bridgeETHTo.
-    ///      ETH ends up in the optimismPortal2.
+    ///      ETH ends up in the optimismPortal.
     function test_bridgeETHTo_succeeds() external {
         _preBridgeETHTo({ isLegacy: false, value: 600 });
         uint256 balanceBefore = address(optimismPortal2).balance;
@@ -496,7 +496,7 @@ contract L1StandardBridge_DepositERC20_Test is CommonTest {
     // depositERC20
     // - updates bridge.deposits
     // - emits ERC20DepositInitiated
-    // - calls optimismPortal2.depositTransaction
+    // - calls optimismPortal.depositTransaction
     // - only callable by EOA
 
     /// @dev Tests that depositing ERC20 to the bridge succeeds.
