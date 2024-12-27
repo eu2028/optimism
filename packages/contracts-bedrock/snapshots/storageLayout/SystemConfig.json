@@ -96,5 +96,12 @@
     "offset": 4,
     "slot": "106",
     "type": "uint32"
+  },
+  {
+    "bytes": "8",
+    "label": "configUpdateNonce",
+    "offset": 8,
+    "slot": "106",
+    "type": "uint64"
   }
 ]

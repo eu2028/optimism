@@ -156,7 +156,7 @@ contract CommonTest is Test, Setup, Events {
     }
 
     /// @dev Helper function that wraps `TransactionDeposited` event.
-    ///      The magic `0` is the version.
+    ///      The magic `1` is the nonce + version.
     function emitTransactionDeposited(
         address _from,
         address _to,
@@ -168,7 +168,9 @@ contract CommonTest is Test, Setup, Events {
     )
         internal
     {
-        emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data));
+        emit TransactionDeposited(
+            _from, _to, 1 << 128 | 1, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data)
+        );
     }
 
     function enableLegacyContracts() public {

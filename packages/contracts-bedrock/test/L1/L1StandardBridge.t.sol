@@ -225,7 +225,7 @@ contract PreBridgeETH is CommonTest {
             assertEq(address(optimismPortal2).balance, 0);
         }
         uint256 nonce = l1CrossDomainMessenger.messageNonce();
-        uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
+        uint256 nonceAndVersion = 1 << 128 | 1; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(l1CrossDomainMessenger));
 
         bytes memory message = abi.encodeCall(StandardBridge.finalizeBridgeETH, (alice, alice, value, hex"dead"));
@@ -270,7 +270,7 @@ contract PreBridgeETH is CommonTest {
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(address(optimismPortal2));
-        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), version, opaqueData);
+        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), nonceAndVersion, opaqueData);
 
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(address(l1CrossDomainMessenger));
@@ -356,7 +356,7 @@ contract PreBridgeETHTo is CommonTest {
     ///      address depending on whether the bridge call is legacy or not.
     function _preBridgeETHTo(bool isLegacy, uint256 value) internal {
         uint256 nonce = l1CrossDomainMessenger.messageNonce();
-        uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
+        uint256 nonceAndVersion = 1 << 128 | 1; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(l1CrossDomainMessenger));
 
         if (isLegacy) {
@@ -402,7 +402,7 @@ contract PreBridgeETHTo is CommonTest {
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(address(optimismPortal2));
-        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), version, opaqueData);
+        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), nonceAndVersion, opaqueData);
 
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(address(l1CrossDomainMessenger));
@@ -506,7 +506,7 @@ contract L1StandardBridge_DepositERC20_Test is CommonTest {
     ///      Only EOA can call depositERC20.
     function test_depositERC20_succeeds() external {
         uint256 nonce = l1CrossDomainMessenger.messageNonce();
-        uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
+        uint256 nonceAndVersion = 1 << 128 | 1; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(l1CrossDomainMessenger));
 
         // Deal Alice's ERC20 State
@@ -551,7 +551,7 @@ contract L1StandardBridge_DepositERC20_Test is CommonTest {
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(address(optimismPortal2));
-        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), version, opaqueData);
+        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), nonceAndVersion, opaqueData);
 
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(address(l1CrossDomainMessenger));
@@ -589,7 +589,7 @@ contract L1StandardBridge_DepositERC20To_Test is CommonTest {
     ///      Contracts can call depositERC20.
     function test_depositERC20To_succeeds() external {
         uint256 nonce = l1CrossDomainMessenger.messageNonce();
-        uint256 version = 0; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
+        uint256 nonceAndVersion = 1 << 128 | 1; // Internal constant in the OptimismPortal: DEPOSIT_VERSION
         address l1MessengerAliased = AddressAliasHelper.applyL1ToL2Alias(address(l1CrossDomainMessenger));
 
         bytes memory message = abi.encodeCall(
@@ -618,7 +618,7 @@ contract L1StandardBridge_DepositERC20To_Test is CommonTest {
 
         // OptimismPortal emits a TransactionDeposited event on `depositTransaction` call
         vm.expectEmit(address(optimismPortal2));
-        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), version, opaqueData);
+        emit TransactionDeposited(l1MessengerAliased, address(l2CrossDomainMessenger), nonceAndVersion, opaqueData);
 
         // SentMessage event emitted by the CrossDomainMessenger
         vm.expectEmit(address(l1CrossDomainMessenger));

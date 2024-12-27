@@ -18,7 +18,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
 contract SystemConfig_Init is CommonTest {
-    event ConfigUpdate(uint256 indexed version, ISystemConfig.UpdateType indexed updateType, bytes data);
+    event ConfigUpdate(uint256 indexed nonceAndVersion, ISystemConfig.UpdateType indexed updateType, bytes data);
 }
 
 contract SystemConfig_Initialize_Test is SystemConfig_Init {
@@ -485,7 +485,7 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
         emit TransactionDeposited(
             0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
             Predeploys.L1_BLOCK_ATTRIBUTES,
-            0, // deposit version
+            2 << 128 | 1, // deposit version
             abi.encodePacked(
                 uint256(0), // mint
                 uint256(0), // value
@@ -588,7 +588,7 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
     /// @dev Tests that `setBatcherHash` updates the batcher hash successfully.
     function testFuzz_setBatcherHash_succeeds(bytes32 newBatcherHash) external {
         vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.BATCHER, abi.encode(newBatcherHash));
+        emit ConfigUpdate(4 << 128 | 1, ISystemConfig.UpdateType.BATCHER, abi.encode(newBatcherHash));
 
         vm.prank(systemConfig.owner());
         systemConfig.setBatcherHash(newBatcherHash);
@@ -600,7 +600,7 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         // always zero out most significant byte
         newScalar = (newScalar << 16) >> 16;
         vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.FEE_SCALARS, abi.encode(newOverhead, newScalar));
+        emit ConfigUpdate(4 << 128 | 1, ISystemConfig.UpdateType.FEE_SCALARS, abi.encode(newOverhead, newScalar));
 
         vm.prank(systemConfig.owner());
         systemConfig.setGasConfig(newOverhead, newScalar);
@@ -615,7 +615,9 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
             ffi.encodeScalarEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
 
         vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.FEE_SCALARS, abi.encode(systemConfig.overhead(), encoded));
+        emit ConfigUpdate(
+            4 << 128 | 1, ISystemConfig.UpdateType.FEE_SCALARS, abi.encode(systemConfig.overhead(), encoded)
+        );
 
         vm.prank(systemConfig.owner());
         systemConfig.setGasConfigEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
@@ -635,7 +637,7 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         newGasLimit = uint64(bound(uint256(newGasLimit), uint256(minimumGasLimit), uint256(maximumGasLimit)));
 
         vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.GAS_LIMIT, abi.encode(newGasLimit));
+        emit ConfigUpdate(4 << 128 | 1, ISystemConfig.UpdateType.GAS_LIMIT, abi.encode(newGasLimit));
 
         vm.prank(systemConfig.owner());
         systemConfig.setGasLimit(newGasLimit);
@@ -645,7 +647,7 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
     /// @dev Tests that `setUnsafeBlockSigner` updates the block signer successfully.
     function testFuzz_setUnsafeBlockSigner_succeeds(address newUnsafeSigner) external {
         vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.UNSAFE_BLOCK_SIGNER, abi.encode(newUnsafeSigner));
+        emit ConfigUpdate(4 << 128 | 1, ISystemConfig.UpdateType.UNSAFE_BLOCK_SIGNER, abi.encode(newUnsafeSigner));
 
         vm.prank(systemConfig.owner());
         systemConfig.setUnsafeBlockSigner(newUnsafeSigner);
@@ -661,7 +663,9 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
 
         vm.expectEmit(address(systemConfig));
         emit ConfigUpdate(
-            0, ISystemConfig.UpdateType.EIP_1559_PARAMS, abi.encode(uint256(_denominator) << 32 | uint64(_elasticity))
+            4 << 128 | 1,
+            ISystemConfig.UpdateType.EIP_1559_PARAMS,
+            abi.encode(uint256(_denominator) << 32 | uint64(_elasticity))
         );
 
         vm.prank(systemConfig.owner());

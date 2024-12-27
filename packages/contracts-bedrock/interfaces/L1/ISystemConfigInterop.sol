@@ -5,7 +5,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 
 interface ISystemConfigInterop {
-    event ConfigUpdate(uint256 indexed version, ISystemConfig.UpdateType indexed updateType, bytes data);
+    event ConfigUpdate(uint256 indexed nonceAndVersion, ISystemConfig.UpdateType indexed updateType, bytes data);
     event Initialized(uint8 version);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -27,6 +27,7 @@ interface ISystemConfigInterop {
     function gasLimit() external view returns (uint64);
     function eip1559Denominator() external view returns (uint32);
     function eip1559Elasticity() external view returns (uint32);
+    function configUpdateNonce() external view returns (uint64);
     function gasPayingToken() external view returns (address addr_, uint8 decimals_);
     function gasPayingTokenName() external view returns (string memory name_);
     function gasPayingTokenSymbol() external view returns (string memory symbol_);

@@ -261,6 +261,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("respectedGameTypeUpdatedAt()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("proofSubmitters(bytes32,uint256)") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("numProofSubmitters(bytes32)") });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("depositNonce()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("balance()") });
         _addSpec({
             _name: "OptimismPortalInterop",
@@ -313,6 +314,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("respectedGameTypeUpdatedAt()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("proofSubmitters(bytes32,uint256)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("numProofSubmitters(bytes32)") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("depositNonce()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("balance()") });
         _addSpec({
             _name: "OptimismPortal2",
@@ -363,6 +365,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfig", _sel: _getSel("gasLimit()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("eip1559Denominator()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("eip1559Elasticity()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("configUpdateNonce()") });
         _addSpec({ _name: "SystemConfig", _sel: ISystemConfig.initialize.selector });
         _addSpec({ _name: "SystemConfig", _sel: ISystemConfig.minimumGasLimit.selector });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("overhead()") });
@@ -418,6 +421,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("gasLimit()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("eip1559Denominator()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("eip1559Elasticity()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("configUpdateNonce()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.initialize.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfig.initialize.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.minimumGasLimit.selector });

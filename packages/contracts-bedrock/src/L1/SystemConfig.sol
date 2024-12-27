@@ -49,7 +49,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     }
 
     /// @notice Version identifier, used for upgrades.
-    uint256 public constant VERSION = 0;
+    uint256 public constant VERSION = 1;
 
     /// @notice Storage slot that the unsafe block signer is stored at.
     ///         Storing it at this deterministic storage slot allows for decoupling the storage
@@ -130,16 +130,19 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @notice The EIP-1559 elasticity multiplier.
     uint32 public eip1559Elasticity;
 
+    /// @notice Nonce incremented for each ConfigUpdate event
+    uint64 public configUpdateNonce;
+
     /// @notice Emitted when configuration is updated.
-    /// @param version    SystemConfig version.
-    /// @param updateType Type of update.
-    /// @param data       Encoded update data.
-    event ConfigUpdate(uint256 indexed version, UpdateType indexed updateType, bytes data);
+    /// @param nonceAndVersion Nonce (first 128-bits) and version (second 128-bits).
+    /// @param updateType      Type of update.
+    /// @param data            Encoded update data.
+    event ConfigUpdate(uint256 indexed nonceAndVersion, UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 2.3.0-beta.9
+    /// @custom:semver 2.3.0-beta.10
     function version() public pure virtual returns (string memory) {
-        return "2.3.0-beta.9";
+        return "2.3.0-beta.10";
     }
 
     /// @notice Constructs the SystemConfig contract.
@@ -323,7 +326,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
 
         bytes memory data = abi.encode(_unsafeBlockSigner);
-        emit ConfigUpdate(VERSION, UpdateType.UNSAFE_BLOCK_SIGNER, data);
+        _emitConfigUpdate(UpdateType.UNSAFE_BLOCK_SIGNER, data);
     }
 
     /// @notice Updates the batcher hash. Can only be called by the owner.
@@ -338,7 +341,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         batcherHash = _batcherHash;
 
         bytes memory data = abi.encode(_batcherHash);
-        emit ConfigUpdate(VERSION, UpdateType.BATCHER, data);
+        _emitConfigUpdate(UpdateType.BATCHER, data);
     }
 
     /// @notice Updates gas config. Can only be called by the owner.
@@ -359,7 +362,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         scalar = _scalar;
 
         bytes memory data = abi.encode(_overhead, _scalar);
-        emit ConfigUpdate(VERSION, UpdateType.FEE_SCALARS, data);
+        _emitConfigUpdate(UpdateType.FEE_SCALARS, data);
     }
 
     /// @notice Updates gas config as of the Ecotone upgrade. Can only be called by the owner.
@@ -379,7 +382,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         scalar = (uint256(0x01) << 248) | (uint256(_blobbasefeeScalar) << 32) | _basefeeScalar;
 
         bytes memory data = abi.encode(overhead, scalar);
-        emit ConfigUpdate(VERSION, UpdateType.FEE_SCALARS, data);
+        _emitConfigUpdate(UpdateType.FEE_SCALARS, data);
     }
 
     /// @notice Updates the L2 gas limit. Can only be called by the owner.
@@ -396,7 +399,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         gasLimit = _gasLimit;
 
         bytes memory data = abi.encode(_gasLimit);
-        emit ConfigUpdate(VERSION, UpdateType.GAS_LIMIT, data);
+        _emitConfigUpdate(UpdateType.GAS_LIMIT, data);
     }
 
     /// @notice Updates the EIP-1559 parameters of the chain. Can only be called by the owner.
@@ -415,7 +418,14 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         eip1559Elasticity = _elasticity;
 
         bytes memory data = abi.encode(uint256(_denominator) << 32 | uint64(_elasticity));
-        emit ConfigUpdate(VERSION, UpdateType.EIP_1559_PARAMS, data);
+        _emitConfigUpdate(UpdateType.EIP_1559_PARAMS, data);
+    }
+
+    /// @notice Emit a ConfigUpdate event and increment the nonce.
+    function _emitConfigUpdate(UpdateType _updateType, bytes memory _data) internal {
+        configUpdateNonce++;
+        uint256 _version = uint256(configUpdateNonce) << 128 | VERSION;
+        emit ConfigUpdate(_version, _updateType, _data);
     }
 
     /// @notice Sets the start block in a backwards compatible way. Proxies

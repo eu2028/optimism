@@ -325,7 +325,7 @@ contract OptimismPortal2_Test is CommonTest {
         emit TransactionDeposited(
             0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
             Predeploys.L1_BLOCK_ATTRIBUTES,
-            0,
+            1 << 128 | 1,
             abi.encodePacked(
                 uint256(0), // mint
                 uint256(0), // value
@@ -383,12 +383,15 @@ contract OptimismPortal2_Test is CommonTest {
         VmSafe.Log memory systemPath = logs[0];
         VmSafe.Log memory userPath = logs[1];
 
+        // nonce is incremented, copy it
+        bytes32 systemPathVersion = bytes32(uint256(systemPath.topics[3]) + (1 << 128));
+
         assertEq(systemPath.topics.length, 4);
         assertEq(systemPath.topics.length, userPath.topics.length);
-        assertEq(systemPath.topics[0], userPath.topics[0]);
-        assertEq(systemPath.topics[1], userPath.topics[1]);
-        assertEq(systemPath.topics[2], userPath.topics[2]);
-        assertEq(systemPath.topics[3], userPath.topics[3]);
+        assertEq(systemPath.topics[0], userPath.topics[0]); // address
+        assertEq(systemPath.topics[1], userPath.topics[1]); // from
+        assertEq(systemPath.topics[2], userPath.topics[2]); // to
+        assertEq(systemPathVersion, userPath.topics[3]); // nonceAndVersion
         assertEq(systemPath.data, userPath.data);
     }
 
@@ -1821,7 +1824,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
         emit TransactionDeposited(
             _from, // from
             _to,
-            uint256(0), // DEPOSIT_VERSION
+            uint256(1 << 128 | 1), // DEPOSIT_VERSION
             opaqueData
         );
 
@@ -2056,7 +2059,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
         emit TransactionDeposited(
             _from, // from
             _to,
-            uint256(0), // DEPOSIT_VERSION
+            uint256(1 << 128 | 1), // DEPOSIT_VERSION
             opaqueData
         );
 

@@ -38,7 +38,7 @@ interface IOptimismPortal2 {
     event DisputeGameBlacklisted(IDisputeGame indexed disputeGame);
     event Initialized(uint8 version);
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
-    event TransactionDeposited(address indexed from, address indexed to, uint256 indexed version, bytes opaqueData);
+    event TransactionDeposited(address indexed from, address indexed to, uint256 indexed nonceAndVersion, bytes opaqueData);
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
@@ -92,6 +92,7 @@ interface IOptimismPortal2 {
     function paused() external view returns (bool);
     function proofMaturityDelaySeconds() external view returns (uint256);
     function proofSubmitters(bytes32, uint256) external view returns (address);
+    function depositNonce() external view returns (uint64);
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         uint256 _disputeGameIndex,

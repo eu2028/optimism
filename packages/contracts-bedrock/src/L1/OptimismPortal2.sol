@@ -71,7 +71,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     uint256 internal immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS;
 
     /// @notice Version of the deposit event.
-    uint256 internal constant DEPOSIT_VERSION = 0;
+    uint256 internal constant DEPOSIT_VERSION = 1;
 
     /// @notice The L2 gas limit set when eth is deposited using the receive() function.
     uint64 internal constant RECEIVE_DEFAULT_GAS_LIMIT = 100_000;
@@ -141,14 +141,19 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     ///         It is not safe to trust `ERC20.balanceOf` as it may lie.
     uint256 internal _balance;
 
+    /// @notice Nonce incremented for each TransactionDeposited event
+    uint64 public depositNonce;
+
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
     ///         transactions on L2.
-    /// @param from       Address that triggered the deposit transaction.
-    /// @param to         Address that the deposit transaction is directed to.
-    /// @param version    Version of this deposit transaction event.
-    /// @param opaqueData ABI encoded deposit data to be parsed off-chain.
-    event TransactionDeposited(address indexed from, address indexed to, uint256 indexed version, bytes opaqueData);
+    /// @param from            Address that triggered the deposit transaction.
+    /// @param to              Address that the deposit transaction is directed to.
+    /// @param nonceAndVersion Nonce (first 128-bits) and version (second 128-bits).
+    /// @param opaqueData      ABI encoded deposit data to be parsed off-chain.
+    event TransactionDeposited(
+        address indexed from, address indexed to, uint256 indexed nonceAndVersion, bytes opaqueData
+    );
 
     /// @notice Emitted when a withdrawal transaction is proven.
     /// @param withdrawalHash Hash of the withdrawal transaction.
@@ -183,9 +188,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 3.11.0-beta.9
+    /// @custom:semver 3.11.0-beta.10
     function version() public pure virtual returns (string memory) {
-        return "3.11.0-beta.9";
+        return "3.11.0-beta.10";
     }
 
     /// @notice Constructs the OptimismPortal contract.
@@ -597,7 +602,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
-        emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
+        _emitTransactionDeposited(from, _to, opaqueData);
     }
 
     /// @notice Sets the gas paying token for the L2 system. This token is used as the
@@ -611,10 +616,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
         // Emit the special deposit transaction directly that sets the gas paying
         // token in the L1Block predeploy contract.
-        emit TransactionDeposited(
+        _emitTransactionDeposited(
             Constants.DEPOSITOR_ACCOUNT,
             Predeploys.L1_BLOCK_ATTRIBUTES,
-            DEPOSIT_VERSION,
             abi.encodePacked(
                 uint256(0), // mint
                 uint256(0), // value
@@ -623,6 +627,13 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
                 abi.encodeCall(IL1Block.setGasPayingToken, (_token, _decimals, _name, _symbol))
             )
         );
+    }
+
+    /// @notice Emit a TransactionDeposited event and increment the nonce.
+    function _emitTransactionDeposited(address _from, address _to, bytes memory _opaqueData) internal {
+        depositNonce++;
+        uint256 _version = uint256(depositNonce) << 128 | DEPOSIT_VERSION;
+        emit TransactionDeposited(_from, _to, _version, _opaqueData);
     }
 
     /// @notice Blacklists a dispute game. Should only be used in the event that a dispute game resolves incorrectly.

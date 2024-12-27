@@ -455,6 +455,10 @@ type SystemConfig struct {
 	// value will be 0 if Holocene is not active, or if derivation has yet to
 	// process any EIP_1559_PARAMS system config update events.
 	EIP1559Params Bytes8 `json:"eip1559Params"`
+	// DepositNonce identifies the nonce of the last TransactionDeposited event processed by this chain.
+	DepositNonce uint64 `json:"depositNonce"`
+	// ConfigUpdateNonce identifies the nonce of the last ConfigUpdate event processed by this chain.
+	ConfigUpdateNonce uint64 `json:"configUpdateNonce"`
 	// More fields can be added for future SystemConfig versions.
 
 	// MarshalPreHolocene indicates whether or not this struct should be

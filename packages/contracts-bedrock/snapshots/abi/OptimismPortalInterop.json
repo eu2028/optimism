@@ -102,6 +102,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "depositNonce",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -763,7 +776,7 @@
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "version",
+        "name": "nonceAndVersion",
         "type": "uint256"
       },
       {

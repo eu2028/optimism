@@ -25,9 +25,9 @@ contract OptimismPortalInterop is OptimismPortal2 {
         OptimismPortal2(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds)
     { }
 
-    /// @custom:semver +interop-beta.6
+    /// @custom:semver +interop-beta.7
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop-beta.6");
+        return string.concat(super.version(), "+interop-beta.7");
     }
 
     /// @notice Sets static configuration options for the L2 system.
@@ -41,10 +41,9 @@ contract OptimismPortalInterop is OptimismPortal2 {
         useGas(SYSTEM_DEPOSIT_GAS_LIMIT);
 
         // Emit the special deposit transaction directly that sets the config in the L1Block predeploy contract.
-        emit TransactionDeposited(
+        _emitTransactionDeposited(
             Constants.DEPOSITOR_ACCOUNT,
             Predeploys.L1_BLOCK_ATTRIBUTES,
-            DEPOSIT_VERSION,
             abi.encodePacked(
                 uint256(0), // mint
                 uint256(0), // value
