@@ -2,6 +2,6 @@
   "recommendations": [
     "editorconfig.editorconfig",
     "nomicfoundation.hardhat-solidity",
-    "golang.go"
+    "golan.go"
   ]
 }
