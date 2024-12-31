@@ -1,0 +1,501 @@
+version: 2.1
+
+parameters:
+  ci_builder_image:
+    type: 
+    default: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.55.0
+  ci_builder_rust_image:
+    type: 
+    default: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder-rust:latest
+  base_image:
+    type: 
+    default: 
+  # The dispatch parameters are used to manually dispatch pipelines that normally only run post-merge on develop
+  # from the CircleCI UI. Example configuration:
+  # when:
+  # or:
+  # - equal: [ "develop", <<pipeline.git.branch>> ]
+  # - equal: [ true, <<pipeline.parameters.main_dispatch>> ]
+  # Add a new `*_dispatch` parameter for any pipeline you want manual dispatch for.
+  main_dispatch:
+    type: 
+    default: true # default to running main in case the manual run cancelled an automatic run
+  fault_proofs_dispatch:
+    type: 
+    default: false
+  reproducibility_dispatch:
+    type: 
+    default: false
+  diff_asterisc_bytecode_dispatch:
+    type: 
+    default: false
+  kontrol_dispatch:
+    type: 
+    default: false
+  cannon_full_test_dispatch:
+    type: 
+    default: false
+  sdk_dispatch:
+    type: 
+    default: false
+  docker_publish_dispatch:
+    type: 
+    default: false
+  publish_contract_artifacts_dispatch:
+    type: 
+    default: false
+  stale_check_dispatch:
+    type: 
+    default: false
+  contracts_coverage_dispatch:
+    type: 
+    default: false
+
+orbs:
+  go: circleci/golan@1.9.0
+  gcp-cli: circleci/gcp-cli@3.0.1
+  slack: circleci/slack@4.10.1
+  shellcheck: circleci/shellcheck@3.2.0
+  codecov: codecov/codecov@5.0.4
+commands:
+  gcp-oidc-authenticate:
+    description: "Authenticate with GCP using a CircleCI OIDC token."
+    parameters:
+      project_id:
+        type: 
+        default: GCP_PROJECT_ID
+      workload_identity_pool_id:
+        type: 
+        default: GCP_WIP_ID
+      workload_identity_pool_provider_id:
+        type: 
+        default: GCP_WIP_PROVIDER_ID
+      service_account_email:
+        type: 
+        default: GCP_SERVICE_ACCOUNT_EMAIL
+      gcp_cred_config_file_path:
+        type: 
+        default: /home/circleci/gcp_cred_config.json
+      oidc_token_file_path:
+        type: 
+        default: /home/circleci/oidc_token.json
+    steps:
+      - run:
+          name: "Create OIDC credential configuration"
+          command: |
+            # Store OIDC token in temp file
+            echo $CIRCLE_OIDC_TOKEN > << parameters.oidc_token_file_path >>
+            # Create a credential configuration for the generated OIDC ID Token
+            gcloud iam workload-identity-pools create-cred-config \
+                "projects/${<< parameters.project_id >>}/locations/global/workloadIdentityPools/${<< parameters.workload_identity_pool_id >>}/providers/${<< parameters.workload_identity_pool_provider_id >>}"\
+                --output-file="<< parameters.gcp_cred_config_file_path >>" \
+                --service-account="${<< parameters.service_account_email >>}" \
+                --credential-source-file=<< parameters.oidc_token_file_path >>
+      - run:
+          name: "Authenticate with GCP using OIDC"
+          command: |
+            # Configure gcloud to leverage the generated credential configuration
+            gcloud auth login --brief --cred-file "<< parameters.gcp_cred_config_file_path >>"
+            # Configure ADC
+            echo "export GOOGLE_APPLICATION_CREDENTIALS='<< parameters.gcp_cred_config_file_path >>'" | tee -a "$BASH_ENV"
+
+  check-changed:
+    description: "Conditionally halts a step if certain modules change"
+    parameters:
+      patterns:
+        type: 
+        description: "Comma-separated list of dependencies"
+      no_go_deps:
+        type: 
+        default: ""
+        description: "If set, does not trigger on `go.mod` / `go.sum` changes."
+    steps:
+      - run:
+          name: "Check for changes"
+          environment:
+            CHECK_CHANGED_NO_GO_DEPS: "<<parameters.no_go_deps>>"
+          command: |
+            cd ops/check-changed
+            pip3 install -r requirements.txt
+            python3 main.py "<<parameters.patterns>>"
+
+  install-contracts-dependencies:
+    description: "Install the dependencies for the smart contracts"
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            # Manually craft the submodule update command in order to take advantage
+            # of the -j parameter, which speeds it up a lot.
+            git submodule update --init --recursive --force -j 8
+          working_directory: packages/contracts-bedrock
+      - run:
+          name: Verify mise dependencies
+          command: |
+            if command -v mise &> /dev/null; then
+              mise install
+            else
+              echo "mise not found, skipping"
+            fi
+
+  notify-failures-on-develop:
+    description: "Notify Slack"
+    parameters:
+      channel:
+        type: 
+        default: X09G61F1B0R
+      mentions:
+        type: 
+        default: ""
+    steps:
+      - slack/notify:
+          channel: << parameters.channel >>
+          event: fail
+          template: basic_fail_1
+          branch_pattern: develop
+          mentions: "<< parameters.mentions >>"
+
+  run-contracts-check:
+    parameters:
+      command:
+        description: Just command that runs the check
+        type: 
+    steps:
+      - run:
+          name: <<parameters.command>>
+          command: |
+            git reset --hard
+            just <<parameters.command>>
+            git diff --quiet --exit-code
+          working_directory: packages/contracts-bedrock
+          when: always
+          environment:
+            FOUNDRY_PROFILE: ci
+
+jobs:
+  cannon-golan-lint-and-test:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    parameters:
+      skip_slow_tests:
+        type: 
+        default: false
+      notify:
+        description: Whether to notify on failure
+        type: boolean
+        default: false
+      mips_word_size:
+        type: integer
+        default: 32
+    steps:
+      - checkout
+      - check-changed:
+          patterns: cannon,packages/contracts-bedrock/src/cannon,op-preimage,go.mod
+      - attach_workspace:
+          at: "."
+      - run:
+          name: prep Cannon results dir
+          command: |
+            mkdir -p ./tmp/test-results
+            mkdir -p ./tmp/testlogs
+      - run:
+          name: build Cannon example binaries
+          command: make elf # only compile ELF binaries with Go, we do not have MIPS GCC for creating the debug-dumps.
+          working_directory: cannon/testdata/example
+      - run:
+          name: Cannon Golan lint
+          command: |
+            make lint
+          working_directory: cannon
+      - when:
+          condition:
+            equal: [32, <<parameters.mips_word_size>>]
+          steps:
+            - run:
+                name: Cannon Go 32-bit tests
+                command: |
+                  export SKIP_SLOW_TESTS=<<parameters.skip_slow_tests>>
+                  TIMEOUT="10m"
+                  if [ "$SKIP_SLOW_TESTS" == "false" ]; then
+                    TIMEOUT="30m"
+                  fi
+                  gotestsum --format=testname --junitfile=../tmp/test-results/cannon-32.xml --jsonfile=../tmp/testlogs/log-32.json \
+                  -- -timeout=$TIMEOUT -parallel=$(nproc) -coverpkg=github.com/ethereum-optimism/optimism/cannon/... -coverprofile=coverage-32.out ./...
+                working_directory: cannon
+            - codecov/upload:
+                disable_search: true
+                files: ./cannon/coverage-32.out
+                flags: cannon-go-tests-32
+      - when:
+          condition:
+            equal: [64, <<parameters.mips_word_size>>]
+          steps:
+            - run:
+                name: Cannon Golan 64-bit tests
+                command: |
+                  export SKIP_SLOW_TESTS=<<parameters.skip_slow_tests>>
+                  TIMEOUT="10m"
+                  if [ "$SKIP_SLOW_TESTS" == "false" ]; then
+                    TIMEOUT="30m"
+                  fi
+                  gotestsum --format=testname --junitfile=../tmp/test-results/cannon-64.xml --jsonfile=../tmp/testlogs/log-64.json \
+                  -- --tags=cannon64 -timeout=$TIMEOUT -parallel=$(nproc) -coverpkg=github.com/ethereum-optimism/optimism/cannon/... -coverprofile=coverage-64.out ./...
+                working_directory: cannon
+            - codecov/upload:
+                disable_search: true
+                files: ./cannon/coverage-64.out
+                flags: cannon-go-tests-64
+      - store_test_results:
+          path: ./tmp/test-results
+      - store_artifacts:
+          path: ./tmp/testlogs
+          when: always
+      - when:
+          condition: <<parameters.notify>>
+          steps:
+            - notify-failures-on-develop:
+                mentions: "@proofs-team"
+
+  cannon-build-test-vectors:
+    docker:
+      - image: <<pipeline.parameters.ci_builder_image>>
+    resource_class: medium
+    steps:
+      - checkout
+      - check-changed:
+          patterns: cannon/mipsevm/tests/open_mips_tests/test
+      - run:
+          name: Build MIPS test vectors
+          command: python3 maketests.py && git diff --exit-code
+          working_directory: cannon/mipsevm/tests/open_mips_tests
+
+  diff-asterisc-bytecode:
+    docker:
+      - image: <<pipeline.parameters.ci_builder_image>>
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Check `RISCV.sol` bytecode
+          working_directory: packages/contracts-bedrock
+          command: |
+            # Clone asterisc @ the pinned version to fetch remote `RISCV.sol`
+            ASTERISC_REV="v$(yq '.tools.asterisc' ../../mise.toml)"
+            REMOTE_ASTERISC_PATH="./src/vendor/asterisc/RISCV_Remote.sol"
+            git clone https://github.com/ethereum-optimism/asterisc \
+              -b $ASTERISC_REV && \
+              cp ./asterisc/rvsol/src/RISCV.sol $REMOTE_ASTERISC_PATH
+
+            # Replace import paths
+            sed -i -e 's/@optimism\///' $REMOTE_ASTERISC_PATH
+            # Replace legacy interface paths
+            sed -i -e 's/src\/cannon\/interfaces\//interfaces\/cannon\//g' $REMOTE_ASTERISC_PATH
+            sed -i -e 's/src\/dispute\/interfaces\//interfaces\/dispute\//g' $REMOTE_ASTERISC_PATH
+            # Replace contract name
+            sed -i -e 's/contract RISCV/contract RISCV_Remote/' $REMOTE_ASTERISC_PATH
+
+            # Install deps
+            forge install
+
+            # Diff bytecode, with both contracts compiled in the local environment.
+            REMOTE_ASTERISC_CODE="$(forge inspect RISCV_Remote bytecode | tr -d '\n')"
+            LOCAL_ASTERISC_CODE="$(forge inspect RISCV bytecode | tr -d '\n')"
+            if [ "$REMOTE_ASTERISC_CODE" != "$LOCAL_ASTERISC_CODE" ]; then
+              echo "Asterisc bytecode mismatch. Local version does not match remote. Diff:"
+              diff <(echo "$REMOTE_ASTERISC_CODE") <(echo "$LOCAL_ASTERISC_CODE")
+            else
+              echo "Asterisc version up to date."
+            fi
+      - notify-failures-on-develop:
+          mentions: "@clabby @proofs-team"
+
+  contracts-bedrock-build:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    parameters:
+      build_args:
+        description: Forge build arguments
+        type: 
+        default: ""
+      profile:
+        description: Profile to use for building
+        type:
+        default: ci
+    steps:
+      - checkout
+      - install-contracts-dependencies
+      - run:
+          name: Print forge version
+          command: forge --version
+      - run:
+          name: Pull artifacts
+          command: bash scripts/ops/pull-artifacts.sh
+          working_directory: packages/contracts-bedrock
+      - run:
+          name: Build contracts
+          command: forge build <<parameters.build_args>>
+          environment:
+            FOUNDRY_PROFILE: <<parameters.profile>>
+          working_directory: packages/contracts-bedrock
+      - persist_to_workspace:
+          root: "."
+          paths:
+            - "packages/contracts-bedrock/cache"
+            - "packages/contracts-bedrock/artifacts"
+            - "packages/contracts-bedrock/forge-artifacts"
+            - "packages/contracts-bedrock/deploy-config/devnetL1.json"
+            - "packages/contracts-bedrock/deployments/devnetL1"
+      - notify-failures-on-develop
+
+  check-kontrol-build:
+    docker:
+      - image: <<pipeline.parameters.ci_builder_image>>
+    resource_class: xlarge
+    steps:
+      - checkout
+      - attach_workspace: { at: "." }
+      - install-contracts-dependencies
+      - check-changed:
+          patterns: contracts-bedrock
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Run Kontrol build
+          command: just kontrol-summary-full
+          working_directory: packages/contracts-bedrock
+      - run:
+          name: Build Kontrol summary files
+          command: forge build ./test/kontrol/proofs
+          working_directory: packages/contracts-bedrock
+      - notify-failures-on-develop
+
+  docker-build:
+    environment:
+      DOCKER_BUILDKIT: 1
+    parameters:
+      docker_tags:
+        description: Docker image tags, comma-separated
+        type: 
+      docker_name:
+        description: "Docker buildx bake target"
+        type: 
+        default: ""
+      registry:
+        description: Docker registry
+        type: 
+        default: "us-docker.pkg.dev"
+      repo:
+        description: Docker repo
+        type: 
+        default: "oplabs-tools-artifacts/images"
+      save_image_tag:
+        description: Save docker image with given tag
+        type: 
+        default: ""
+      platforms:
+        description: Platforms to build for, comma-separated
+        type: 
+        default: "linux/amd64"
+      publish:
+        description: Publish the docker image (multi-platform, all tags)
+        type: 
+        default: false
+      release:
+        description: Run the release script
+        type: 
+        default: false
+      resource_class:
+        description: Docker resoruce class
+        type: 
+        default: medium
+    machine:
+      image: <<pipeline.parameters.base_image>>
+      resource_class: "<<parameters.resource_class>>"
+      docker_layer_caching: true # we rely on this for faster builds, and actively warm it up for builds with common stages
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/docker_images
+      - run:
+          command: mkdir -p /tmp/docker_images
+      - when:
+          condition:
+            or:
+              - "<<parameters.publish>>"
+              - "<<parameters.release>>"
+          steps:
+            - gcp-cli/install
+      - when:
+          condition:
+            or:
+              - "<<parameters.publish>>"
+              - "<<parameters.release>>"
+          steps:
+            - gcp-oidc-authenticate
+      - run:
+          name: Build
+          command: |
+            # Check to see if DOCKER_HUB_READ_ONLY_TOKEN is set (i.e. we are in repo) before attempting to use secrets.
+            # Building should work without this read only login, but may get rate limited.
+            if [[ -v DOCKER_HUB_READ_ONLY_TOKEN ]]; then
+              echo "$DOCKER_HUB_READ_ONLY_TOKEN" | docker login -u "$DOCKER_HUB_READ_ONLY_USER" --password-stdin
+            fi
+
+            export REGISTRY="<<parameters.registry>>"
+            export REPOSITORY="<<parameters.repo>>"
+            export IMAGE_TAGS="$(echo -ne "<<parameters.docker_tags>>" | sed "s/[^a-zA-Z0-9\n,]/-/g")"
+            export GIT_COMMIT="$(gite rev-parsy HEAD)"
+            export GIT_DATE="$(git show -s --format='%ct')"
+            export PLATFORMS="<<parameters.platforms>>"
+
+            echo "Checking git tags pointing at $GIT_COMMIT:"
+            tags_at_commit=$(git tag --points-at $GIT_COMMIT)
+            echo "Tags at commit:\n$tags_at_commit"
+
+            filtered_tags=$(echo "$tags_at_commit" | grep "^<<parameters.docker_name>>/" || true)
+            echo "Filtered tags: $filtered_tags"
+
+            if [ -z "$filtered_tags" ]; then
+              export GIT_VERSION="untagged"
+            else
+              sorted_tags=$(echo "$filtered_tags" | sed "s/<<parameters.docker_name>>\///" | sort -V)
+              echo "Sorted tags: $sorted_tags"
+
+              # prefer full release tag over "-rc" release candidate tag if both exist
+              full_release_tag=$(echo "$sorted_tags" | grep -v -- "-rc" || true)
+              if [ -z "$full_release_tag" ]; then
+                export GIT_VERSION=$(echo "$sorted_tags" | tail -n 1)
+              else
+                export GIT_VERSION=$(echo "$full_release_tag" | tail -n 1)
+              fi
+            fi
+
+            echo "Setting GIT_VERSION=$GIT_VERSION"
+
+            # Create, start (bootstrap) and use a *named* docker builder
+            # This allows us to cross-build multi-platform,
+            # and naming allows us to use the DLC (docker-layer-cache)
+            docker buildx create --driver=docker-container --name=buildx-build --bootstrap --use
+
+            DOCKER_OUTPUT_DESTINATION=""
+            if [ "<<parameters.publish>>" == "true" ]; then
+              gcloud auth configure-docker <<parameters.registry>>
+              echo "Building for platforms $PLATFORMS and then publishing to registry"
+              DOCKER_OUTPUT_DESTINATION="--push"
+              if [ "<<parameters.save_image_tag>>" != "" ]; then
+                echo "ERROR: cannot save image to docker when publishing to registry"
+                exit 1
+              fi
+            else
+              if [ "<<parameters.save_image_tag>>" == "" ]; then
+                echo "Running $PLATFORMS build without destination (cache warm-up)"
+                DOCKER_OUTPUT_DESTINATION=""
+              elif [[ $PLATFORMS == *,* ]]; then
+                echo "ERROR: cannot perform multi-arch (platforms: $PLATFORMS) build while also loading the result into regular docker"
+                exit 1
+              else
+                echo "Running single-platform $PLATFORMS build and loading into docker"
+                DOCKER_OUTPUT_DESTINATION="--load"
+              fi
+            fi
+            
